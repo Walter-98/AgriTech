@@ -47,7 +47,7 @@ Da fare:
 Tutto software, gratis:
 - **Simulazione irrigazione:** `orto_sim.py simula --mese 7` confronta un timer fisso con un controllo a sensore. Con i
   valori di prova: a luglio il timer da 10 min/giorno lascia le piante in stress per centinaia di ore; ad aprile spreca
-  due terzi dell'acqua e fa ristagno. È il motivo per cui si misura invece di "dare acqua a orario".
+  da un terzo a due terzi dell'acqua (dipende dalla pioggia: prova `--seme 1`, `--seme 3`) e fa ristagno. È il motivo per cui si misura invece di "dare acqua a orario".
 - **Meteo reale:** Open-Meteo offre gratuitamente evapotraspirazione (ET0) e pioggia; salvale in un CSV
   `giorno,et0_mm,pioggia_mm` e usale con `--meteo`.
 - **Elettronica senza comprare nulla:** il simulatore online Wokwi permette di provare un ESP32 con sensore e relè
