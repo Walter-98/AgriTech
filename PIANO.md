@@ -189,7 +189,7 @@ riprendono.
 ## FASE 7 – Crescere (a step, sempre simulazione → banco → campo)
 - Più zone (lo stesso firmware: aggiungi pin in `config.py`, scenario nel simulatore, test).
 - Serra: apertura ventilazione e ombreggio in base alla temperatura.
-- Idroponica: controllo di pH ed EC della soluzione nutritiva.
+- Idroponica: controllo di pH ed EC della soluzione nutritiva; guida completa in `IDROPONICA.md`, da progettare prima nel gemello (modo "Idroponica in garage").
 - Energia solare: pannello 20-50 W + batteria per orti senza corrente (fai prima il bilancio dei consumi).
 - Impianti più grandi o professionali: valuta PLC/LOGO! e un elettricista per la parte a 230 V.
 

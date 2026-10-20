@@ -4,1523 +4,183 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: banda d'intestazione con i numeri chiave, schede in alto, contenuto a colonna larga come un quaderno di campagna */
+/* Layout: scena 3D grande in testa con i comandi sovrapposti, numeri chiave, poi schede di lavoro a colonna larga */
 :root {
-  --bg: #f4f6f2;          /* foglio, leggermente verde */
-  --carta: #fbfcfa;       /* superficie dei grafici e delle schede */
-  --ink: #16201a;
-  --ink-2: #4a554d;
-  --muted: #7b857e;
-  --riga: #dfe4dc;
-  --asse: #c2cabf;
-  --accent: #2f6b45;      /* verde foglia scuro */
-  --accent-soft: #e3eee5;
-  --terra: #8a5a2b;       /* terra: acqua ferma, materiali */
+  --bg: #f3f5f1; --carta: #fbfcfa; --ink: #16201a; --ink-2: #4a554d; --muted: #77817a; --riga: #dfe4dc; --asse: #c2cabf;
+  --accent: #2f6b45; --accent-soft: #e3eee5; --scelta: #e9f2ea;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
-  --ok: #0ca30c; --warn: #fab219; --crit: #d03b3b;
   --ok-ink: #006300; --warn-ink: #8a5d00; --crit-ink: #b02a2a;
   --f-display: "Familjen Grotesk", "Segoe UI", system-ui, sans-serif;
   --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
   --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f1311; --carta: #171c19; --ink: #e9eee9; --ink-2: #b9c3bb; --muted: #87918a;
-    --riga: #29302b; --asse: #3a433d; --accent: #7cc296; --accent-soft: #1d2a22; --terra: #c48a52;
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
-    --ok-ink: #3fc43f; --warn-ink: #f0b43a; --crit-ink: #ef7373;
-    color-scheme: dark;
-  }
+  :root:not([data-theme="light"]) { --bg: #0f1311; --carta: #171c19; --ink: #e9eee9; --ink-2: #b9c3bb; --muted: #87918a; --riga: #29302b; --asse: #3a433d;
+    --accent: #7cc296; --accent-soft: #1d2a22; --scelta: #1b2a21; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --ok-ink: #3fc43f; --warn-ink: #f0b43a; --crit-ink: #ef7373; color-scheme: dark; }
 }
-:root[data-theme="dark"] {
-  --bg: #0f1311; --carta: #171c19; --ink: #e9eee9; --ink-2: #b9c3bb; --muted: #87918a;
-  --riga: #29302b; --asse: #3a433d; --accent: #7cc296; --accent-soft: #1d2a22; --terra: #c48a52;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
-  --ok-ink: #3fc43f; --warn-ink: #f0b43a; --crit-ink: #ef7373;
-  color-scheme: dark;
-}
+:root[data-theme="dark"] { --bg: #0f1311; --carta: #171c19; --ink: #e9eee9; --ink-2: #b9c3bb; --muted: #87918a; --riga: #29302b; --asse: #3a433d;
+  --accent: #7cc296; --accent-soft: #1d2a22; --scelta: #1b2a21; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --ok-ink: #3fc43f; --warn-ink: #f0b43a; --crit-ink: #ef7373; color-scheme: dark; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body {
-  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 0 48px;
-}
-.pagina { max-width: 1120px; margin: 0 auto; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+.pagina { max-width: 1180px; margin: 0 auto; }
 h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.15; margin: 0; }
-h1 { font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 700; letter-spacing: -0.02em; }
-h2 { font-size: 1.45rem; font-weight: 600; }
-h3 { font-size: 1.1rem; font-weight: 600; }
-p { margin: 0; max-width: 68ch; }
+h1 { font-size: clamp(1.9rem, 4vw, 2.7rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.5rem; font-weight: 600; }
+h3 { font-size: 1.08rem; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
 .piccolo { font-size: 0.875rem; color: var(--ink-2); }
-.etichetta { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+.etichetta { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
 .num { font-variant-numeric: tabular-nums; }
 .dati { font-family: var(--f-data); font-size: 0.85rem; }
-a { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-header.testa { padding-block: 24px 16px; display: grid; gap: 16px; }
-.testa-riga { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; justify-content: space-between; }
-.kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--riga);
-  border: 1px solid var(--riga); border-radius: 14px; overflow: hidden; }
+header.testa { padding-block: 22px 14px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; }
+.modo { display: inline-flex; background: var(--carta); border: 1px solid var(--riga); border-radius: 999px; padding: 4px; gap: 4px; }
+.modo button { font: 600 0.95rem var(--f-body); border: 0; background: none; color: var(--ink-2); padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+.modo button[aria-pressed="true"] { background: var(--accent); color: var(--carta); }
+.scena-box { position: relative; border-radius: 18px; overflow: hidden; background: #b9cddd; height: clamp(440px, 68vh, 680px); border: 1px solid var(--riga); }
+#scena { position: absolute; inset: 0; }
+#scena canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.hud { position: absolute; display: grid; gap: 5px; padding: 10px 12px; border-radius: 12px; font-size: 0.84rem; color: var(--ink);
+  background: color-mix(in srgb, var(--carta) 84%, transparent); border: 1px solid color-mix(in srgb, var(--riga) 70%, transparent);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); max-width: calc(100% - 24px); }
+.hud-alto { top: 12px; left: 12px; min-width: 230px; }
+.hud-info { top: 12px; right: 12px; width: min(320px, calc(100% - 24px)); }
+.hud-info.vuoto { display: none; }
+.hud-basso { left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.hud .data { font: 700 1.15rem var(--f-display); }
+.hud input[type="range"] { flex: 1 1 160px; accent-color: var(--accent); padding: 0; border: 0; background: none; min-width: 0; }
+.hud select { width: auto; }
+.hud-basso .gruppo { display: flex; align-items: center; gap: 6px; flex: 1 1 220px; min-width: 0; }
+#inquadrature { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 100%; }
+.chipbtn { font: 600 0.8rem var(--f-body); border: 1px solid var(--asse); background: var(--carta); color: var(--ink); border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+.chipbtn:hover { border-color: var(--accent); color: var(--accent); }
+.zchip { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.zchip .barra { flex: 1; height: 6px; border-radius: 3px; background: var(--riga); overflow: hidden; min-width: 50px; }
+.zchip .barra span { display: block; height: 100%; border-radius: 3px; }
+.avviso { font-size: 0.8rem; font-weight: 600; }
+.avviso.crit { color: var(--crit-ink); } .avviso.warn { color: var(--warn-ink); } .avviso.ok { color: var(--ok-ink); }
+.giocatore { width: 2.3rem; height: 2.3rem; border-radius: 50%; padding: 0; display: grid; place-items: center; font-size: 1rem; flex: none; }
+.scena-nota { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: #16201a; }
+@media (max-width: 680px) {
+  .scena-box { height: clamp(520px, 82vh, 700px); }
+  .hud { font-size: 0.76rem; padding: 8px 10px; } .hud .data { font-size: 1rem; }
+  .hud-alto { max-width: 66%; min-width: 0; } .hud-info { top: auto; bottom: 128px; }
+  .hud-basso .lbl { display: none; }
+}
+.kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 1px; background: var(--riga); border: 1px solid var(--riga); border-radius: 14px; overflow: hidden; margin-block: 14px; }
 .kpi > div { background: var(--carta); padding: 12px 14px; display: grid; gap: 2px; min-width: 0; }
-.kpi .val { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+.kpi .val { font-size: 1.45rem; font-weight: 700; line-height: 1.2; }
 .kpi .sotto { font-size: 0.8rem; color: var(--ink-2); }
-
-nav.schede { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px;
-  display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--riga); }
+nav.schede { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px; display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--riga); }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
-nav.schede button { font: 600 0.95rem var(--f-body); color: var(--ink-2); background: none; border: 0; padding: 8px 12px;
-  border-radius: 8px; cursor: pointer; white-space: nowrap; }
+nav.schede button { font: 600 0.95rem var(--f-body); color: var(--ink-2); background: none; border: 0; padding: 8px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
 nav.schede button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); }
-nav.schede button:hover { color: var(--ink); }
-
-section.scheda { padding-block: 24px; display: grid; gap: 24px; }
+#contenuto { padding-block: 22px; display: grid; gap: 18px; }
 .blocco { display: grid; gap: 12px; min-width: 0; align-content: start; }
 .riquadro { background: var(--carta); border: 1px solid var(--riga); border-radius: 14px; padding: 18px; min-width: 0; }
-.due { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
-.tre { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-
-/* modulo */
-.campi { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px 16px; }
+.due { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+.tre { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; align-items: start; }
+.testa-riga { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+.campi { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; }
 label.campo { display: grid; gap: 4px; font-size: 0.875rem; color: var(--ink-2); font-weight: 600; }
-input, select { font: 400 1rem var(--f-body); color: var(--ink); background: var(--bg); border: 1px solid var(--asse);
-  border-radius: 6px; padding: 6px 8px; width: 100%; min-width: 0; }
-input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
-.spunta { display: flex; gap: 8px; align-items: center; font-size: 0.95rem; color: var(--ink); }
-button.az { font: 600 0.95rem var(--f-body); background: var(--accent); color: var(--carta); border: 0; border-radius: 8px;
-  padding: 8px 14px; cursor: pointer; }
+input, select { font: 400 1rem var(--f-body); color: var(--ink); background: var(--bg); border: 1px solid var(--asse); border-radius: 6px; padding: 6px 8px; width: 100%; min-width: 0; }
+input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; margin-top: 2px; }
+.spunta { display: flex; gap: 8px; align-items: flex-start; font-size: 0.95rem; color: var(--ink); }
+button.az { font: 600 0.92rem var(--f-body); background: var(--accent); color: var(--carta); border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; justify-self: start; }
 button.az.sec { background: none; color: var(--accent); border: 1px solid var(--accent); }
-button.az:disabled { opacity: 0.5; cursor: not-allowed; }
+button.az:disabled { opacity: 0.45; cursor: not-allowed; }
+button.link { font: 600 0.85rem var(--f-body); background: none; border: 0; color: var(--accent); padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; justify-self: start; }
+.opzioni { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.opzione { text-align: left; display: grid; gap: 3px; align-content: start; background: var(--bg); border: 1px solid var(--riga); border-radius: 12px; padding: 10px 12px; cursor: pointer; color: var(--ink); font: inherit; }
+.opzione:hover { border-color: var(--asse); }
+.opzione.scelta { background: var(--scelta); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.op-nome { font-weight: 700; font-size: 0.95rem; }
+.op-dett { font-size: 0.8rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.op-pro, .op-contro { font-size: 0.8rem; }
+.op-pro { color: var(--ok-ink); } .op-contro { color: var(--warn-ink); }
+.evidenzia { animation: lampo 1.6s ease; border-radius: 12px; }
+@keyframes lampo { 0%, 60% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .evidenzia { animation: none; outline: 2px solid var(--accent); } }
 .scorri { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--riga); vertical-align: top; }
-th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; }
+th { font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.zone td { vertical-align: middle; }
-.zone input[type="number"] { width: 5.5em; }
-.pallino { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-
-/* messaggi del gemello */
-.msg { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 12px 14px; border-bottom: 1px solid var(--riga); }
+table.zone td { vertical-align: middle; } table.zone input[type="number"] { width: 5em; }
+table.guida td { font-size: 0.85rem; }
+.pallino { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; flex: none; }
+.msg { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 11px 2px; border-bottom: 1px solid var(--riga); }
 .msg:last-child { border-bottom: 0; }
-.chip { font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; align-self: start;
-  border: 1px solid currentColor; }
+.msg > div { display: grid; gap: 2px; min-width: 0; }
+.chip { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; align-self: start; border: 1px solid currentColor; }
 .chip.ok { color: var(--ok-ink); } .chip.warn { color: var(--warn-ink); } .chip.crit { color: var(--crit-ink); }
-.chip::before { margin-right: 4px; }
-.chip.ok::before { content: "✓"; } .chip.warn::before { content: "!"; } .chip.crit::before { content: "✕"; }
-
-/* grafici */
-.grafico { position: relative; }
-.grafico svg { width: 100%; height: auto; display: block; }
+.chip.ok::before { content: "✓ "; } .chip.warn::before { content: "! "; } .chip.crit::before { content: "✕ "; }
+.mat { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--riga); }
+.mat:last-child { border-bottom: 0; }
+.mat .perche { grid-column: 1 / -1; font-size: 0.85rem; color: var(--ink-2); }
+.mat .link { grid-column: 1 / -1; }
+.liv { white-space: nowrap; font-size: 0.7rem; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+.lista { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 0.92rem; }
+.grafico { position: relative; } .grafico svg { width: 100%; height: auto; display: block; }
 .grafico text { fill: var(--muted); font: 12px var(--f-body); }
 .legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.85rem; color: var(--ink-2); }
 .legenda i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
 .legenda i.box { height: 10px; width: 10px; border-radius: 2px; }
-.tip { position: absolute; pointer-events: none; background: var(--carta); border: 1px solid var(--asse); border-radius: 8px;
-  padding: 8px 10px; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(0,0,0,0.12); min-width: 150px; z-index: 3; }
-.tip .r { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
-.tip .r b { font-variant-numeric: tabular-nums; }
+.tip { position: absolute; pointer-events: none; background: var(--carta); border: 1px solid var(--asse); border-radius: 8px; padding: 8px 10px; font-size: 0.85rem; box-shadow: 0 4px 14px rgba(0,0,0,0.12); min-width: 150px; z-index: 3; }
+.tip .r { display: flex; align-items: center; gap: 8px; justify-content: space-between; } .tip .r b { font-variant-numeric: tabular-nums; }
 .tip .k { display: inline-block; width: 12px; height: 2px; margin-right: 6px; vertical-align: middle; }
-#g-acqua-schema text, #g-corrente-schema text { fill: var(--muted); font: 12px var(--f-body); }
-details > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.9rem; }
-
-/* materiali */
-.mat { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--riga); }
-.mat:last-child { border-bottom: 0; }
-.mat .perche { grid-column: 1 / -1; font-size: 0.875rem; color: var(--ink-2); }
-.liv { white-space: nowrap; font-size: 0.72rem; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
-.fase-bar { display: grid; gap: 8px; }
-.sensore { display: grid; gap: 6px; }
-.sensore .riga { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-
-.passi { display: grid; gap: 0; counter-reset: passo; }
+.passi { display: grid; counter-reset: passo; }
 .passo { display: grid; grid-template-columns: 2.4rem 1fr; gap: 4px 12px; padding: 14px 0; border-bottom: 1px solid var(--riga); }
-.passo::before { counter-increment: passo; content: counter(passo); font: 700 1.1rem var(--f-display); color: var(--accent);
-  width: 2rem; height: 2rem; border-radius: 50%; border: 2px solid var(--accent); display: grid; place-items: center; }
+.passo:last-child { border-bottom: 0; }
+.passo::before { counter-increment: passo; content: counter(passo); font: 700 1.05rem var(--f-display); color: var(--accent); width: 2rem; height: 2rem; border-radius: 50%; border: 2px solid var(--accent); display: grid; place-items: center; }
 .passo > div { display: grid; gap: 4px; min-width: 0; }
-code, pre { font-family: var(--f-data); font-size: 0.82rem; }
-pre { background: var(--bg); border: 1px solid var(--riga); border-radius: 8px; padding: 10px; overflow-x: auto; white-space: pre; margin: 0; }
-.copia { display: grid; gap: 6px; }
-@media (prefers-reduced-motion: no-preference) { nav.schede button { transition: background 0.15s; } }
-/* scena 3D */
-.scena-box { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid var(--riga); background: #9fc3dd;
-  height: clamp(380px, 62vh, 620px); }
-#scena { position: absolute; inset: 0; }
-#scena canvas { display: block; width: 100%; height: 100%; touch-action: none; }
-.hud { position: absolute; display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; font-size: 0.85rem;
-  background: color-mix(in srgb, var(--carta) 82%, transparent); color: var(--ink); border: 1px solid color-mix(in srgb, var(--riga) 70%, transparent);
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); max-width: calc(100% - 24px); }
-.hud-alto { top: 12px; left: 12px; min-width: 210px; }
-.hud-info { top: 12px; right: 12px; width: min(300px, calc(100% - 24px)); }
-.hud-basso { left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.hud .data { font: 700 1.25rem var(--f-display); }
-.hud-basso input[type="range"] { flex: 1 1 200px; accent-color: var(--accent); padding: 0; border: 0; background: none; }
-.hud-basso select { width: auto; }
-.zchip { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
-.zchip .barra { flex: 1; height: 6px; border-radius: 3px; background: var(--riga); overflow: hidden; min-width: 60px; }
-.zchip .barra span { display: block; height: 100%; border-radius: 3px; }
-.avviso { font-size: 0.8rem; font-weight: 600; }
-.avviso.crit { color: var(--crit-ink); } .avviso.warn { color: var(--warn-ink); } .avviso.ok { color: var(--ok-ink); }
-.giocatore { width: 2.2rem; height: 2.2rem; border-radius: 50%; padding: 0; display: grid; place-items: center; font-size: 1rem; }
-.scena-nota { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: #16201a; }
-@media (max-width: 640px) {
-  .scena-box { height: clamp(460px, 78vh, 640px); }
-  .hud { font-size: 0.78rem; padding: 8px 10px; }
-  .hud .data { font-size: 1.05rem; }
-  .hud-alto { min-width: 0; max-width: 62%; }
-  .hud-info { top: auto; bottom: 70px; }
-  .hud-info.vuoto { display: none; }
-  .hud-basso label { display: none; }
-  .zchip .barra { min-width: 36px; }
-}
-
+pre { font-family: var(--f-data); font-size: 0.8rem; background: var(--bg); border: 1px solid var(--riga); border-radius: 8px; padding: 10px; overflow-x: auto; margin: 0; }
+details > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.9rem; }
+.scorri svg text { fill: var(--muted); }
 </style>
 
 <div class="pagina">
-<header class="testa">
-  <div class="testa-riga">
-    <div style="display:grid;gap:4px">
-      <span class="etichetta">AgriTech · gemello digitale dell'orto</span>
+  <header class="testa">
+    <div style="display:grid;gap:6px">
+      <span class="etichetta">AgriTech · gemello digitale</span>
       <h1>Gemello AgriTech</h1>
+      <p class="piccolo">Costruisci il tuo impianto pezzo per pezzo e guardalo vivere un anno: acqua, corrente, clima, raccolto, costi e guasti, prima di comprare qualcosa.</p>
     </div>
-    <p class="piccolo" style="max-width:52ch">Un anno del tuo orto simulato giorno per giorno: acqua, corrente, costi, sensori e raccolto, prima di comprare qualcosa. I numeri sono stime da tarare con le prove vere.</p>
-  </div>
+    <div class="modo" role="group" aria-label="Tipo di impianto">
+      <button type="button" data-m="orto" aria-pressed="true">Orto in terra</button>
+      <button type="button" data-m="idro" aria-pressed="false">Idroponica in garage</button>
+    </div>
+  </header>
+
   <div class="scena-box" id="scena-box">
-    <div id="scena" aria-label="Vista 3D dell'orto: trascina per ruotare, rotella o due dita per lo zoom, clicca un oggetto per sapere cos'è"></div>
+    <div id="scena" aria-label="Vista 3D: trascina per ruotare, rotella o due dita per lo zoom, clicca un oggetto per sapere cos'è e cambiarlo"></div>
     <div class="hud hud-alto" id="hud-stato" aria-live="polite"></div>
-    <div class="hud hud-info vuoto" id="hud-info"><span class="etichetta">Clicca un oggetto</span><span class="piccolo">Cisterna, pompa, quadro, sensori, valvole, piante: ti dico cos'è, a cosa serve e quanto costa. Trascina per ruotare.</span></div>
+    <div class="hud hud-info vuoto" id="hud-info"></div>
     <div class="hud hud-basso">
-      <button class="az giocatore" id="gioca" aria-label="Avvia l'anno">▶</button>
-      <label class="piccolo" for="giorno" style="white-space:nowrap">Giorno dell'anno</label>
-      <input type="range" id="giorno" min="0" max="364" step="1" value="196">
+      <button class="az giocatore" id="gioca" type="button" aria-label="Avvia l'anno">▶</button>
+      <div class="gruppo"><label class="piccolo lbl" for="giorno">Giorno</label><input type="range" id="giorno" min="0" max="364" step="1" value="196"></div>
+      <div class="gruppo"><label class="piccolo lbl" for="ora">Ora</label><input type="range" id="ora" min="0" max="23" step="1" value="11"></div>
       <select id="velocita" aria-label="Velocità"><option value="1">1 giorno/s</option><option value="5" selected>5 giorni/s</option><option value="15">15 giorni/s</option></select>
+      <div id="inquadrature" aria-label="Inquadrature"></div>
     </div>
   </div>
+
   <div class="kpi" id="kpi" aria-live="polite"></div>
-</header>
+  <div class="riquadro blocco"><h3>Cosa ti dice il gemello</h3><div id="messaggi"></div></div>
 
-<nav class="schede" role="tablist" aria-label="Sezioni">
-  <button role="tab" id="t-orto" aria-selected="true" data-s="orto">Il mio orto</button>
-  <button role="tab" id="t-gemello" aria-selected="false" data-s="gemello">Simulazione</button>
-  <button role="tab" id="t-costi" aria-selected="false" data-s="costi">Costi</button>
-  <button role="tab" id="t-materiali" aria-selected="false" data-s="materiali">Materiali e sensori</button>
-  <button role="tab" id="t-struttura" aria-selected="false" data-s="struttura">Struttura</button>
-  <button role="tab" id="t-gestione" aria-selected="false" data-s="gestione">Gestione</button>
-  <button role="tab" id="t-percorso" aria-selected="false" data-s="percorso">Percorso</button>
-</nav>
-
-<!-- IL MIO ORTO -->
-<section class="scheda" id="s-orto" role="tabpanel" aria-labelledby="t-orto">
-  <div class="blocco">
-    <h2>Il tuo orto</h2>
-    <p class="piccolo">Parte con un esempio (4 zone, 10 m²). Cambia i valori: tutto il resto si ricalcola subito e resta salvato in questo browser.</p>
-  </div>
-  <div class="riquadro blocco">
-    <h3>Dove e come</h3>
-    <div class="campi">
-      <label class="campo">Zona d'Italia<select id="regione"></select></label>
-      <label class="campo">Anno da simulare<select id="anno">
-        <option value="medio">Anno medio</option><option value="secco">Anno secco (metà pioggia, più caldo)</option><option value="piovoso">Anno piovoso</option></select></label>
-      <label class="campo">Terreno<select id="terreno"></select></label>
-      <label class="campo">Gestione dell'acqua<select id="gestione">
-        <option value="sensori">Sensori di umidità (gemello)</option><option value="timer">Timer a orario fisso</option></select></label>
-      <label class="campo">Livello dell'impianto<select id="livello">
-        <option value="1">1 · Base: funziona, poche sicurezze</option><option value="2">2 · Sicuro (consigliato)</option><option value="3">3 · Completo: dati e avvisi</option></select></label>
-    </div>
-  </div>
-  <div class="riquadro blocco">
-    <h3>Zone e piante</h3>
-    <p class="piccolo">Una zona è un gruppo di piante con la stessa sete e la stessa valvola. Massimo 4 zone con un ESP32.</p>
-    <div class="scorri"><table class="zone"><thead><tr><th>Zona</th><th>Pianta</th><th class="n">m²</th><th>Da</th><th class="n">Cicli</th><th>Pacciamatura</th><th>Aiuola rialzata</th><th></th></tr></thead><tbody id="zone"></tbody></table></div>
-    <div><button class="az sec" id="aggiungi">Aggiungi zona</button></div>
-  </div>
-  <div class="due">
-    <div class="riquadro blocco">
-      <h3>Acqua</h3>
-      <div class="campi">
-        <label class="campo">Da dove prendi l'acqua<select id="fonte"><option value="cisterna">Cisterna di acqua piovana + pompa</option><option value="rubinetto">Rubinetto (acqua di rete, senza pompa)</option></select></label>
-        <label class="campo" data-cisterna>Cisterna (litri)<input id="cisterna" type="number" min="100" step="100"></label>
-        <label class="campo" data-cisterna>Tetto collegato alla grondaia (m²)<input id="tetto" type="number" min="0" step="1"></label>
-        <label class="campo" data-cisterna>Pompa<select id="pompa"></select></label>
-        <label class="campo">Prezzo acqua di rete (€/m³)<input id="prezzo_acqua" type="number" min="0" step="0.1"></label>
-      </div>
-      <label class="spunta" data-cisterna><input type="checkbox" id="rete_riserva"> Se la cisterna è vuota uso il rubinetto</label>
-    </div>
-    <div class="riquadro blocco">
-      <h3>Corrente</h3>
-      <div class="campi">
-        <label class="campo">Alimentazione<select id="corrente"><option value="rete">Presa di casa (230 V → 12 V)</option><option value="solare">Pannello solare + batteria</option></select></label>
-        <label class="campo" data-rete>Prezzo corrente (€/kWh)<input id="prezzo_kwh" type="number" min="0" step="0.01"></label>
-        <label class="campo" data-solare>Pannello (W)<select id="pannello"></select></label>
-        <label class="campo" data-solare>Batteria 12 V (Ah)<select id="batteria"></select></label>
-      </div>
-      <p class="piccolo">Prezzi di acqua e corrente: guarda la tua bolletta. I valori iniziali sono medi indicativi.</p>
-    </div>
-  </div>
-  <div class="riquadro blocco">
-    <h3>Cosa ti dice il gemello</h3>
-    <div id="messaggi"></div>
-  </div>
-</section>
-
-<!-- SIMULAZIONE -->
-<section class="scheda" id="s-gemello" role="tabpanel" aria-labelledby="t-gemello" hidden>
-  <div class="blocco">
-    <h2>Un anno nel gemello</h2>
-    <p class="piccolo" id="sim-intro"></p>
-  </div>
-  <div class="riquadro blocco">
-    <h3>Umidità del terreno, zona per zona</h3>
-    <p class="piccolo">Sotto il 30% la pianta soffre; il sistema irriga sotto il 45% e smette al 70%. Le linee mancano quando la zona è vuota.</p>
-    <div class="legenda" id="leg-umid"></div>
-    <div class="grafico" id="g-umid"></div>
-  </div>
-  <div class="due">
-    <div class="riquadro blocco">
-      <h3>Acqua usata mese per mese</h3>
-      <div class="legenda" id="leg-acqua"></div>
-      <div class="grafico" id="g-acqua"></div>
-    </div>
-    <div class="riquadro blocco" id="box-cisterna">
-      <h3>Livello della cisterna</h3>
-      <p class="piccolo" id="cisterna-nota"></p>
-      <div class="grafico" id="g-cisterna"></div>
-    </div>
-  </div>
-  <div class="due">
-    <div class="riquadro blocco">
-      <h3>Corrente consumata mese per mese</h3>
-      <p class="piccolo" id="energia-nota"></p>
-      <div class="grafico" id="g-energia"></div>
-    </div>
-    <div class="riquadro blocco" id="box-batteria">
-      <h3>Carica della batteria</h3>
-      <p class="piccolo" id="batteria-nota"></p>
-      <div class="grafico" id="g-batteria"></div>
-    </div>
-  </div>
-  <div class="riquadro blocco">
-    <h3>Zona per zona</h3>
-    <div class="scorri"><table><thead><tr><th>Zona</th><th class="n">Acqua (L)</th><th class="n">Giorni in sofferenza</th><th class="n">Ore di acqua ferma</th><th class="n">Raccolto (kg)</th><th class="n">Valore (€)</th></tr></thead><tbody id="t-zone"></tbody></table></div>
-    <details><summary>Tabella mese per mese</summary><div class="scorri"><table><thead><tr><th>Mese</th><th class="n">Pioggia (mm)</th><th class="n">Acqua usata (L)</th><th class="n">Da cisterna (L)</th><th class="n">Da rubinetto (L)</th><th class="n">Raccolta dal tetto (L)</th><th class="n">Corrente (Wh)</th></tr></thead><tbody id="t-mesi"></tbody></table></div></details>
-  </div>
-</section>
-
-<!-- COSTI -->
-<section class="scheda" id="s-costi" role="tabpanel" aria-labelledby="t-costi" hidden>
-  <div class="blocco">
-    <h2>Quanto costa, davvero</h2>
-    <p class="piccolo">Si spende a tappe e solo dopo aver superato le prove della tappa prima. Le fasi 0-3 (strumenti, requisiti, simulazione, collaudo virtuale) costano 0 €.</p>
-  </div>
-  <div class="due">
-    <div class="riquadro blocco">
-      <h3>Spesa a tappe</h3>
-      <div class="grafico" id="g-tappe"></div>
-      <div class="scorri"><table><thead><tr><th>Tappa</th><th class="n">Questa tappa</th><th class="n">Totale fin qui</th></tr></thead><tbody id="t-tappe"></tbody></table></div>
-    </div>
-    <div class="riquadro blocco">
-      <h3>Ogni anno</h3>
-      <div class="scorri"><table><tbody id="t-anno"></tbody></table></div>
-      <p class="piccolo" id="ritorno"></p>
-    </div>
-  </div>
-  <div class="riquadro blocco">
-    <h3>Confronto tra i livelli</h3>
-    <div class="scorri"><table><thead><tr><th>Livello</th><th class="n">Per iniziare</th><th>Cosa ti protegge</th></tr></thead><tbody id="t-livelli"></tbody></table></div>
-  </div>
-</section>
-
-<!-- MATERIALI -->
-<section class="scheda" id="s-materiali" role="tabpanel" aria-labelledby="t-materiali" hidden>
-  <div class="blocco">
-    <h2>Lista della spesa e sensori</h2>
-    <p class="piccolo">Calcolata sul tuo orto e sul livello scelto. Prezzi indicativi da negozi online di elettronica e fai da te: verificali al momento. Ogni pezzo dice perché serve e quale problema evita (provato nel simulatore).</p>
-  </div>
-  <div id="materiali" class="due"></div>
-  <div class="blocco">
-    <h2>I sensori spiegati</h2>
-    <div id="sensori" class="tre"></div>
-  </div>
-</section>
-
-<!-- STRUTTURA -->
-<section class="scheda" id="s-struttura" role="tabpanel" aria-labelledby="t-struttura" hidden>
-  <div class="blocco">
-    <h2>Come è fatto l'impianto</h2>
-    <p class="piccolo">Due percorsi: quello dell'acqua e quello della corrente. Le sicurezze stanno sull'ESP32 nel quadro, così funzionano anche senza Wi-Fi.</p>
-  </div>
-  <div class="riquadro blocco"><h3>Percorso dell'acqua</h3><div class="scorri" id="g-acqua-schema"></div></div>
-  <div class="riquadro blocco"><h3>Percorso della corrente e dei segnali</h3><div class="scorri" id="g-corrente-schema"></div></div>
-  <div class="riquadro blocco">
-    <h3>Collegamenti dell'ESP32</h3>
-    <p class="piccolo">Gli stessi di <code>firmware/esp32-irrigazione/config.py</code> nel repository.</p>
-    <div class="scorri"><table><thead><tr><th>Cosa</th><th>Pin</th><th>Note</th></tr></thead><tbody id="t-pin"></tbody></table></div>
-  </div>
-</section>
-
-<!-- GESTIONE -->
-<section class="scheda" id="s-gestione" role="tabpanel" aria-labelledby="t-gestione" hidden>
-  <div class="blocco">
-    <h2>Gestirlo ogni giorno</h2>
-    <p class="piccolo">Il sistema irriga da solo e ti avvisa. A te restano pochi minuti di controllo e qualche lavoro a stagione.</p>
-  </div>
-  <div class="tre" id="routine"></div>
-  <div class="riquadro blocco">
-    <h3>Cosa vuol dire ogni allarme</h3>
-    <div class="scorri"><table><thead><tr><th>Allarme</th><th>Cosa succede</th><th>Cosa fai</th><th>Si sblocca</th></tr></thead><tbody id="t-allarmi"></tbody></table></div>
-  </div>
-</section>
-
-<!-- PERCORSO -->
-<section class="scheda" id="s-percorso" role="tabpanel" aria-labelledby="t-percorso" hidden>
-  <div class="blocco">
-    <h2>Dal gemello alla realtà</h2>
-    <p class="piccolo">Ogni tappa ha un cancello: non si passa (e non si spende) finché le prove non sono superate. Il dettaglio è in <code>PIANO.md</code> e <code>COLLAUDO.md</code> del repository Walter-98/AgriTech.</p>
-  </div>
-  <div class="riquadro"><div class="passi" id="passi"></div></div>
-  <div class="riquadro blocco">
-    <h3>Porta il tuo orto nel simulatore dettagliato</h3>
-    <p class="piccolo">Questo gemello lavora a giorni per pianificare. Il simulatore del repository lavora minuto per minuto con la stessa logica dell'ESP32, guasti compresi. Copia il comando e lancialo nella cartella del progetto.</p>
-    <div class="copia"><pre id="cmd"></pre><div><button class="az sec" id="copia-cmd">Copia il comando</button> <span class="piccolo" id="copiato" aria-live="polite"></span></div></div>
-    <details><summary>La tua configurazione (JSON)</summary><pre id="cfg-json"></pre></details>
-  </div>
-</section>
+  <nav class="schede" id="schede" role="tablist" aria-label="Sezioni"></nav>
+  <main id="contenuto"></main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script>
-"use strict";
-// ---------- dati ----------
-const MESI = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
-const GIORNI_MESE = [31,28,31,30,31,30,31,31,30,31,30,31];
-const INIZIO_MESE = GIORNI_MESE.reduce((a, g, i) => { a.push(i ? a[i-1] + GIORNI_MESE[i-1] : 0); return a; }, []);
-// Medie indicative per zona: ET0 mm/giorno, pioggia mm/mese, giorni di pioggia, temperatura media °C, sole kWh/m²/giorno
-const REGIONI = {
-  nord:   {nome:"Nord (pianura)", et0:[0.6,1.1,2.0,3.0,4.0,4.8,5.2,4.4,3.0,1.6,0.8,0.5], p:[60,55,70,80,90,65,55,70,80,100,95,65], gp:[7,6,7,9,9,7,5,6,6,8,8,7], t:[2,4,9,13,18,22,25,24,19,13,7,3], sole:[1.5,2.4,3.6,4.6,5.5,6.2,6.6,5.6,4.2,2.7,1.6,1.2]},
-  centro: {nome:"Centro", et0:[1.0,1.5,2.4,3.3,4.4,5.4,6.0,5.3,3.8,2.3,1.3,0.9], p:[80,75,65,70,50,30,20,35,75,110,110,90], gp:[8,8,8,8,6,4,2,3,6,8,9,9], t:[8,9,11,14,18,22,25,25,21,17,12,9], sole:[2.0,2.9,4.1,5.1,6.0,6.8,7.1,6.3,4.8,3.4,2.2,1.7]},
-  sud:    {nome:"Sud", et0:[1.1,1.6,2.6,3.5,4.6,5.7,6.3,5.7,4.1,2.6,1.5,1.0], p:[90,80,70,55,35,20,15,25,60,95,110,100], gp:[9,8,8,7,5,3,2,3,5,8,9,10], t:[9,10,12,15,19,23,26,26,23,18,14,11], sole:[2.3,3.1,4.3,5.3,6.3,7.1,7.4,6.6,5.1,3.7,2.5,2.0]},
-  isole:  {nome:"Isole (Sardegna, Sicilia)", et0:[1.2,1.7,2.7,3.6,4.8,5.9,6.6,6.0,4.3,2.8,1.6,1.1], p:[65,60,50,45,30,12,5,12,40,70,85,80], gp:[8,7,7,6,4,2,1,2,4,7,8,9], t:[10,10,12,14,18,22,25,26,23,19,15,11], sole:[2.4,3.3,4.5,5.5,6.6,7.3,7.6,6.8,5.3,3.9,2.7,2.1]},
-};
-const ANNI = {medio:{pioggia:1, et:1}, secco:{pioggia:0.5, et:1.1}, piovoso:{pioggia:1.6, et:0.95}};
-const TERRENI = {
-  sabbioso:  {nome:"Sabbioso (sciolto)", cap:35, dren:30},
-  medio:     {nome:"Medio (franco)", cap:60, dren:8},
-  argilloso: {nome:"Argilloso (pesante)", cap:85, dren:2},
-};
-// Piante: coefficiente colturale, mesi di semina/trapianto, giorni del ciclo, piante per m², resa kg/m² per ciclo, €/kg al negozio (indicativi)
-const PIANTE = {
-  pomodoro:  {nome:"Pomodoro", kc:1.10, mesi:[4,5], giorni:120, m2:2.5, resa:6, prezzo:2.5},
-  zucchina:  {nome:"Zucchina", kc:1.00, mesi:[4,5,6], giorni:90, m2:1, resa:5, prezzo:2.0},
-  peperone:  {nome:"Peperone", kc:1.05, mesi:[4,5], giorni:120, m2:3, resa:3, prezzo:3.0},
-  melanzana: {nome:"Melanzana", kc:1.05, mesi:[4,5], giorni:120, m2:2.5, resa:4, prezzo:2.5},
-  fagiolino: {nome:"Fagiolino", kc:1.05, mesi:[4,5,6,7], giorni:75, m2:12, resa:1.5, prezzo:4.0},
-  lattuga:   {nome:"Lattuga", kc:1.00, mesi:[3,4,5,8,9], giorni:60, m2:9, resa:2.5, prezzo:2.0},
-  rucola:    {nome:"Rucola", kc:1.00, mesi:[3,4,9,10], giorni:40, m2:100, resa:1.2, prezzo:10},
-  spinacio:  {nome:"Spinacio", kc:1.00, mesi:[2,3,9,10], giorni:50, m2:40, resa:1.5, prezzo:4.0},
-  basilico:  {nome:"Basilico", kc:1.00, mesi:[4,5,6], giorni:90, m2:16, resa:1.2, prezzo:15},
-  carota:    {nome:"Carota", kc:1.00, mesi:[3,4,7,8], giorni:100, m2:80, resa:3, prezzo:1.5},
-  patata:    {nome:"Patata", kc:1.10, mesi:[2,3,4], giorni:110, m2:4, resa:3, prezzo:1.2},
-  cipolla:   {nome:"Cipolla", kc:1.00, mesi:[2,3,10], giorni:150, m2:40, resa:3, prezzo:1.5},
-  aglio:     {nome:"Aglio", kc:0.95, mesi:[10,11], giorni:230, m2:30, resa:1, prezzo:6},
-  fava:      {nome:"Fava", kc:1.05, mesi:[10,11], giorni:180, m2:8, resa:1.5, prezzo:3.0},
-  cavolo:    {nome:"Cavolfiore", kc:1.00, mesi:[7,8], giorni:120, m2:3, resa:2.5, prezzo:2.0},
-  fragola:   {nome:"Fragola", kc:0.90, mesi:[3,4,9], giorni:365, m2:8, resa:1.2, prezzo:6},
-};
-const POMPE = {
-  piccola: {nome:"12 V a membrana, 1,5 L/min, 12 W", portata:1.5, w:12, prezzo:[8,15]},
-  media:   {nome:"12 V a membrana, 3,5 L/min, 36 W", portata:3.5, w:36, prezzo:[15,30]},
-};
-const PORTATA_RUBINETTO = 4;              // L/min verso la zona con l'ala gocciolante
-const PANNELLI = [10, 20, 30, 50, 80, 100];
-const BATTERIE = [7, 12, 18, 26, 40, 60];
-const PREZZO_PANNELLO = w => [w * 0.9 + 5, w * 1.4 + 8];
-const PREZZO_BATTERIA = ah => [ah * 1.9 + 5, ah * 2.6 + 8];
-const BASE_W = {1: 0.9, 2: 1.1, 3: 1.4};  // ESP32 con Wi-Fi, relè a riposo, sensori, perdite dell'alimentatore
-const VALVOLA_W = 5;
-
-const ESEMPIO = {
-  regione:"isole", anno:"medio", terreno:"medio", gestione:"sensori", livello:2,
-  fonte:"cisterna", cisterna:1000, tetto:15, pompa:"piccola", prezzo_acqua:2.0, rete_riserva:true,
-  corrente:"rete", prezzo_kwh:0.30, pannello:20, batteria:12,
-  zone:[
-    {coltura:"pomodoro", area:4, mese:4, cicli:1, pacciamatura:true, rialzata:false},
-    {coltura:"zucchina", area:3, mese:5, cicli:1, pacciamatura:true, rialzata:false},
-    {coltura:"lattuga", area:2, mese:3, cicli:2, pacciamatura:false, rialzata:false},
-    {coltura:"basilico", area:1, mese:5, cicli:1, pacciamatura:false, rialzata:false},
-  ],
-};
-let cfg;
-try { cfg = JSON.parse(localStorage.getItem("gemello-agritech") || "null"); } catch (e) { cfg = null; }
-if (!cfg || !Array.isArray(cfg.zone)) cfg = JSON.parse(JSON.stringify(ESEMPIO));
-cfg = Object.assign(JSON.parse(JSON.stringify(ESEMPIO)), cfg);
-function salva() { try { localStorage.setItem("gemello-agritech", JSON.stringify(cfg)); } catch (e) {} }
-
-// ---------- utilità ----------
-const $ = id => document.getElementById(id);
-const fmt = (v, d = 0) => Number(v).toLocaleString("it-IT", {minimumFractionDigits: d, maximumFractionDigits: d});
-const euro = v => fmt(v, v < 10 ? 2 : 0) + " €";
-const forbice = (a, b) => Math.round(a) === Math.round(b) ? euro(a) : fmt(a) + "–" + fmt(b) + " €";
-function el(tag, attrs, ...figli) {
-  const e = document.createElement(tag);
-  for (const k in (attrs || {})) {
-    if (k === "class") e.className = attrs[k];
-    else if (k === "text") e.textContent = attrs[k];
-    else if (k.startsWith("on")) e.addEventListener(k.slice(2), attrs[k]);
-    else e.setAttribute(k, attrs[k]);
-  }
-  for (const f of figli) if (f != null) e.append(f);
-  return e;
-}
-const NS = "http://www.w3.org/2000/svg";
-function sv(tag, attrs, testo) {
-  const e = document.createElementNS(NS, tag);
-  for (const k in attrs) e.setAttribute(k, attrs[k]);
-  if (testo != null) e.textContent = testo;
-  return e;
-}
-function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
-  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-const meseDi = d => { for (let m = 11; m >= 0; m--) if (d >= INIZIO_MESE[m]) return m; return 0; };
-const COLORI = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)"];
-
-// ---------- meteo dell'anno ----------
-function meteo(c) {
-  const R = REGIONI[c.regione], A = ANNI[c.anno], rnd = mulberry32(20240 + Object.keys(REGIONI).indexOf(c.regione) * 7 + Object.keys(ANNI).indexOf(c.anno));
-  const giorni = [];
-  for (let d = 0; d < 365; d++) {
-    const m = meseDi(d);
-    const g1 = rnd(), g2 = rnd();
-    const gauss = Math.sqrt(-2 * Math.log(g1 + 1e-9)) * Math.cos(2 * Math.PI * g2);
-    const prob = Math.min(0.95, R.gp[m] / GIORNI_MESE[m] * (A.pioggia < 1 ? 0.75 : A.pioggia > 1 ? 1.2 : 1));
-    const media = R.p[m] / R.gp[m] * A.pioggia / (A.pioggia < 1 ? 0.75 : A.pioggia > 1 ? 1.2 : 1);
-    const piove = rnd() < prob;
-    giorni.push({m, et0: Math.max(0.2, R.et0[m] * A.et * (1 + 0.15 * gauss)), pioggia: piove ? -Math.log(1 - rnd()) * media : 0,
-                 sole: R.sole[m] * (piove ? 0.3 : 1), t: R.t[m]});
-  }
-  return giorni;
-}
-
-// ---------- simulazione giornaliera ----------
-function attiva(z, d) {
-  const inizio = INIZIO_MESE[z.mese - 1], durata = Math.min(365, PIANTE[z.coltura].giorni * Math.max(1, z.cicli));
-  return ((d - inizio + 365) % 365) < durata;
-}
-function simula(c, opz = {}) {
-  const M = opz.meteo || meteo(c), T = TERRENI[c.terreno];
-  const n = c.zone.length;
-  const conCisterna = c.fonte === "cisterna";
-  const capCisterna = opz.capCisterna != null ? opz.capCisterna : (conCisterna ? c.cisterna : 0);
-  const portata = conCisterna ? POMPE[c.pompa].portata : PORTATA_RUBINETTO;
-  const pompaW = conCisterna ? POMPE[c.pompa].w : 0;
-  const valvoleW = VALVOLA_W * (conCisterna ? 1 : 2);          // con il rubinetto c'è anche la valvola generale
-  const reteAcqua = !conCisterna || c.rete_riserva || opz.acquaInfinita;
-  const solare = c.corrente === "solare";
-  const battWh = (opz.batteria || c.batteria) * 12 * 0.5;      // batteria al piombo: si usa metà della capacità
-  const pannelloW = opz.pannello || c.pannello;
-  const baseW = BASE_W[c.livello] + (solare ? 0 : 0.5);         // alimentatore da rete: ~0,5 W di perdite
-  const sensori = (opz.gestione || c.gestione) === "sensori";
-  const zone = c.zone.map((z, i) => {
-    const P = PIANTE[z.coltura];
-    const kc = P.kc * (z.pacciamatura ? 0.8 : 1);
-    const picco = Math.max(...P.mesi.map(m => REGIONI[c.regione].et0[Math.min(11, m + 1)])) * kc;
-    return {i, z, P, kc, cap: T.cap, dren: z.rialzata ? Math.max(T.dren, 15) : T.dren, u: 0.6, picco,
-            litri: 0, stress: 0, ristagno: 0, attivi: 0};
-  });
-  let cisterna = capCisterna * 0.8, soc = battWh * 0.9, spento = false;
-  const out = {giorni: [], mesi: Array.from({length: 12}, () => ({pioggia: 0, usata: 0, cisterna: 0, rete: 0, raccolta: 0, wh: 0})),
-               litri: 0, daCisterna: 0, daRete: 0, mancata: 0, raccolta: 0, troppoPieno: 0, wh: 0, giorniSpento: 0,
-               giorniBatteriaBassa: 0, cisternaVuota: 0, domanda: [], entrate: []};
-  for (let d = 0; d < 365; d++) {
-    const g = M[d], dom = M[(d + 1) % 365];
-    const entrata = conCisterna ? g.pioggia * c.tetto * 0.8 : 0;
-    cisterna += entrata;
-    if (cisterna > capCisterna) { out.troppoPieno += cisterna - capCisterna; cisterna = capCisterna; }
-    out.raccolta += Math.min(entrata, entrata); out.mesi[g.m].raccolta += entrata; out.mesi[g.m].pioggia += g.pioggia;
-    out.entrate.push(entrata);
-    let acceso = true, pompaPermessa = true;
-    if (solare) {
-      if (spento && soc > battWh * 0.25) spento = false;
-      if (spento) acceso = false;
-      if (acceso && c.livello >= 2 && soc < battWh * 0.35) { pompaPermessa = false; out.giorniBatteriaBassa++; }
-    }
-    let litriGiorno = 0, domandaGiorno = 0;
-    const umid = [], acquaFerma = [], crescita = [], irrigata = [];
-    for (const s of zone) {
-      const on = attiva(s.z, d);
-      const et = on ? g.et0 * s.kc * Math.min(1, s.u / 0.5) : g.et0 * 0.25 * Math.min(1, s.u / 0.5);
-      s.u = Math.max(0, s.u - et / s.cap);
-      let eccesso = 0;
-      s.u += g.pioggia / s.cap;
-      if (s.u > 1) { eccesso += (s.u - 1) * s.cap; s.u = 1; }
-      s.oggi = 0;
-      if (on) {
-        s.attivi++;
-        let bisogno = 0;
-        if (sensori) {
-          if (s.u < 0.45 && !(dom.pioggia >= 3 && s.u >= 0.30)) bisogno = (0.70 - s.u) * s.cap * s.z.area;
-        } else bisogno = s.picco * s.z.area;
-        domandaGiorno += bisogno;
-        let dato = 0;
-        if (bisogno > 0 && acceso && pompaPermessa) {
-          const daC = Math.min(bisogno, Math.max(0, cisterna - (conCisterna ? capCisterna * 0.05 : 0)));
-          cisterna -= daC; dato = daC; out.daCisterna += daC; out.mesi[g.m].cisterna += daC;
-          if (dato < bisogno && reteAcqua) {
-            const daR = bisogno - dato; dato += daR; out.daRete += daR; out.mesi[g.m].rete += daR;
-          }
-          if (dato < bisogno) { out.mancata += bisogno - dato; if (conCisterna) out.cisternaVuota++; }
-        } else if (bisogno > 0) out.mancata += bisogno;
-        s.litri += dato; litriGiorno += dato; s.oggi = dato;
-        s.u += dato / s.z.area / s.cap;
-        if (s.u > 1) { eccesso += (s.u - 1) * s.cap; s.u = 1; }
-        if (s.u < 0.30) s.stress++;
-        s.ristagno += Math.min(24, eccesso / s.dren);
-        s.ferma = Math.max(0, (s.ferma || 0) * 0.5 + eccesso - s.dren * 24);
-      } else s.ferma = 0;
-      umid.push(on ? s.u : null);
-      acquaFerma.push(on ? Math.min(1, (s.ferma + eccesso) / 30) : 0);
-      const dal = (d - INIZIO_MESE[s.z.mese - 1] + 365) % 365;
-      crescita.push(on ? (dal % s.P.giorni) / s.P.giorni : 0);
-      irrigata.push(on && s.oggi > 0);
-    }
-    out.domanda.push(domandaGiorno);
-    const minutiPompa = litriGiorno / portata;
-    const wh = acceso ? baseW * 24 + minutiPompa / 60 * (pompaW + valvoleW) : 0;
-    if (solare) {
-      soc = Math.min(battWh, soc + pannelloW * g.sole * 0.75 * 0.9 - wh);
-      if (soc <= 0) { soc = 0; spento = true; }
-      if (!acceso) out.giorniSpento++;
-    }
-    out.wh += wh; out.mesi[g.m].wh += wh; out.litri += litriGiorno; out.mesi[g.m].usata += litriGiorno;
-    out.giorni.push({d, umid, cisterna, soc: solare ? soc / battWh : null, litri: litriGiorno, pioggia: g.pioggia, sole: g.sole,
-                     acquaFerma, crescita, irrigata, acceso, pompaPermessa});
-  }
-  out.zone = zone.map(s => {
-    const fattore = Math.max(0.3, 1 - 0.02 * s.stress - 0.002 * Math.max(0, s.ristagno - 24));
-    const kg = s.P.resa * s.z.area * Math.max(1, s.z.cicli) * fattore;
-    return {litri: s.litri, stress: s.stress, ristagno: s.ristagno, kg, valore: kg * s.P.prezzo, attivi: s.attivi};
-  });
-  out.kg = out.zone.reduce((a, z) => a + z.kg, 0);
-  out.valore = out.zone.reduce((a, z) => a + z.valore, 0);
-  out.stress = out.zone.reduce((a, z) => a + z.stress, 0);
-  out.ristagno = out.zone.reduce((a, z) => a + z.ristagno, 0);
-  out.kwh = out.wh / 1000;
-  out.portata = portata;
-  return out;
-}
-
-// cisterna che servirebbe per non usare mai il rubinetto (metodo del picco sequenziale, due anni di fila)
-function cisternaIdeale(c, M) {
-  const s = simula(Object.assign({}, c, {fonte: "cisterna", rete_riserva: true}), {meteo: M, capCisterna: 1e9});
-  let k = 0, max = 0;
-  for (let giro = 0; giro < 2; giro++) for (let d = 0; d < 365; d++) {
-    k = Math.max(0, k + s.domanda[d] - s.entrate[d]); max = Math.max(max, k);
-  }
-  return {litri: max, domanda: s.domanda.reduce((a, b) => a + b, 0), entrata: s.entrate.reduce((a, b) => a + b, 0)};
-}
-function solareIdeale(c, M) {
-  for (const w of PANNELLI) for (const ah of BATTERIE) {
-    const s = simula(Object.assign({}, c, {corrente: "solare"}), {meteo: M, pannello: w, batteria: ah});
-    if (s.giorniSpento === 0 && s.giorniBatteriaBassa === 0) return {w, ah};
-  }
-  return null;
-}
-
-// ---------- materiali ----------
-function materiali(c, livello) {
-  const n = c.zone.length, L = livello != null ? livello : c.livello;
-  const cist = c.fonte === "cisterna", sol = c.corrente === "solare";
-  const area = c.zone.reduce((a, z) => a + z.area, 0);
-  const rele = n + (cist ? 1 : 1);
-  const voci = [
-    // elettronica
-    {cat:"Elettronica", fase:"4a", liv:1, nome:"ESP32 DevKit con USB", q:1, p:[6,10], perche:"Il cervello: legge i sensori e comanda pompa e valvole con la logica provata nel simulatore."},
-    {cat:"Elettronica", fase:"4a", liv:1, nome:"Sensore di umidità capacitivo v2.0", q:n, p:[2,3], perche:"Uno per zona. Capacitivo, non a forchetta: quello resistivo si corrode in poche settimane.", sensore:"umidita"},
-    {cat:"Elettronica", fase:"4a", liv:1, nome:rele <= 4 ? "Modulo relè 4 canali optoisolato" : "Modulo relè 8 canali optoisolato", q:1, p:rele <= 4 ? [4,6] : [6,9], perche:"Accende pompa e valvole a 12 V comandato dall'ESP32 a 3,3 V."},
-    {cat:"Elettronica", fase:"4a", liv:1, nome:"Breadboard, cavetti, morsetti", q:1, p:[5,8], perche:"Per le prove sul tavolo e poi per i collegamenti nel quadro."},
-    {cat:"Elettronica", fase:"4b", liv:1, nome:"Galleggiante di minimo per la cisterna", q:cist ? 1 : 0, p:[2,3], perche:"La pompa non gira mai a secco (scenario serbatoio_vuoto).", sensore:"galleggiante"},
-    {cat:"Elettronica", fase:"4b", liv:1, nome:"Pulsante reset allarmi", q:1, p:[0.5,1], perche:"Sblocca gli allarmi dopo che hai riparato."},
-    {cat:"Elettronica", fase:"4b", liv:2, nome:"Step-down 12→5 V separato per l'ESP32 + condensatore 1000 µF", q:1, p:[2,3], perche:"Evita i riavvii quando parte la pompa (scenario brownout_pompa: senza, la zona si allaga)."},
-    {cat:"Elettronica", fase:"4b", liv:2, nome:"Sonda acqua sul fondo del quadro", q:1, p:[1,2], perche:"Allarme e pompa ferma se entra acqua nel quadro (scenario quadro_allagato).", sensore:"allagamento"},
-    {cat:"Elettronica", fase:"4b", liv:2, nome:"DHT22 temperatura e umidità aria", q:1, p:[3,5], perche:"Niente irrigazione col gelo, avviso col caldo (scenari gelata_tardiva, ondata_calore).", sensore:"dht"},
-    {cat:"Elettronica", fase:"4b", liv:2, nome:"Sensore di livello a ultrasuoni JSN-SR04T", q:cist ? 1 : 0, p:[6,9], perche:"Litri in cisterna: riserva, pompa che non eroga, previsione di quanti giorni restano.", sensore:"livello"},
-    {cat:"Elettronica", fase:"4b", liv:3, nome:"Flussimetro YF-S201", q:1, p:[3,6], perche:"Perdite e tubi scoppiati visti in 2 minuti invece che dopo l'irrigazione.", sensore:"flusso"},
-    {cat:"Elettronica", fase:"4b", liv:3, nome:"Sensore di pioggia", q:1, p:[2,5], perche:"Distingue la pioggia da una valvola bloccata aperta (scenario valvola_bloccata_aperta).", sensore:"pioggia"},
-    {cat:"Elettronica", fase:"4b", liv:3, nome:"Centrale: vecchio PC, Raspberry Pi o telefono Android", q:1, p:[0,0], perche:"Raccoglie i dati, mostra il pannello, manda gli avvisi sul telefono. Un PC che hai già va bene: 0 €."},
-    // corrente
-    {cat:"Corrente", fase:"4b", liv:1, nome:"Alimentatore 12 V 2-3 A", q:sol ? 0 : 1, p:[8,12], perche:"Dalla presa di casa a 12 V, con margine sulla pompa."},
-    {cat:"Corrente", fase:"4b", liv:1, nome:"Step-down 12→5 V", q:1, p:[1,2], perche:"Alimenta l'ESP32 dal 12 V."},
-    {cat:"Corrente", fase:"5", liv:1, nome:"Portafusibile e fusibile sul 12 V, diodi 1N4007", q:1, p:[2,3], perche:"Protegge da cortocircuiti; i diodi proteggono i relè quando si spengono pompa e valvole."},
-    {cat:"Corrente", fase:"5", liv:1, nome:"Pannello solare " + c.pannello + " W", q:sol ? 1 : 0, p:PREZZO_PANNELLO(c.pannello), perche:"Per orti senza presa. La misura giusta la calcola il gemello."},
-    {cat:"Corrente", fase:"5", liv:1, nome:"Batteria 12 V " + c.batteria + " Ah (AGM)", q:sol ? 1 : 0, p:PREZZO_BATTERIA(c.batteria), perche:"Tiene acceso l'impianto di notte e nei giorni coperti.", sensore:sol ? "batteria" : null},
-    {cat:"Corrente", fase:"5", liv:1, nome:"Regolatore di carica 10 A", q:sol ? 1 : 0, p:[8,12], perche:"Carica la batteria dal pannello senza rovinarla."},
-    // idraulica
-    {cat:"Acqua", fase:"5", liv:1, nome:"Pompa " + POMPE[c.pompa].nome, q:cist ? 1 : 0, p:POMPE[c.pompa].prezzo, perche:"Spinge l'acqua dalla cisterna ai gocciolatoi."},
-    {cat:"Acqua", fase:"5", liv:1, nome:"Elettrovalvola 12 V normalmente chiusa", q:n, p:[5,8], perche:"Una per zona: si apre solo quando l'ESP32 la comanda. Normalmente chiusa: senza corrente resta chiusa."},
-    {cat:"Acqua", fase:"5", liv:1, nome:"Valvola generale 12 V sul rubinetto", q:cist ? 0 : 1, p:[6,9], perche:"Con l'acqua di rete una valvola bloccata aperta non si ferma da sola: la generale chiude tutto."},
-    {cat:"Acqua", fase:"5", liv:1, nome:"Riduttore di pressione e attacco rubinetto", q:cist ? 0 : 1, p:[6,12], perche:"Le ali gocciolanti lavorano a bassa pressione."},
-    {cat:"Acqua", fase:"5", liv:1, nome:"Ala gocciolante 16 mm (" + fmt(Math.ceil(area * 2)) + " m)", q:1, p:[area * 2 * 0.25, area * 2 * 0.4], perche:"Circa 2 metri per m² di orto, con gocciolatoi già inseriti."},
-    {cat:"Acqua", fase:"5", liv:1, nome:"Tubo 16 mm, raccordi, tappi", q:1, p:[6,12], perche:"Collega la pompa (o il rubinetto) alle valvole e alle zone."},
-    {cat:"Acqua", fase:"5", liv:2, nome:"Filtro a rete", q:1, p:[3,5], perche:"Lo sporco blocca le valvole aperte e tappa i gocciolatoi."},
-    {cat:"Acqua", fase:"5", liv:1, nome:"Cisterna " + fmt(c.cisterna) + " L", q:cist ? 1 : 0, p:c.cisterna <= 400 ? [0, 25] : [30, 60], perche:"Fusti alimentari recuperati (gratis) o cisterna IBC usata. Al riparo dal sole: niente alghe."},
-    {cat:"Acqua", fase:"5", liv:1, nome:"Raccordo con filtro per la grondaia", q:cist ? 1 : 0, p:[5,15], perche:"Porta la pioggia del tetto in cisterna senza foglie."},
-    {cat:"Acqua", fase:"5", liv:2, nome:"Tubo di troppo pieno", q:cist ? 1 : 0, p:[3,5], perche:"Con un nubifragio la cisterna trabocca: l'acqua va portata lontano da aiuole e quadro."},
-    // struttura
-    {cat:"Struttura", fase:"5", liv:1, nome:"Scatola stagna IP65 con pressacavi", q:1, p:[8,15], perche:"Il quadro: elettronica sempre all'asciutto, pressacavi rivolti in basso."},
-    {cat:"Struttura", fase:"5", liv:2, nome:"Palo o staffa per il quadro a 50 cm da terra", q:1, p:[0,5], perche:"Con il quadro a terra un nubifragio distrugge l'elettronica (scenario quadro_allagato)."},
-    {cat:"Struttura", fase:"5", liv:1, nome:"Pacciamatura (paglia, foglie, cartone)", q:c.zone.some(z => z.pacciamatura) ? 1 : 0, p:[0,0], perche:"Fino al 20% d'acqua in meno e terreno più fresco: materiale di recupero."},
-    {cat:"Struttura", fase:"5", liv:1, nome:"Aiuole rialzate (assi recuperate, terra, compost)", q:c.zone.some(z => z.rialzata) ? 1 : 0, p:[0,30], perche:"Drenano: niente radici senza ossigeno dopo i temporali (scenari nubifragio, pioggia_persistente)."},
-  ];
-  return voci.filter(v => v.q > 0 && v.liv <= L).map(v => {
-    const unit = v.q > 1 && !/m\)$/.test(v.nome);
-    return Object.assign(v, {min: v.p[0] * (unit ? v.q : 1), max: v.p[1] * (unit ? v.q : 1)});
-  });
-}
-const somma = (voci, k) => voci.reduce((a, v) => a + v[k], 0);
-
-const SENSORI = {
-  umidita: {nome:"Umidità del terreno (capacitivo)", misura:"Quanta acqua c'è vicino alle radici, da 0% (secco) a 100% (saturo).", dove:"A 10-15 cm di profondità, a 10 cm da un gocciolatoio, uno per zona. La parte elettronica fuori terra e protetta dall'acqua.", taratura:"In aria e in un bicchiere d'acqua (prova B1).", errore:"Sensore che esce dalla terra: legge 'secco' per sempre. Il controllo se ne accorge (Zx_INEFFICACE)."},
-  galleggiante: {nome:"Galleggiante di minimo", misura:"Se l'acqua in cisterna è sotto il minimo.", dove:"Dentro la cisterna, a 10-15 cm dal fondo.", taratura:"Nessuna: alzalo e abbassalo a mano (prova B6).", errore:"Montato troppo in basso: la pompa aspira il fondo sporco."},
-  livello: {nome:"Livello a ultrasuoni JSN-SR04T", misura:"La distanza dall'acqua, cioè i litri in cisterna.", dove:"Nel coperchio della cisterna, rivolto in basso, lontano dalla bocca della grondaia.", taratura:"Misura con cisterna vuota e piena (CISTERNA_ALTEZZA_CM e CISTERNA_PIENA_CM).", errore:"Gocce o condensa sul sensore: letture a salti. Il filtro del controllo le smorza."},
-  dht: {nome:"Temperatura e umidità dell'aria DHT22", misura:"Gradi e umidità dell'aria.", dove:"All'ombra, in una casetta ventilata a 1-1,5 m da terra, non nel quadro.", taratura:"Confronta con un termometro di casa.", errore:"Al sole segna 10 °C in più: allarmi CALDO falsi."},
-  allagamento: {nome:"Sonda acqua nel quadro", misura:"Se c'è acqua sul fondo del quadro.", dove:"Due fili scoperti sul fondo del quadro, a 5 mm l'uno dall'altro.", taratura:"Bagnali con un dito umido (prova B13).", errore:"Fili ossidati dopo anni: provala a ogni stagione."},
-  flusso: {nome:"Flussimetro YF-S201", misura:"Litri al minuto che escono davvero dalla pompa.", dove:"Subito dopo la pompa (o dopo la valvola generale), con la freccia nel verso dell'acqua.", taratura:"Un minuto in un secchio graduato (prova B12).", errore:"Sporco nella girante: legge meno. Filtro a rete prima."},
-  pioggia: {nome:"Sensore di pioggia", misura:"Se sta piovendo adesso.", dove:"All'aperto, inclinato, lontano da gocciolatoi e grondaie.", taratura:"Bagnalo con uno spruzzino.", errore:"Senza di lui il controllo 'acqua inattesa' resta spento."},
-  batteria: {nome:"Tensione della batteria", misura:"Quanta carica resta (impianto a pannello).", dove:"Partitore di resistenze nel quadro, verso il pin 39.", taratura:"Confronta con un tester.", errore:"Partitore sbagliato: l'ESP32 può rompersi. Massimo 3,3 V sul pin."},
-};
-
-const ALLARMI = [
-  ["Zx_SENSORE", "Sensore staccato o in corto: la zona riceve poca acqua a tempo, mai a sensore.", "Controlla cavo e connettore del sensore.", "Da solo quando il sensore torna a leggere."],
-  ["Zx_INEFFICACE", "Dopo un'irrigazione l'umidità non è salita: tubo staccato, valvola ferma, sensore fuori terra. Zona bloccata.", "Guarda tubi e gocciolatoi della zona, riposiziona il sensore.", "Pulsante reset."],
-  ["Zx_PERDITA", "Il flussimetro vede il doppio dell'acqua: tubo scoppiato o raccordo saltato. Zona bloccata.", "Cerca la pozza lungo la linea della zona.", "Pulsante reset."],
-  ["Zx_ACQUA_INATTESA", "Una zona si bagna senza pioggia e senza la sua valvola: valvola bloccata aperta. Si irriga solo finché quella zona non è troppo bagnata.", "Pulisci o cambia la valvola; metti il filtro a rete.", "Pulsante reset."],
-  ["Zx_ALLAGATA", "Terreno saturo da oltre 6 ore: acqua ferma sulle radici. Non si irriga.", "Apri un solco di scolo; in futuro aiuola rialzata.", "Da solo quando l'acqua va via."],
-  ["SERBATOIO_BASSO", "Cisterna al minimo: pompa ferma per non girare a secco.", "Riempi la cisterna o collega il rubinetto.", "Da solo quando l'acqua risale."],
-  ["SERBATOIO_RISERVA", "Cisterna sotto la riserva: si irriga con soglie di risparmio (35-55%).", "Niente di urgente: tieni d'occhio le piante.", "Da solo."],
-  ["POMPA_NON_EROGA", "La pompa gira ma l'acqua non esce (cisterna che non scende o flussimetro a zero). Irrigazione bloccata.", "Controlla pompa, aspirazione, fusibile, filtro.", "Pulsante reset."],
-  ["ALLAGAMENTO_QUADRO", "Acqua sul fondo del quadro: pompa e valvole ferme.", "Togli corrente, asciuga, trova da dove entra.", "Da solo quando la sonda è asciutta."],
-  ["BATTERIA_BASSA", "Batteria sotto il 35%: pompa ferma, l'ESP32 resta acceso e avvisa.", "Pannello sporco o troppo piccolo: vedi il dimensionamento.", "Da solo quando la batteria si ricarica."],
-  ["RIAVVII_FREQUENTI", "L'ESP32 si è riavviato 3 volte di fila con la pompa accesa: alimentazione che cede. Tutto fermo.", "Controlla alimentatore, step-down separato, condensatore, cavi della pompa.", "Pulsante reset."],
-  ["GELO", "Sotto 2 °C: niente irrigazione.", "Copri le piantine; a fine stagione svuota i tubi.", "Da solo."],
-  ["CALDO", "Sopra 38 °C.", "Guarda le piante, ombreggia le insalate.", "Da solo."],
-];
-
-// ---------- grafici ----------
-const W = 960;
-function scala(v0, v1, p0, p1) { return v => p0 + (v - v0) / (v1 - v0) * (p1 - p0); }
-function asseY(svg, y, ticks, fmtT, x0, x1) {
-  for (const t of ticks) {
-    svg.append(sv("line", {x1: x0, x2: x1, y1: y(t), y2: y(t), stroke: "var(--riga)", "stroke-width": 1}));
-    svg.append(sv("text", {x: x0 - 8, y: y(t) + 4, "text-anchor": "end"}, fmtT(t)));
-  }
-}
-function lineChart(cont, o) {
-  cont.replaceChildren();
-  const W = o.larghezza || 960;
-  const H = o.altezza || 280, sx = 48, dx = 16, top = 12, basso = 28;
-  const n = o.n, x = scala(0, n - 1, sx, W - dx), y = scala(o.yMin, o.yMax, H - basso, top);
-  const svg = sv("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": o.titolo});
-  asseY(svg, y, o.ticks, o.fmt, sx, W - dx);
-  for (const r of (o.riferimenti || [])) {
-    svg.append(sv("line", {x1: sx, x2: W - dx, y1: y(r.v), y2: y(r.v), stroke: "var(--asse)", "stroke-width": 1}));
-    svg.append(sv("text", {x: W - dx - 4, y: y(r.v) - 4, "text-anchor": "end"}, r.testo));
-  }
-  for (let m = 0; m < 12; m++) {
-    const xm = x(INIZIO_MESE[m] * (n - 1) / 364);
-    if (W > 700 || m % 2 === 0) svg.append(sv("text", {x: xm + 4, y: H - 8}, MESI[m]));
-    svg.append(sv("line", {x1: xm, x2: xm, y1: H - basso, y2: H - basso + 5, stroke: "var(--asse)", "stroke-width": 1}));
-  }
-  svg.append(sv("line", {x1: sx, x2: W - dx, y1: H - basso, y2: H - basso, stroke: "var(--asse)", "stroke-width": 1}));
-  for (const s of o.serie) {
-    let dpath = "", su = false;
-    s.valori.forEach((v, i) => {
-      if (v == null) { su = false; return; }
-      dpath += (su ? "L" : "M") + x(i).toFixed(1) + "," + y(Math.min(o.yMax, Math.max(o.yMin, v))).toFixed(1);
-      su = true;
-    });
-    if (s.area) {
-      const chiuso = dpath + `L${x(n - 1)},${y(o.yMin)}L${x(0)},${y(o.yMin)}Z`;
-      svg.append(sv("path", {d: chiuso, fill: s.colore, "fill-opacity": 0.1, stroke: "none"}));
-    }
-    svg.append(sv("path", {d: dpath, fill: "none", stroke: s.colore, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round"}));
-  }
-  const croce = sv("line", {y1: top, y2: H - basso, stroke: "var(--muted)", "stroke-width": 1, opacity: 0});
-  svg.append(croce);
-  const punti = o.serie.map(s => { const c = sv("circle", {r: 4, fill: s.colore, stroke: "var(--carta)", "stroke-width": 2, opacity: 0}); svg.append(c); return c; });
-  const hit = sv("rect", {x: sx, y: top, width: W - dx - sx, height: H - basso - top, fill: "transparent", tabindex: 0});
-  svg.append(hit);
-  const tip = el("div", {class: "tip", hidden: ""});
-  cont.append(svg, tip);
-  function mostra(i) {
-    const xi = x(i);
-    croce.setAttribute("x1", xi); croce.setAttribute("x2", xi); croce.setAttribute("opacity", 1);
-    tip.replaceChildren(el("div", {class: "etichetta", text: o.etichettaX(i)}));
-    o.serie.forEach((s, k) => {
-      const v = s.valori[i];
-      if (v == null) { punti[k].setAttribute("opacity", 0); return; }
-      punti[k].setAttribute("cx", xi); punti[k].setAttribute("cy", y(Math.min(o.yMax, Math.max(o.yMin, v)))); punti[k].setAttribute("opacity", 1);
-      tip.append(el("div", {class: "r"}, el("span", null, el("i", {class: "k", style: `background:${s.colore}`}), document.createTextNode(s.nome)), el("b", {text: o.fmtTip(v)})));
-    });
-    tip.hidden = false;
-    const larg = cont.clientWidth, px = xi / W * larg;
-    tip.style.left = Math.min(Math.max(0, px + 12), larg - tip.offsetWidth - 4) + "px";
-    tip.style.top = "8px";
-  }
-  function nascondi() { tip.hidden = true; croce.setAttribute("opacity", 0); punti.forEach(p => p.setAttribute("opacity", 0)); }
-  let attuale = Math.round(n / 2);
-  hit.addEventListener("pointermove", e => {
-    const r = svg.getBoundingClientRect(), vx = (e.clientX - r.left) / r.width * W;
-    attuale = Math.max(0, Math.min(n - 1, Math.round((vx - sx) / (W - dx - sx) * (n - 1)))); mostra(attuale);
-  });
-  hit.addEventListener("pointerleave", nascondi);
-  hit.addEventListener("focus", () => mostra(attuale));
-  hit.addEventListener("blur", nascondi);
-  hit.addEventListener("keydown", e => {
-    if (e.key === "ArrowRight") { attuale = Math.min(n - 1, attuale + 7); mostra(attuale); e.preventDefault(); }
-    if (e.key === "ArrowLeft") { attuale = Math.max(0, attuale - 7); mostra(attuale); e.preventDefault(); }
-  });
-}
-function barChart(cont, o) {
-  cont.replaceChildren();
-  const W = o.larghezza || 960;
-  const H = o.altezza || 240, sx = 52, dx = 12, top = 16, basso = 26;
-  const cats = o.categorie, nc = cats.length;
-  const tot = cats.map((_, i) => o.serie.reduce((a, s) => a + s.valori[i], 0));
-  const max = o.yMax || Math.max(1, ...tot);
-  const ticks = niceTicks(max), yMax = ticks[ticks.length - 1];
-  const y = scala(0, yMax, H - basso, top);
-  const banda = (W - sx - dx) / nc, larg = Math.min(24 * (o.largo || 1.6), banda * 0.6);
-  const svg = sv("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": o.titolo});
-  asseY(svg, y, ticks, o.fmt, sx, W - dx);
-  const tip = el("div", {class: "tip", hidden: ""});
-  cats.forEach((c, i) => {
-    const xc = sx + banda * i + banda / 2;
-    if (banda > 30 || i % 2 === 0) svg.append(sv("text", {x: xc, y: H - 8, "text-anchor": "middle"}, c));
-    let base = 0;
-    const visibili = o.serie.map((s, k) => ({s, k, v: s.valori[i]})).filter(q => q.v > 0);
-    visibili.forEach((q, j) => {
-      const y0 = y(base), y1 = y(base + q.v);
-      const alto = j === visibili.length - 1;
-      const h = Math.max(0, y0 - y1 - (j > 0 ? 2 : 0));
-      const yb = y0 - (j > 0 ? 2 : 0);
-      const r = alto ? Math.min(4, h) : 0, xl = xc - larg / 2;
-      const d = `M${xl},${yb}L${xl},${yb - h + r}Q${xl},${yb - h} ${xl + r},${yb - h}L${xl + larg - r},${yb - h}Q${xl + larg},${yb - h} ${xl + larg},${yb - h + r}L${xl + larg},${yb}Z`;
-      svg.append(sv("path", {d, fill: q.s.colore}));
-      base += q.v;
-    });
-    const area = sv("rect", {x: sx + banda * i, y: top, width: banda, height: H - basso - top, fill: "transparent", tabindex: 0});
-    const mostra = () => {
-      tip.replaceChildren(el("div", {class: "etichetta", text: o.etichetteLunghe ? o.etichetteLunghe[i] : c}));
-      o.serie.forEach(s => tip.append(el("div", {class: "r"}, el("span", null, el("i", {class: "k", style: `background:${s.colore}`}), document.createTextNode(s.nome)), el("b", {text: o.fmtTip(s.valori[i])}))));
-      if (o.serie.length > 1) tip.append(el("div", {class: "r"}, el("span", {text: "Totale"}), el("b", {text: o.fmtTip(tot[i])})));
-      tip.hidden = false;
-      const lw = cont.clientWidth, px = xc / W * lw;
-      tip.style.left = Math.min(Math.max(0, px + 14), lw - tip.offsetWidth - 4) + "px"; tip.style.top = "8px";
-    };
-    area.addEventListener("pointerenter", mostra); area.addEventListener("focus", mostra);
-    area.addEventListener("pointerleave", () => tip.hidden = true); area.addEventListener("blur", () => tip.hidden = true);
-    svg.append(area);
-  });
-  svg.append(sv("line", {x1: sx, x2: W - dx, y1: H - basso, y2: H - basso, stroke: "var(--asse)", "stroke-width": 1}));
-  cont.append(svg, tip);
-}
-function niceTicks(max) {
-  const passo0 = max / 4, mag = Math.pow(10, Math.floor(Math.log10(passo0)));
-  const passo = [1, 2, 2.5, 5, 10].map(f => f * mag).find(p => p >= passo0);
-  const t = []; for (let v = 0; v <= max + passo * 0.999; v += passo) t.push(+v.toFixed(6));
-  return t;
-}
-const compatto = v => v >= 1000 ? fmt(v / 1000, v % 1000 ? 1 : 0) + "K" : fmt(v);
-function legenda(cont, voci, box) {
-  cont.replaceChildren(...voci.map(v => el("span", null, el("i", {class: box ? "box" : "", style: `background:${v.colore}`}), document.createTextNode(v.nome))));
-}
-
-// ---------- schemi ----------
-function scatola(svg, x, y, w, h, testo, sotto, tono) {
-  svg.append(sv("rect", {x, y, width: w, height: h, rx: 8, fill: tono === "acc" ? "var(--accent-soft)" : "var(--carta)", stroke: tono === "acc" ? "var(--accent)" : "var(--asse)", "stroke-width": 1.5}));
-  const t = sv("text", {x: x + w / 2, y: y + (sotto ? h / 2 - 3 : h / 2 + 5), "text-anchor": "middle", style: "fill:var(--ink);font:600 14px var(--f-body)"}, testo);
-  svg.append(t);
-  if (sotto) svg.append(sv("text", {x: x + w / 2, y: y + h / 2 + 14, "text-anchor": "middle", style: "fill:var(--ink-2);font:12px var(--f-body)"}, sotto));
-}
-function freccia(svg, x1, y1, x2, y2, colore) {
-  svg.append(sv("line", {x1, y1, x2, y2, stroke: colore || "var(--s1)", "stroke-width": 2.5, "marker-end": "url(#punta)"}));
-}
-function defsPunta(svg) {
-  const defs = sv("defs", {});
-  const mk = sv("marker", {id: "punta", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse"});
-  mk.append(sv("path", {d: "M0,0L10,5L0,10Z", fill: "var(--muted)"}));
-  defs.append(mk); svg.append(defs);
-}
-function schemaAcqua(c) {
-  const n = c.zone.length, cist = c.fonte === "cisterna";
-  const svg = sv("svg", {role: "img", "aria-label": "Percorso dell'acqua"});
-  defsPunta(svg);
-  const fila = cist
-    ? [["Tetto e grondaia", fmt(c.tetto) + " m²"], ["Filtro grondaia", "via le foglie"], ["Cisterna " + fmt(c.cisterna) + " L", "galleggiante" + (c.livello >= 2 ? " · livello" : "")], ["Pompa 12 V", fmt(POMPE[c.pompa].portata, 1) + " L/min"]]
-    : [["Rubinetto", "acqua di rete"], ["Riduttore e filtro", "bassa pressione"], ["Valvola generale", "chiude tutto"]];
-  if (c.livello >= 3) fila.push(["Flussimetro", "litri al minuto"]);
-  if (c.livello >= 2) fila.push(["Filtro a rete", "valvole pulite"]);
-  const bw = 168, gap = 24, y0 = 30;
-  fila.forEach((f, i) => {
-    const x = 10 + i * (bw + gap);
-    scatola(svg, x, y0, bw, 58, f[0], f[1]);
-    if (i) freccia(svg, x - gap, y0 + 29, x - 2, y0 + 29);
-  });
-  const xc = 10 + fila.length * (bw + gap) - gap, ycol = y0 + 29;
-  // collettore orizzontale sotto la linea principale, poi una colonna per zona
-  const ym = 168, colw = (xc - 10) / n, blu = {stroke: "var(--s1)", "stroke-width": 2.5};
-  svg.append(sv("line", Object.assign({x1: xc, y1: ycol, x2: xc + 14, y2: ycol}, blu)));
-  svg.append(sv("line", Object.assign({x1: xc + 14, y1: ycol, x2: xc + 14, y2: ym}, blu)));
-  svg.append(sv("line", Object.assign({x1: 10 + colw / 2, y1: ym, x2: xc + 14, y2: ym}, blu)));
-  svg.append(sv("text", {x: 12, y: ym - 8}, "collettore nel pozzetto"));
-  c.zone.forEach((z, i) => {
-    const cx = 10 + colw * i + colw / 2, wv = Math.min(150, colw - 20);
-    freccia(svg, cx, ym, cx, ym + 24);
-    scatola(svg, cx - wv / 2, ym + 26, wv, 52, "Valvola " + (i + 1), "12 V, chiusa", "acc");
-    freccia(svg, cx, ym + 78, cx, ym + 104);
-    scatola(svg, cx - wv / 2, ym + 106, wv, 52, PIANTE[z.coltura].nome, fmt(z.area) + " m² · sensore " + (i + 1));
-  });
-  if (cist && c.livello >= 2) {
-    scatola(svg, 10 + 2 * (bw + gap), y0 + 76, bw, 40, "Troppo pieno", "lontano dal quadro");
-    svg.append(sv("line", {x1: 10 + 2 * (bw + gap) + bw / 2, y1: y0 + 58, x2: 10 + 2 * (bw + gap) + bw / 2, y2: y0 + 74, stroke: "var(--terra)", "stroke-width": 2}));
-  }
-  const larg = Math.max(720, xc + 30), alt = ym + 170;
-  svg.setAttribute("viewBox", `0 0 ${larg} ${alt}`); svg.setAttribute("width", larg);
-  return svg;
-}
-function schemaCorrente(c) {
-  const sol = c.corrente === "solare", n = c.zone.length;
-  const svg = sv("svg", {viewBox: "0 0 1080 360", width: 1080, role: "img", "aria-label": "Percorso della corrente e dei segnali"});
-  defsPunta(svg);
-  const src = sol ? [["Pannello " + c.pannello + " W", "sul tetto"], ["Regolatore 10 A", ""], ["Batteria " + c.batteria + " Ah", "12 V"]] : [["Presa 230 V", "di casa"], ["Alimentatore 12 V", "2-3 A"]];
-  src.push(["Fusibile", "sul 12 V"]);
-  const bw = 150, gap = 26;
-  src.forEach((f, i) => { const x = 10 + i * (bw + gap); scatola(svg, x, 20, bw, 54, f[0], f[1]); if (i) freccia(svg, x - gap, 47, x - 2, 47, "var(--s4)"); });
-  const xb = 10 + src.length * (bw + gap) - gap;
-  freccia(svg, xb, 47, xb + 34, 47, "var(--s4)");
-  scatola(svg, xb + 36, 14, 200, 66, "Relè", "pompa" + (c.fonte === "cisterna" ? "" : " · valvola generale") + " · " + n + " valvole");
-  freccia(svg, xb + 236, 47, xb + 270, 47, "var(--s4)");
-  scatola(svg, xb + 272, 14, 150, 66, c.fonte === "cisterna" ? "Pompa e valvole" : "Valvole", "con diodi");
-  freccia(svg, 10 + bw / 2 + (src.length - 1) * (bw + gap), 74, 10 + bw / 2 + (src.length - 1) * (bw + gap), 132, "var(--s4)");
-  const xs = 10 + (src.length - 1) * (bw + gap);
-  scatola(svg, xs, 134, bw, 54, "Step-down 5 V", c.livello >= 2 ? "separato + condensatore" : "");
-  freccia(svg, xs + bw, 161, xs + bw + 40, 161, "var(--s4)");
-  scatola(svg, xs + bw + 42, 124, 210, 74, "ESP32", "logica e sicurezze", "acc");
-  const xe = xs + bw + 42;
-  svg.append(sv("line", {x1: xe + 105, y1: 124, x2: xe + 105, y2: 82, stroke: "var(--s3)", "stroke-width": 2, "stroke-dasharray": "0"}));
-  svg.append(sv("text", {x: xe + 112, y: 106}, "comandi"));
-  const sens = ["Umidità ×" + n];
-  if (c.fonte === "cisterna") sens.push("Galleggiante");
-  if (c.livello >= 2) { sens.push("Temperatura"); sens.push("Acqua nel quadro"); if (c.fonte === "cisterna") sens.push("Livello cisterna"); }
-  if (c.livello >= 3) { sens.push("Flussimetro"); sens.push("Pioggia"); }
-  if (sol) sens.push("Tensione batteria");
-  sens.push("Pulsante reset");
-  const sw = 132, y2 = 250;
-  sens.forEach((s, i) => {
-    const x = 10 + i * (sw + 8);
-    scatola(svg, x, y2, sw, 44, s, "");
-  });
-  svg.append(sv("line", {x1: 10, y1: y2 - 14, x2: 10 + sens.length * (sw + 8) - 8, y2: y2 - 14, stroke: "var(--s3)", "stroke-width": 2}));
-  freccia(svg, xe + 105, y2 - 14, xe + 105, 200, "var(--s3)");
-  svg.append(sv("text", {x: 10, y: y2 - 22}, "segnali dei sensori (3,3 V)"));
-  if (c.livello >= 3) {
-    scatola(svg, xe + 260, 124, 170, 74, "Centrale", "Wi-Fi · dati · avvisi");
-    svg.append(sv("line", {x1: xe + 210, y1: 161, x2: xe + 258, y2: 161, stroke: "var(--muted)", "stroke-width": 2, "stroke-dasharray": "5 4"}));
-  }
-  svg.setAttribute("viewBox", `0 0 ${Math.max(1080, 20 + sens.length * (sw + 8))} 320`);
-  svg.setAttribute("width", Math.max(1080, 20 + sens.length * (sw + 8)));
-  return svg;
-}
-
-// ---------- interfaccia ----------
-function opzioni(sel, voci, valore) {
-  sel.replaceChildren(...voci.map(([v, t]) => { const o = el("option", {value: v, text: t}); if (String(v) === String(valore)) o.selected = true; return o; }));
-}
-function costruisciModulo() {
-  opzioni($("regione"), Object.entries(REGIONI).map(([k, r]) => [k, r.nome]), cfg.regione);
-  opzioni($("terreno"), Object.entries(TERRENI).map(([k, t]) => [k, t.nome]), cfg.terreno);
-  opzioni($("pompa"), Object.entries(POMPE).map(([k, p]) => [k, p.nome]), cfg.pompa);
-  opzioni($("pannello"), PANNELLI.map(w => [w, w + " W"]), cfg.pannello);
-  opzioni($("batteria"), BATTERIE.map(a => [a, a + " Ah"]), cfg.batteria);
-  for (const id of ["anno", "gestione", "livello", "fonte", "corrente"]) $(id).value = cfg[id];
-  for (const id of ["cisterna", "tetto", "prezzo_acqua", "prezzo_kwh"]) $(id).value = cfg[id];
-  $("rete_riserva").checked = !!cfg.rete_riserva;
-  for (const id of ["regione", "anno", "terreno", "gestione", "livello", "fonte", "pompa", "corrente", "pannello", "batteria"])
-    $(id).addEventListener("change", e => { cfg[id] = ["livello", "pannello", "batteria"].includes(id) ? +e.target.value : e.target.value; aggiorna(); });
-  for (const id of ["cisterna", "tetto", "prezzo_acqua", "prezzo_kwh"])
-    $(id).addEventListener("input", e => { const v = parseFloat(e.target.value); if (!isNaN(v) && v >= 0) { cfg[id] = v; aggiorna(); } });
-  $("rete_riserva").addEventListener("change", e => { cfg.rete_riserva = e.target.checked; aggiorna(); });
-  $("aggiungi").addEventListener("click", () => { if (cfg.zone.length < 4) { cfg.zone.push({coltura: "peperone", area: 2, mese: 4, cicli: 1, pacciamatura: true, rialzata: false}); disegnaZone(); aggiorna(); } });
-}
-function disegnaZone() {
-  const tb = $("zone"); tb.replaceChildren();
-  cfg.zone.forEach((z, i) => {
-    const P = PIANTE[z.coltura];
-    const sc = el("select", {id: "z" + i + "-coltura", "aria-label": "Pianta zona " + (i + 1)});
-    opzioni(sc, Object.entries(PIANTE).map(([k, p]) => [k, p.nome]), z.coltura);
-    sc.addEventListener("change", e => { z.coltura = e.target.value; if (!PIANTE[z.coltura].mesi.includes(z.mese)) z.mese = PIANTE[z.coltura].mesi[0]; disegnaZone(); aggiorna(); });
-    const ar = el("input", {id: "z" + i + "-area", type: "number", min: "0.5", step: "0.5", value: z.area, "aria-label": "Metri quadri zona " + (i + 1)});
-    ar.addEventListener("input", e => { const v = parseFloat(e.target.value); if (v > 0) { z.area = v; aggiorna(); } });
-    const ms = el("select", {id: "z" + i + "-mese", "aria-label": "Mese di semina zona " + (i + 1)});
-    opzioni(ms, P.mesi.map(m => [m, MESI[m - 1]]), z.mese);
-    ms.addEventListener("change", e => { z.mese = +e.target.value; aggiorna(); });
-    const cc = el("input", {id: "z" + i + "-cicli", type: "number", min: "1", max: "4", step: "1", value: z.cicli, "aria-label": "Cicli zona " + (i + 1)});
-    cc.addEventListener("input", e => { const v = parseInt(e.target.value, 10); if (v >= 1 && v <= 4) { z.cicli = v; aggiorna(); } });
-    const pc = el("input", {id: "z" + i + "-pacc", type: "checkbox", "aria-label": "Pacciamatura zona " + (i + 1)}); pc.checked = z.pacciamatura;
-    pc.addEventListener("change", e => { z.pacciamatura = e.target.checked; aggiorna(); });
-    const rl = el("input", {id: "z" + i + "-rialz", type: "checkbox", "aria-label": "Aiuola rialzata zona " + (i + 1)}); rl.checked = z.rialzata;
-    rl.addEventListener("change", e => { z.rialzata = e.target.checked; aggiorna(); });
-    const via = el("button", {class: "az sec", text: "Togli", "aria-label": "Togli zona " + (i + 1)});
-    via.disabled = cfg.zone.length <= 1;
-    via.addEventListener("click", () => { cfg.zone.splice(i, 1); disegnaZone(); aggiorna(); });
-    tb.append(el("tr", null,
-      el("td", null, el("span", {class: "pallino", style: `background:${COLORI[i]}`}), document.createTextNode(String(i + 1))),
-      el("td", null, sc), el("td", {class: "n"}, ar), el("td", null, ms), el("td", {class: "n"}, cc),
-      el("td", null, pc), el("td", null, rl), el("td", null, via)));
-  });
-  $("aggiungi").disabled = cfg.zone.length >= 4;
-}
-function mostraCampi() {
-  document.querySelectorAll("[data-cisterna]").forEach(e => e.hidden = cfg.fonte !== "cisterna");
-  document.querySelectorAll("[data-rete]").forEach(e => e.hidden = cfg.corrente !== "rete");
-  document.querySelectorAll("[data-solare]").forEach(e => e.hidden = cfg.corrente !== "solare");
-}
-function kpi(c, s, voci) {
-  const tile = (et, val, sotto) => el("div", null, el("span", {class: "etichetta", text: et}), el("span", {class: "val", text: val}), el("span", {class: "sotto", text: sotto}));
-  const acquaEuro = s.daRete / 1000 * c.prezzo_acqua, correnteEuro = c.corrente === "rete" ? s.kwh * c.prezzo_kwh : 0;
-  const area = c.zone.reduce((a, z) => a + z.area, 0);
-  $("kpi").replaceChildren(
-    tile("Per iniziare", forbice(somma(voci, "min"), somma(voci, "max")), "livello " + c.livello + " · fasi 0-3 a 0 €"),
-    tile("Acqua all'anno", fmt(s.litri / 1000, 1) + " m³", c.fonte === "cisterna" ? fmt(s.daRete / 1000, 1) + " m³ dal rubinetto" : "tutta dal rubinetto"),
-    tile("Corrente all'anno", fmt(s.kwh, 1) + " kWh", c.corrente === "rete" ? euro(correnteEuro) + " in bolletta" : "dal pannello · " + s.giorniSpento + " giorni spento"),
-    tile("Spese all'anno", euro(acquaEuro + correnteEuro + 5), "acqua, corrente, 5 € di ricambi"),
-    tile("Verdura", fmt(s.kg) + " kg", "≈ " + euro(s.valore) + " al prezzo del negozio · " + fmt(area) + " m²"),
-  );
-}
-function messaggi(c, s, M) {
-  const box = $("messaggi"); box.replaceChildren();
-  const add = (tipo, titolo, testo) => box.append(el("div", {class: "msg"},
-    el("span", {class: "chip " + tipo, text: tipo === "ok" ? "a posto" : tipo === "warn" ? "attenzione" : "problema"}),
-    el("strong", {text: titolo}), el("span"), el("span", {class: "piccolo", text: testo})));
-  const area = c.zone.reduce((a, z) => a + z.area, 0);
-  // acqua
-  if (c.fonte === "cisterna") {
-    const id = cisternaIdeale(c, M);
-    if (s.daRete > 0 || s.mancata > 0) {
-      const tettoServe = id.domanda / Math.max(1, id.entrata / Math.max(1, c.tetto));
-      add(s.mancata > 0 ? "crit" : "warn", "La cisterna non basta tutto l'anno",
-        (s.mancata > 0 ? "Restano " + fmt(s.mancata) + " L d'acqua che le piante non ricevono. " : "Servono " + fmt(s.daRete) + " L dal rubinetto (" + euro(s.daRete / 1000 * c.prezzo_acqua) + "). ") +
-        "Per non usare mai il rubinetto servirebbe una cisterna da circa " + fmt(Math.ceil(id.litri / 100) * 100) + " L" +
-        (id.entrata < id.domanda ? ", ma il tetto raccoglie " + fmt(id.entrata) + " L contro " + fmt(id.domanda) + " L necessari: servirebbero circa " + fmt(Math.ceil(tettoServe)) + " m² di tetto." : "."));
-    } else add("ok", "La cisterna basta", "Con " + fmt(c.cisterna) + " L e " + fmt(c.tetto) + " m² di tetto non serve mai il rubinetto in questo anno.");
-    if (s.troppoPieno > 0) add("warn", "Troppo pieno: " + fmt(s.troppoPieno) + " L traboccano", "Porta il tubo di troppo pieno lontano da aiuole e quadro.");
-  } else add("warn", "Acqua dal rubinetto", "Con l'acqua di rete serve la valvola generale: una valvola bloccata aperta non si fermerebbe da sola. Costa " + euro(s.daRete / 1000 * c.prezzo_acqua) + " all'anno.");
-  // confronto timer / sensori
-  const altro = simula(c, {meteo: M, gestione: c.gestione === "sensori" ? "timer" : "sensori"});
-  const [sen, tim] = c.gestione === "sensori" ? [s, altro] : [altro, s];
-  if (tim.litri > sen.litri) add(c.gestione === "sensori" ? "ok" : "warn", "Sensori contro timer: " + fmt((1 - sen.litri / tim.litri) * 100) + "% d'acqua in meno",
-    "Il timer a orario fisso darebbe " + fmt(tim.litri) + " L contro " + fmt(sen.litri) + " L, con " + fmt(tim.ristagno) + " ore di acqua ferma contro " + fmt(sen.ristagno) + ".");
-  // pacciamatura
-  if (c.zone.some(z => !z.pacciamatura)) {
-    const p = simula(Object.assign({}, c, {zone: c.zone.map(z => Object.assign({}, z, {pacciamatura: true}))}), {meteo: M});
-    add("warn", "Pacciamatura su tutte le zone: −" + fmt(s.litri - p.litri) + " L all'anno", "Paglia, foglie secche o cartone: 0 €, " + fmt((1 - p.litri / Math.max(1, s.litri)) * 100) + "% d'acqua in meno.");
-  }
-  // ristagno
-  const zr = s.zone.map((z, i) => ({z, i})).filter(q => q.z.ristagno > 24);
-  if (zr.length) add(zr.some(q => q.z.ristagno > 72) ? "crit" : "warn", "Acqua ferma sulle radici dopo i temporali",
-    zr.map(q => "zona " + (q.i + 1) + ": " + fmt(q.z.ristagno) + " ore").join(", ") + ". Aiuole rialzate e solchi di scolo (prova la casella 'Aiuola rialzata').");
-  // sofferenza
-  if (s.stress > 0) add("crit", "Piante in sofferenza " + fmt(s.stress) + " giorni-zona", s.giorniSpento > 0 ? "L'impianto è rimasto spento " + s.giorniSpento + " giorni per la batteria scarica." : s.mancata > 0 ? "Manca acqua: vedi la cisterna." : "Controlla le soglie o la portata.");
-  else add("ok", "Nessuna pianta in sofferenza", "In tutto l'anno simulato il terreno non scende mai sotto il 30% nelle zone coltivate.");
-  // corrente
-  if (c.corrente === "rete") add("ok", "La corrente costa poco: " + euro(s.kwh * c.prezzo_kwh) + " all'anno",
-    fmt(s.kwh, 1) + " kWh, quasi tutti per tenere acceso l'ESP32 giorno e notte; la pompa gira " + fmt(s.litri / s.portata / 60) + " ore in tutto l'anno.");
-  else {
-    const id = solareIdeale(c, M);
-    if (s.giorniSpento > 0 || s.giorniBatteriaBassa > 0) add("crit", "Pannello o batteria troppo piccoli", s.giorniSpento + " giorni spento e " + s.giorniBatteriaBassa + " giorni senza pompa. " + (id ? "Basta un pannello da " + id.w + " W con batteria da " + id.ah + " Ah." : "Valuta la presa di casa."));
-    else add("ok", "Il solare regge tutto l'anno", "Pannello " + c.pannello + " W e batteria " + c.batteria + " Ah bastano." + (id && (id.w < c.pannello || id.ah < c.batteria) ? " Basterebbe anche " + id.w + " W con " + id.ah + " Ah." : ""));
-  }
-  if (c.livello < 2) add("warn", "Livello 1: mancano protezioni importanti", "Senza step-down separato e sonda nel quadro i cali di tensione e i nubifragi possono allagare la zona o distruggere l'elettronica (vedi SOLUZIONI.md). Il livello 2 costa circa 15-25 € in più.");
-}
-function disegnaSimulazione(c, s, M) {
-  const R = REGIONI[c.regione];
-  $("sim-intro").textContent = R.nome + ", " + {medio: "anno medio", secco: "anno secco", piovoso: "anno piovoso"}[c.anno] + ", terreno " + TERRENI[c.terreno].nome.toLowerCase() +
-    ". Pioggia dell'anno " + fmt(M.reduce((a, g) => a + g.pioggia, 0)) + " mm. Gestione: " + (c.gestione === "sensori" ? "sensori di umidità" : "timer a orario fisso") + ".";
-  const serie = c.zone.map((z, i) => ({nome: (i + 1) + " · " + PIANTE[z.coltura].nome, colore: COLORI[i], valori: s.giorni.map(g => g.umid[i] == null ? null : g.umid[i] * 100)}));
-  legenda($("leg-umid"), serie);
-  const etDay = i => { const m = meseDi(i); return (i - INIZIO_MESE[m] + 1) + " " + MESI[m]; };
-  lineChart($("g-umid"), {titolo: "Umidità del terreno", n: 365, yMin: 0, yMax: 100, ticks: [0, 30, 45, 70, 100], fmt: t => t + "%",
-    serie, etichettaX: etDay, fmtTip: v => fmt(v) + "%", riferimenti: []});
-  const serA = [{nome: c.fonte === "cisterna" ? "Dalla cisterna" : "Dal rubinetto", colore: "var(--s1)", valori: s.mesi.map(m => c.fonte === "cisterna" ? m.cisterna : m.rete)}];
-  if (c.fonte === "cisterna") serA.push({nome: "Dal rubinetto", colore: "var(--s2)", valori: s.mesi.map(m => m.rete)});
-  legenda($("leg-acqua"), serA, true);
-  barChart($("g-acqua"), {larghezza: 520, largo: 0.8, titolo: "Acqua usata per mese", categorie: MESI, serie: serA, fmt: compatto, fmtTip: v => fmt(v) + " L"});
-  $("box-cisterna").hidden = c.fonte !== "cisterna";
-  if (c.fonte === "cisterna") {
-    const minimo = Math.min(...s.giorni.map(g => g.cisterna));
-    $("cisterna-nota").textContent = "Minimo dell'anno " + fmt(minimo) + " L su " + fmt(c.cisterna) + " L. Sale con la pioggia raccolta dal tetto (" + fmt(s.raccolta) + " L nell'anno).";
-    const tk = niceTicks(c.cisterna);
-    lineChart($("g-cisterna"), {larghezza: 520, titolo: "Livello della cisterna", n: 365, yMin: 0, yMax: tk[tk.length - 1], ticks: tk, fmt: compatto, altezza: 240,
-      serie: [{nome: "Cisterna", colore: "var(--s1)", area: true, valori: s.giorni.map(g => g.cisterna)}], etichettaX: etDay, fmtTip: v => fmt(v) + " L"});
-  }
-  $("energia-nota").textContent = fmt(s.kwh, 1) + " kWh nell'anno: circa " + fmt(BASE_W[c.livello] + (c.corrente === "rete" ? 0.5 : 0), 1) + " W sempre accesi (ESP32, relè, sensori" + (c.corrente === "rete" ? ", alimentatore" : "") + ") più la pompa quando irriga.";
-  barChart($("g-energia"), {larghezza: 520, largo: 0.8, titolo: "Corrente per mese", categorie: MESI, serie: [{nome: "Corrente", colore: "var(--s1)", valori: s.mesi.map(m => m.wh)}], fmt: compatto, fmtTip: v => fmt(v) + " Wh", altezza: 220});
-  $("box-batteria").hidden = c.corrente !== "solare";
-  if (c.corrente === "solare") {
-    $("batteria-nota").textContent = "Pannello " + c.pannello + " W, batteria " + c.batteria + " Ah (si usa metà della carica). Giorni spento: " + s.giorniSpento + "; giorni con pompa ferma per batteria bassa: " + s.giorniBatteriaBassa + ".";
-    lineChart($("g-batteria"), {larghezza: 520, titolo: "Carica della batteria", n: 365, yMin: 0, yMax: 100, ticks: [0, 35, 50, 100], fmt: t => t + "%", altezza: 220,
-      serie: [{nome: "Batteria", colore: "var(--s1)", area: true, valori: s.giorni.map(g => g.soc * 100)}], etichettaX: etDay, fmtTip: v => fmt(v) + "%"});
-  }
-  const tz = $("t-zone"); tz.replaceChildren();
-  s.zone.forEach((z, i) => tz.append(el("tr", null,
-    el("td", null, el("span", {class: "pallino", style: `background:${COLORI[i]}`}), document.createTextNode((i + 1) + " · " + PIANTE[c.zone[i].coltura].nome + " " + fmt(c.zone[i].area) + " m²")),
-    el("td", {class: "n", text: fmt(z.litri)}), el("td", {class: "n", text: fmt(z.stress)}), el("td", {class: "n", text: fmt(z.ristagno)}),
-    el("td", {class: "n", text: fmt(z.kg, 1)}), el("td", {class: "n", text: fmt(z.valore)}))));
-  const tm = $("t-mesi"); tm.replaceChildren();
-  s.mesi.forEach((m, i) => tm.append(el("tr", null, el("td", {text: MESI[i]}), el("td", {class: "n", text: fmt(m.pioggia)}), el("td", {class: "n", text: fmt(m.usata)}),
-    el("td", {class: "n", text: fmt(m.cisterna)}), el("td", {class: "n", text: fmt(m.rete)}), el("td", {class: "n", text: fmt(m.raccolta)}), el("td", {class: "n", text: fmt(m.wh)}))));
-}
-const TAPPE = [["4a", "Banco minimo"], ["4b", "Banco completo"], ["5", "Campo"]];
-function disegnaCosti(c, s, voci) {
-  let cum = [0, 0];
-  const righe = [["0-3", "Strumenti, requisiti, simulazione, collaudo virtuale", 0, 0]];
-  TAPPE.forEach(([f, nome]) => { const v = voci.filter(x => x.fase === f); righe.push([f, nome, somma(v, "min"), somma(v, "max")]); });
-  const tb = $("t-tappe"); tb.replaceChildren();
-  const cumul = [];
-  righe.forEach(r => { cum = [cum[0] + r[2], cum[1] + r[3]]; cumul.push((cum[0] + cum[1]) / 2);
-    tb.append(el("tr", null, el("td", {text: "Fase " + r[0] + " · " + r[1]}), el("td", {class: "n", text: forbice(r[2], r[3])}), el("td", {class: "n", text: forbice(cum[0], cum[1])}))); });
-  barChart($("g-tappe"), {larghezza: 520, titolo: "Spesa cumulata a tappe", categorie: righe.map(r => "Fase " + r[0]), etichetteLunghe: righe.map(r => r[1] + " (totale fin qui, valore medio)"),
-    serie: [{nome: "Totale fin qui", colore: "var(--accent)", valori: cumul}], fmt: v => fmt(v) + " €", fmtTip: v => fmt(v) + " €", altezza: 260, largo: 1.6});
-  const acquaEuro = s.daRete / 1000 * c.prezzo_acqua, correnteEuro = c.corrente === "rete" ? s.kwh * c.prezzo_kwh : 0;
-  const spese = acquaEuro + correnteEuro + 5;
-  const ta = $("t-anno"); ta.replaceChildren();
-  [["Acqua dal rubinetto", fmt(s.daRete / 1000, 1) + " m³", euro(acquaEuro)], ["Corrente", fmt(s.kwh, 1) + " kWh", c.corrente === "rete" ? euro(correnteEuro) : "0 € (solare)"],
-   ["Ricambi e consumabili", "sensori, raccordi", "5 €"], ["Totale spese", "", euro(spese)], ["Verdura prodotta", fmt(s.kg) + " kg", "≈ " + euro(s.valore)]]
-    .forEach(r => ta.append(el("tr", null, el("td", {text: r[0]}), el("td", {class: "n", text: r[1]}), el("td", {class: "n", text: r[2]}))));
-  const iniziale = (somma(voci, "min") + somma(voci, "max")) / 2, netto = s.valore - spese;
-  $("ritorno").textContent = netto > 0 ? "Al prezzo del negozio la verdura vale " + euro(s.valore) + " all'anno. Tolte le spese (" + euro(spese) + "), il materiale (≈ " + euro(iniziale) + ") si ripaga in circa " +
-    fmt(Math.max(1, Math.ceil(iniziale / netto * 12))) + " mesi di raccolto. Stima indicativa: rese e prezzi variano molto." : "Con queste zone la verdura non copre le spese: aumenta la superficie o scegli colture più pregiate.";
-  const tl = $("t-livelli"); tl.replaceChildren();
-  const prot = {1: "Tempo massimo, pausa, galleggiante (mai a secco), sensore guasto, irrigazione inefficace, memoria dei blocchi.",
-                2: "In più: niente riavvii alla partenza della pompa, acqua nel quadro, gelo e caldo, litri in cisterna e riserva, filtro, quadro rialzato, troppo pieno.",
-                3: "In più: perdite in 2 minuti (flussimetro), valvola bloccata aperta (pioggia), dati e avvisi sul telefono."};
-  [1, 2, 3].forEach(L => { const v = materiali(c, L);
-    tl.append(el("tr", null, el("td", {text: "Livello " + L + (L === c.livello ? " (scelto)" : "")}), el("td", {class: "n", text: forbice(somma(v, "min"), somma(v, "max"))}), el("td", {text: prot[L]}))); });
-}
-function disegnaMateriali(c, voci) {
-  const box = $("materiali"); box.replaceChildren();
-  for (const cat of ["Elettronica", "Corrente", "Acqua", "Struttura"]) {
-    const v = voci.filter(x => x.cat === cat);
-    if (!v.length) continue;
-    const r = el("div", {class: "riquadro blocco"}, el("div", {class: "testa-riga"}, el("h3", {text: cat}), el("span", {class: "num piccolo", text: forbice(somma(v, "min"), somma(v, "max"))})));
-    v.forEach(x => r.append(el("div", {class: "mat"},
-      el("span", null, document.createTextNode((x.q > 1 && !/m\)$/.test(x.nome) ? x.q + " × " : "") + x.nome), el("span", {class: "liv", text: "fase " + x.fase})),
-      el("span", {class: "num", text: x.max === 0 ? "0 €" : forbice(x.min, x.max)}), el("span", {class: "perche", text: x.perche}))));
-    box.append(r);
-  }
-  const sb = $("sensori"); sb.replaceChildren();
-  const usati = [...new Set(voci.filter(v => v.sensore).map(v => v.sensore))];
-  Object.entries(SENSORI).forEach(([k, s]) => {
-    const presente = usati.includes(k);
-    sb.append(el("div", {class: "riquadro sensore"},
-      el("div", {class: "riga"}, el("h3", {text: s.nome}), el("span", {class: "chip " + (presente ? "ok" : "warn"), text: presente ? "nel tuo impianto" : "non incluso"})),
-      el("p", {class: "piccolo"}, el("strong", {text: "Misura: "}), document.createTextNode(s.misura)),
-      el("p", {class: "piccolo"}, el("strong", {text: "Dove: "}), document.createTextNode(s.dove)),
-      el("p", {class: "piccolo"}, el("strong", {text: "Taratura: "}), document.createTextNode(s.taratura)),
-      el("p", {class: "piccolo"}, el("strong", {text: "Errore tipico: "}), document.createTextNode(s.errore))));
-  });
-}
-function disegnaStruttura(c) {
-  $("g-acqua-schema").replaceChildren(schemaAcqua(c));
-  $("g-corrente-schema").replaceChildren(schemaCorrente(c));
-  const pin = [["Sensori di umidità zone 1-4", "34, 35, 32, 36", "solo pin ADC1; sensore a 3,3 V"], ["Pompa (relè)", "26", c.fonte === "cisterna" ? "relè attivo basso" : "qui: valvola generale"],
-    ["Valvole zone 1-4 (relè)", "25, 27, 16, 17", "elettrovalvole 12 V con diodo"], ["Galleggiante", "14", "contatto verso GND"], ["Pulsante reset", "13", "verso GND"],
-    ["DHT22", "4", "livello 2"], ["Ultrasuoni TRIG / ECHO", "5 / 18", "ECHO con partitore se a 5 V"], ["Acqua nel quadro", "33", "due fili verso GND"],
-    ["Flussimetro", "19", "livello 3; partitore 10 kΩ + 20 kΩ"], ["Pioggia", "23", "livello 3"], ["Tensione batteria", "39", "solo solare; partitore 40 kΩ + 10 kΩ"]];
-  $("t-pin").replaceChildren(...pin.map(p => el("tr", null, el("td", {text: p[0]}), el("td", {class: "dati", text: p[1]}), el("td", {text: p[2]}))));
-}
-function disegnaGestione() {
-  const r = [["Ogni giorno · 1 minuto", ["Guarda il pannello o il telefono: nessun allarme?", "Un'occhiata alle piante: foglie tese, nessuna pozza."]],
-             ["Ogni settimana · 15 minuti", ["Pulisci il filtro a rete.", "Controlla che i gocciolatoi gocciolino tutti.", "Raccogli e segna il raccolto nel registro."]],
-             ["Ogni mese", ["Controlla che i sensori siano ben piantati e i cavi integri.", "Pulisci il filtro della grondaia.", "Prova la sonda del quadro con un dito umido."]],
-             ["A ogni stagione", ["Autunno: scoli aperti, troppo pieno libero.", "Prima del gelo: svuota tubi e pompa.", "Primavera: rifai la taratura dei sensori (aria/acqua).", "Estate: pacciamatura e rete ombreggiante sulle insalate."]]];
-  $("routine").replaceChildren(...r.map(([t, l]) => el("div", {class: "riquadro blocco"}, el("h3", {text: t}), el("ul", {style: "margin:0;padding-left:18px;display:grid;gap:4px"}, ...l.map(x => el("li", {text: x}))))));
-  $("t-allarmi").replaceChildren(...ALLARMI.map(a => el("tr", null, el("td", {class: "dati", text: a[0]}), el("td", {text: a[1]}), el("td", {text: a[2]}), el("td", {text: a[3]}))));
-}
-function disegnaPercorso(c, voci) {
-  const costo = f => { const v = voci.filter(x => x.fase === f); return forbice(somma(v, "min"), somma(v, "max")); };
-  const passi = [
-    ["Strumenti · 0 €", "Python, Git e un account gratuito Wokwi. Scarica il repository e lancia i test.", "I test finiscono con OK."],
-    ["Il tuo orto nel gemello · 0 €", "Quello che stai facendo qui: zone, piante, acqua, corrente, livello.", "Nessun messaggio rosso nella scheda 'Il mio orto'."],
-    ["Simulazione dettagliata · 0 €", "Il comando qui sotto prova le tue zone minuto per minuto con guasti, nubifragi, blackout e cali di tensione.", "Ogni guasto dà l'allarme giusto (python3 -m sistema.simula tutti)."],
-    ["ESP32 virtuale · 0 €", "Il firmware vero su Wokwi, con potenziometri al posto dei sensori: prove W1-W11.", "Tutte le prove W superate. Solo ora si compra."],
-    ["Banco minimo · " + costo("4a"), "ESP32, un sensore, relè e breadboard sul tavolo, LED al posto di pompa e valvole: prove B1-B5.", "Sensore tarato, relè mai accesi all'avvio."],
-    ["Banco completo · " + costo("4b"), "Il resto dell'elettronica e la pompa in un secchio: prove B6-B13 e 72 ore di funzionamento.", "Nessun riavvio alla partenza della pompa, tutte le sicurezze provate."],
-    ["Campo · " + costo("5"), "Una zona per 14 giorni accanto a un vaso annaffiato a mano, poi le altre: prove C1-C7.", "Piante sane, guasti provocati riconosciuti, gemello tarato con i dati veri."],
-    ["Gestione · 0 €", "Centrale su un vecchio PC: dati, pannello, meteo e avvisi sul telefono (prove G).", "Senza Wi-Fi l'orto continua da solo; gli avvisi arrivano entro 5 minuti."],
-  ];
-  $("passi").replaceChildren(...passi.map(p => el("div", {class: "passo"}, el("div", null, el("h3", {text: p[0]}), el("p", {class: "piccolo", text: p[1]}), el("p", {class: "piccolo"}, el("strong", {text: "Cancello: "}), document.createTextNode(p[2]))))));
-  const T = TERRENI[c.terreno];
-  const zone = c.zone.map(z => ({nome: PIANTE[z.coltura].nome.toLowerCase(), area_m2: z.area, kc: PIANTE[z.coltura].kc, capacita_mm: T.cap,
-    drenaggio_mm_h: z.rialzata ? Math.max(T.dren, 15) : T.dren, pacciamatura: z.pacciamatura}));
-  const portata = c.fonte === "cisterna" ? POMPE[c.pompa].portata : PORTATA_RUBINETTO;
-  $("cmd").textContent = "python3 -m sistema.simula tutti --portata " + portata + " --zone '" + JSON.stringify(zone) + "'";
-  $("cfg-json").textContent = JSON.stringify(cfg, null, 2);
-}
-$("copia-cmd").addEventListener("click", () => {
-  const testo = $("cmd").textContent;
-  const fatto = () => $("copiato").textContent = "Copiato.";
-  const ripiego = () => { const r = document.createRange(); r.selectNodeContents($("cmd")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("copiato").textContent = "Selezionato: premi Ctrl+C."; };
-  try { navigator.clipboard.writeText(testo).then(fatto, ripiego); } catch (e) { ripiego(); }
-});
-
-// ---------- vista 3D (misure reali, in metri) ----------
-const TIPO_PIANTA = {
-  pomodoro: {forma: "alta", h: 1.4, frutto: 0xd8342c}, peperone: {forma: "alta", h: 0.7, frutto: 0xd94a1f},
-  melanzana: {forma: "alta", h: 0.8, frutto: 0x4b2a5c}, fagiolino: {forma: "alta", h: 1.6, frutto: 0x5f9a2e},
-  zucchina: {forma: "grande", h: 0.6, frutto: 0xe8b923}, cavolo: {forma: "grande", h: 0.5, frutto: 0xf2ecd8},
-  lattuga: {forma: "rosetta", h: 0.2, colore: 0x8cc63f}, spinacio: {forma: "rosetta", h: 0.2, colore: 0x2f7a2b},
-  rucola: {forma: "rosetta", h: 0.18, colore: 0x4f8f2f}, fragola: {forma: "rosetta", h: 0.2, colore: 0x3e8a35, frutto: 0xe0302e},
-  basilico: {forma: "cespuglio", h: 0.45, colore: 0x3fa142}, carota: {forma: "ciuffo", h: 0.35, colore: 0x5aa83a},
-  patata: {forma: "cespuglio", h: 0.55, colore: 0x4c8a35}, cipolla: {forma: "ciuffo", h: 0.45, colore: 0x6aa84f},
-  aglio: {forma: "ciuffo", h: 0.5, colore: 0x7aa95a}, fava: {forma: "ciuffo", h: 0.9, colore: 0x4e8a3e},
-};
-const vista = (() => {
-  const box = $("scena");
-  if (!window.THREE) {
-    box.append(el("div", {class: "scena-nota"}, el("p", {text: "La vista 3D ha bisogno di internet per caricare la libreria three.js. Il resto del gemello funziona lo stesso."})));
-    return null;
-  }
-  const T3 = THREE;
-  const renderer = new T3.WebGLRenderer({antialias: true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = T3.PCFSoftShadowMap;
-  box.append(renderer.domElement);
-  const scena = new T3.Scene();
-  const cielo = new T3.Color(0x9fc3dd), grigio = new T3.Color(0x8e98a0);
-  scena.background = cielo.clone(); scena.fog = new T3.Fog(scena.background, 26, 60);
-  const camera = new T3.PerspectiveCamera(40, 1, 0.1, 200);
-  const controlli = new T3.OrbitControls(camera, renderer.domElement);
-  controlli.enableDamping = true; controlli.maxPolarAngle = 1.45; controlli.minDistance = 3; controlli.maxDistance = 32;
-  const emi = new T3.HemisphereLight(0xdfeefa, 0x4a3d2a, 0.6); scena.add(emi);
-  const sole = new T3.DirectionalLight(0xfff3df, 1.0);
-  sole.position.set(8, 14, 9); sole.castShadow = true; sole.shadow.mapSize.set(2048, 2048);
-  Object.assign(sole.shadow.camera, {left: -12, right: 12, top: 12, bottom: -12, near: 1, far: 50}); sole.shadow.bias = -0.0005;
-  scena.add(sole);
-  const M = (c, o) => new T3.MeshStandardMaterial(Object.assign({color: c, roughness: 0.85, metalness: 0}, o || {}));
-  const prato = new T3.Mesh(new T3.PlaneGeometry(80, 80), M(0x5d7d3a));
-  prato.rotation.x = -Math.PI / 2; prato.receiveShadow = true; scena.add(prato);
-  // muro di casa con grondaia (fisso)
-  const casa = new T3.Group(); scena.add(casa);
-  const ombra = m => { m.castShadow = true; m.receiveShadow = true; return m; };
-  const geoSfera = new T3.IcosahedronGeometry(1, 1), geoCil = new T3.CylinderGeometry(1, 1, 1, 12), geoBox = new T3.BoxGeometry(1, 1, 1);
-  function blocco(w, h, d, mat, x, y, z, info) { const m = ombra(new T3.Mesh(geoBox, mat)); m.scale.set(w, h, d); m.position.set(x, y, z); if (info) m.userData.info = info; return m; }
-  function cil(r, h, mat, x, y, z, info) { const m = ombra(new T3.Mesh(geoCil, mat)); m.scale.set(r, h, r); m.position.set(x, y, z); if (info) m.userData.info = info; return m; }
-  function tubo(punti, r, mat, gruppo, info) {
-    for (let i = 1; i < punti.length; i++) {
-      const a = new T3.Vector3(...punti[i - 1]), b = new T3.Vector3(...punti[i]), l = a.distanceTo(b);
-      if (l < 1e-3) continue;
-      const m = new T3.Mesh(geoCil, mat); m.scale.set(r, l, r);
-      m.position.copy(a).add(b).multiplyScalar(0.5);
-      m.quaternion.setFromUnitVectors(new T3.Vector3(0, 1, 0), b.clone().sub(a).normalize());
-      m.castShadow = true; if (info) m.userData.info = info; gruppo.add(m);
-    }
-  }
-  function cavo(punti, gruppo) {
-    const g = new T3.BufferGeometry().setFromPoints(punti.map(p => new T3.Vector3(...p)));
-    gruppo.add(new T3.Line(g, new T3.LineBasicMaterial({color: 0x1a1a1a})));
-  }
-  let impianto = null, stato = null, giorno = +$("giorno").value, simCorrente = null;
-  const pioggiaGeo = new T3.BufferGeometry(), NP = 1800, pos = new Float32Array(NP * 3);
-  for (let i = 0; i < NP; i++) { pos[i * 3] = (Math.random() - 0.5) * 22; pos[i * 3 + 1] = Math.random() * 9; pos[i * 3 + 2] = (Math.random() - 0.5) * 16; }
-  pioggiaGeo.setAttribute("position", new T3.BufferAttribute(pos, 3));
-  const pioggia = new T3.Points(pioggiaGeo, new T3.PointsMaterial({color: 0xcfe3f5, size: 0.05, transparent: true, opacity: 0.8}));
-  pioggia.visible = false; scena.add(pioggia);
-
-  function info(nome, voci, testo) {
-    const v = voci.find(x => x.nome.toLowerCase().startsWith(nome.toLowerCase()));
-    return {titolo: v ? v.nome : nome, testo: testo || (v ? v.perche : ""), prezzo: v ? (v.max === 0 ? "0 €" : forbice(v.min, v.max)) : null};
-  }
-  function pianta(coltura) {
-    const t = TIPO_PIANTA[coltura] || {forma: "cespuglio", h: 0.4, colore: 0x4c8a35};
-    const g = new T3.Group(), foglia = M(t.colore || 0x3f8a36, {roughness: 0.75}), frutti = [];
-    const sf = (r, x, y, z, sy, mat) => { const m = new T3.Mesh(geoSfera, mat || foglia); m.scale.set(r, r * (sy || 1), r); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
-    if (t.forma === "alta") {
-      const tutore = new T3.Mesh(geoCil, M(0x9b7a4c)); tutore.scale.set(0.012, t.h, 0.012); tutore.position.y = t.h / 2; tutore.castShadow = true; g.add(tutore);
-      const fm = M(0x3b7d2e);
-      for (let k = 0; k < 4; k++) sf(0.16 - k * 0.02, (k % 2 ? 0.06 : -0.05), 0.2 + k * t.h * 0.22, (k % 2 ? -0.04 : 0.05), 0.9, fm);
-      const frm = M(t.frutto, {roughness: 0.45});
-      for (let k = 0; k < 5; k++) frutti.push(sf(0.045, Math.cos(k * 1.3) * 0.13, 0.25 + k * t.h * 0.12, Math.sin(k * 1.3) * 0.13, coltura === "melanzana" || coltura === "fagiolino" ? 2 : 1, frm));
-    } else if (t.forma === "grande") {
-      const fm = M(0x3f7a2c, {roughness: 0.7});
-      for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2; const m = sf(0.24, Math.cos(a) * 0.22, 0.16, Math.sin(a) * 0.22, 0.25, fm); m.rotation.z = Math.cos(a) * 0.4; m.rotation.x = Math.sin(a) * 0.4; }
-      const frm = M(t.frutto, {roughness: 0.5});
-      frutti.push(sf(coltura === "cavolo" ? 0.14 : 0.06, 0, 0.22, 0, coltura === "cavolo" ? 0.7 : 1, frm));
-      if (coltura === "zucchina") { const z = sf(0.045, 0.2, 0.06, 0.05, 1, M(0x3d6e25)); z.scale.set(0.045, 0.045, 0.2); frutti.push(z); }
-    } else if (t.forma === "rosetta") {
-      sf(0.13, 0, t.h * 0.45, 0, 0.6); sf(0.09, 0, t.h * 0.75, 0, 0.6, M(t.colore, {roughness: 0.6, emissive: 0x112200, emissiveIntensity: 0.1}));
-      if (t.frutto) for (let k = 0; k < 3; k++) frutti.push(sf(0.025, Math.cos(k * 2) * 0.12, 0.04, Math.sin(k * 2) * 0.12, 1.2, M(t.frutto, {roughness: 0.4})));
-    } else if (t.forma === "cespuglio") {
-      sf(0.14, 0, t.h * 0.45, 0, 1.1); sf(0.1, 0.06, t.h * 0.8, 0.02); sf(0.09, -0.07, t.h * 0.7, -0.03);
-    } else {
-      for (let k = 0; k < 6; k++) { const m = new T3.Mesh(geoCil, foglia); m.scale.set(0.008, t.h, 0.008); m.position.set(Math.cos(k) * 0.025, t.h / 2, Math.sin(k) * 0.025);
-        m.rotation.z = Math.cos(k * 2.1) * 0.25; m.rotation.x = Math.sin(k * 2.1) * 0.25; m.castShadow = true; g.add(m); }
-    }
-    g.userData.frutti = frutti;
-    return g;
-  }
-  function costruisci(c, s, voci) {
-    simCorrente = s;
-    const condivise = [geoSfera, geoCil, geoBox];
-    const svuota = gr => gr.traverse(o => { if (o.material) o.material.dispose(); if (o.geometry && !condivise.includes(o.geometry)) o.geometry.dispose(); });
-    if (impianto) { scena.remove(impianto); svuota(impianto); }
-    svuota(casa);
-    impianto = new T3.Group(); scena.add(impianto);
-    const n = c.zone.length, cist = c.fonte === "cisterna", sol = c.corrente === "solare";
-    const LARG = 1.2, VIA = 0.7;
-    const lungh = c.zone.map(z => Math.max(0.6, z.area / LARG));
-    const xs = c.zone.map((_, i) => i * (LARG + VIA));
-    const W = n * LARG + (n - 1) * VIA, x0 = -W / 2 + 1.2;
-    const zMax = Math.max(...lungh);
-    // muro e grondaia
-    casa.clear();
-    const xm = x0 - 4.2;
-    casa.add(blocco(W + 9, 2.8, 0.3, M(0xd9d2c3), x0 + W / 2 - 1.5, 1.4, -3.4, {titolo: "Muro di casa", testo: "La grondaia di " + fmt(c.tetto) + " m² di tetto porta la pioggia in cisterna."}));
-    casa.add(blocco(W + 9, 0.12, 0.5, M(0x8b4a32), x0 + W / 2 - 1.5, 2.86, -3.2));
-    tubo([[x0 - 6, 2.75, -2.62], [x0 + W + 3, 2.75, -2.62]], 0.06, M(0xb0b3b5, {metalness: 0.5, roughness: 0.4}), casa);
-    stato = {zone: [], cist: null, acquaCist: null, capCist: c.cisterna, led: null, linee: [], valvole: []};
-    // cisterna o rubinetto
-    const xc = xm, zc = -2.1;
-    if (cist) {
-      tubo([[xc + 0.2, 2.75, -2.62], [xc + 0.2, 1.4, -2.62], [xc + 0.2, 1.35, zc]], 0.045, M(0xb0b3b5, {metalness: 0.5, roughness: 0.4}), impianto, info("Raccordo con filtro", voci));
-      let hInt, fondo;
-      if (c.cisterna >= 600) {
-        const h = Math.min(1.6, Math.max(0.6, c.cisterna / 1000 * 1.0)) ;
-        impianto.add(blocco(1.2, 0.14, 1.0, M(0x9a7b52), xc, 0.07, zc));
-        const vasca = new T3.Mesh(geoBox, new T3.MeshPhysicalMaterial({color: 0xf2f2ee, roughness: 0.3, transparent: true, opacity: 0.45, transmission: 0.2}));
-        vasca.scale.set(1.1, h, 0.92); vasca.position.set(xc, 0.14 + h / 2, zc); vasca.userData.info = info("Cisterna", voci); impianto.add(vasca);
-        const gabbia = new T3.LineSegments(new T3.EdgesGeometry(new T3.BoxGeometry(1.2, h + 0.02, 1.0, 3, 3, 3)), new T3.LineBasicMaterial({color: 0x9aa0a4}));
-        gabbia.position.copy(vasca.position); impianto.add(gabbia);
-        hInt = h; fondo = 0.14;
-        const acqua = new T3.Mesh(geoBox, M(0x3f87c9, {transparent: true, opacity: 0.75, roughness: 0.2}));
-        acqua.position.set(xc, fondo, zc); impianto.add(acqua);
-        stato.acquaCist = {mesh: acqua, h: hInt, fondo, w: 1.05, d: 0.88};
-      } else {
-        const fusti = Math.max(1, Math.ceil(c.cisterna / 200));
-        for (let k = 0; k < fusti; k++) impianto.add(cil(0.29, 0.88, M(0x2a5ea8, {roughness: 0.5}), xc - 0.35 + (k % 2) * 0.62, 0.44, zc + Math.floor(k / 2) * 0.62, info("Cisterna", voci, "Fusti alimentari da 200 L recuperati: " + fusti + " in tutto.")));
-      }
-      if (c.livello >= 2) impianto.add(blocco(0.08, 0.05, 0.06, M(0x222222), xc + 0.3, (c.cisterna >= 600 ? 0.16 + Math.min(1.6, Math.max(0.6, c.cisterna / 1000)) : 0.9), zc, info("Sensore di livello", voci)));
-      // pompa
-      const xp = xc + 1.05;
-      impianto.add(blocco(0.4, 0.12, 0.3, M(0x8d8d8d), xp, 0.06, zc + 0.2));
-      const pompa = blocco(0.22, 0.12, 0.13, M(0x1f3b66, {roughness: 0.5}), xp, 0.18, zc + 0.2, info("Pompa", voci));
-      impianto.add(pompa); stato.pompa = pompa;
-      tubo([[xc + 0.55, 0.2, zc + 0.2], [xp - 0.11, 0.18, zc + 0.2]], 0.012, M(0x1a1a1a), impianto);
-      stato.uscita = [xp + 0.11, 0.18, zc + 0.2];
-    } else {
-      impianto.add(blocco(0.06, 0.06, 0.12, M(0xb5b5b5, {metalness: 0.7, roughness: 0.3}), xc, 0.8, -3.2, info("Rubinetto", voci, "Acqua di rete: niente pompa, ma serve la valvola generale.")));
-      impianto.add(blocco(0.12, 0.1, 0.1, M(0x2b2b2b), xc + 0.6, 0.12, zc, info("Riduttore di pressione", voci)));
-      impianto.add(blocco(0.14, 0.1, 0.1, M(0x2c3e70), xc + 1.0, 0.12, zc, info("Valvola generale", voci)));
-      tubo([[xc, 0.8, -3.15], [xc, 0.12, -3.15], [xc, 0.12, zc], [xc + 1.07, 0.12, zc]], 0.01, M(0x1a1a1a), impianto);
-      stato.uscita = [xc + 1.07, 0.12, zc];
-    }
-    // flussimetro e filtro
-    let xs0 = stato.uscita[0];
-    if (c.livello >= 3) { impianto.add(cil(0.025, 0.08, M(0xe8c22b), xs0 + 0.18, stato.uscita[1], stato.uscita[2], info("Flussimetro", voci))); }
-    if (c.livello >= 2) { impianto.add(cil(0.035, 0.12, M(0x2e6fb0, {transparent: true, opacity: 0.8}), xs0 + 0.36, stato.uscita[1], stato.uscita[2], info("Filtro a rete", voci))); }
-    // collettore con le valvole
-    const xv = x0 - 1.4, zv = -1.2;
-    const pvc = M(0x1b1b1b, {roughness: 0.6});
-    tubo([stato.uscita, [xv, 0.05, stato.uscita[2]], [xv, 0.05, zv]], 0.009, pvc, impianto, {titolo: "Tubo 16 mm", testo: "Porta l'acqua dalla pompa (o dal rubinetto) alle valvole."});
-    const pozzetto = blocco(0.5, 0.25, 0.4 + n * 0.12, M(0x2f6b45, {roughness: 0.6}), xv, 0.125, zv + 0.25, info("Elettrovalvola", voci, "Pozzetto con " + n + " elettrovalvole 12 V normalmente chiuse, una per zona."));
-    impianto.add(pozzetto);
-    // quadro su palo
-    const xq = xc + 0.4, zq = -0.9, hq = c.livello >= 2 ? 0.55 : 0.05;
-    if (c.livello >= 2 || sol) impianto.add(cil(0.035, 1.6, M(0x8a8f93, {metalness: 0.6, roughness: 0.4}), xq, 0.8, zq - 0.06, info("Palo o staffa", voci)));
-    const quadro = blocco(0.3, 0.25, 0.14, M(0xc9ccd0, {roughness: 0.5}), xq, hq + 0.125, zq, info("Scatola stagna", voci, "Il quadro: ESP32, relè, alimentatore. " + (c.livello >= 2 ? "A 55 cm da terra: un nubifragio non lo raggiunge." : "A terra: con un nubifragio l'acqua può entrare (livello 2: palo a 50 cm).")));
-    impianto.add(quadro);
-    const led = new T3.Mesh(geoSfera, new T3.MeshStandardMaterial({color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 1}));
-    led.scale.setScalar(0.014); led.position.set(xq + 0.1, hq + 0.2, zq + 0.075); impianto.add(led); stato.led = led;
-    if (sol) {
-      const pan = blocco(Math.sqrt(c.pannello / 100) * 0.9 + 0.25, 0.03, Math.sqrt(c.pannello / 100) * 0.6 + 0.2, M(0x1c2a4a, {roughness: 0.3, metalness: 0.4}), xq, 1.7, zq, info("Pannello solare", voci));
-      pan.rotation.x = 0.6; impianto.add(pan);
-      impianto.add(blocco(0.18 + c.batteria / 200, 0.17, 0.15, M(0x303030), xq + 0.45, 0.09, zq, info("Batteria 12 V", voci)));
-    }
-    if (c.livello >= 2) {
-      impianto.add(cil(0.015, 1.2, M(0x8a8f93), xq - 0.9, 0.6, zq + 0.3));
-      impianto.add(blocco(0.09, 0.12, 0.07, M(0xf4f4f4), xq - 0.9, 1.25, zq + 0.3, info("DHT22", voci, "Temperatura dell'aria all'ombra, in una casetta ventilata: blocca l'irrigazione col gelo.")));
-    }
-    if (c.livello >= 3) impianto.add(blocco(0.07, 0.01, 0.05, M(0x2c6a9e, {metalness: 0.3}), xq, 1.62, zq - 0.06, info("Sensore di pioggia", voci)));
-    // aiuole
-    const legno = M(0x8a6a44, {roughness: 0.9});
-    c.zone.forEach((z, i) => {
-      const xi = x0 + xs[i] + LARG / 2, L = lungh[i], zi0 = 0;
-      const alto = z.rialzata ? 0.3 : 0.04;
-      const g = new T3.Group(); impianto.add(g);
-      if (z.rialzata) {
-        g.add(blocco(0.04, 0.32, L + 0.08, legno, xi - LARG / 2 - 0.02, 0.16, zi0 + L / 2));
-        g.add(blocco(0.04, 0.32, L + 0.08, legno, xi + LARG / 2 + 0.02, 0.16, zi0 + L / 2));
-        g.add(blocco(LARG, 0.32, 0.04, legno, xi, 0.16, zi0 - 0.02));
-        g.add(blocco(LARG, 0.32, 0.04, legno, xi, 0.16, zi0 + L + 0.02));
-      }
-      const terraMat = M(0x8a6a45, {roughness: 1});
-      const terra = blocco(LARG, alto, L, terraMat, xi, alto / 2, zi0 + L / 2, {titolo: "Zona " + (i + 1) + " · " + PIANTE[z.coltura].nome, testo: fmt(z.area) + " m² (" + fmt(LARG, 1) + " × " + fmt(L, 1) + " m)" + (z.rialzata ? ", aiuola rialzata 30 cm" : "") + (z.pacciamatura ? ", pacciamata" : "") + ". " + PIANTE[z.coltura].m2 + " piante per m²."});
-      terra.userData.proprio = true; g.add(terra);
-      let pacc = null;
-      if (z.pacciamatura) { pacc = blocco(LARG - 0.04, 0.02, L - 0.04, M(0xa88e58, {roughness: 1}), xi, alto + 0.01, zi0 + L / 2); pacc.userData.proprio = true; g.add(pacc); }
-      const pozza = new T3.Mesh(new T3.PlaneGeometry(LARG * 0.85, L * 0.8), new T3.MeshStandardMaterial({color: 0x6b8fb0, transparent: true, opacity: 0, roughness: 0.05, metalness: 0.2}));
-      pozza.rotation.x = -Math.PI / 2; pozza.position.set(xi, alto + 0.025, zi0 + L / 2); g.add(pozza);
-      // ali gocciolanti
-      const ala = M(0x161616, {roughness: 0.6}); ala.userData.proprio = true;
-      tubo([[xi - 0.3, alto + 0.012, zi0 + 0.05], [xi - 0.3, alto + 0.012, zi0 + L - 0.05]], 0.008, ala, g, info("Ala gocciolante", voci));
-      tubo([[xi + 0.3, alto + 0.012, zi0 + 0.05], [xi + 0.3, alto + 0.012, zi0 + L - 0.05]], 0.008, ala, g, info("Ala gocciolante", voci));
-      tubo([[xv + 0.25, 0.05, zv + 0.1 + i * 0.12], [xi - 0.3, 0.05, zv + 0.1 + i * 0.12], [xi - 0.3, 0.05, zi0 + 0.05], [xi - 0.3, alto + 0.012, zi0 + 0.05]], 0.009, pvc, g);
-      // sensore e cavo verso il quadro
-      const xsn = xi + 0.05, zsn = zi0 + L / 2 + 0.1;
-      g.add(cil(0.006, 0.25, M(0x777777), xsn, alto + 0.05, zsn));
-      g.add(blocco(0.03, 0.09, 0.008, M(0x1d6b3a, {roughness: 0.5}), xsn, alto + 0.08, zsn, info("Sensore di umidità", voci, "Zona " + (i + 1) + ": a 10-15 cm di profondità, vicino a un gocciolatoio. Il cavo va al quadro.")));
-      cavo([[xsn, alto + 0.12, zsn], [xsn, 0.01, zsn - 0.02], [xsn, 0.01, zq + 0.3], [xq, 0.01, zq + 0.3], [xq, hq, zq]], g);
-      // piante
-      const P = PIANTE[z.coltura];
-      let passo = Math.max(0.28, 1 / Math.sqrt(P.m2));
-      let col = Math.max(1, Math.floor((LARG - 0.1) / passo)), file = Math.max(1, Math.floor((L - 0.1) / passo));
-      while (col * file > 40) { passo *= 1.15; col = Math.max(1, Math.floor((LARG - 0.1) / passo)); file = Math.max(1, Math.floor((L - 0.1) / passo)); }
-      const piante = [];
-      for (let a = 0; a < col; a++) for (let b = 0; b < file; b++) {
-        const p = pianta(z.coltura);
-        p.position.set(xi - (col - 1) * passo / 2 + a * passo, alto + (z.pacciamatura ? 0.02 : 0), zi0 + L / 2 - (file - 1) * passo / 2 + b * passo);
-        p.rotation.y = (a * 7 + b * 13) % 6;
-        p.traverse(o => { if (o.isMesh) o.userData.info = {titolo: P.nome, testo: "Kc " + fmt(P.kc, 2) + " · ciclo " + P.giorni + " giorni · resa indicativa " + fmt(P.resa, 1) + " kg/m² · " + fmt(P.prezzo, 1) + " €/kg al negozio."}; });
-        g.add(p); piante.push(p);
-      }
-      stato.zone.push({terra: terraMat, pacc, pozza, ala, piante});
-    });
-    // terreno battuto attorno
-    const vialetto = new T3.Mesh(new T3.PlaneGeometry(W + 7.5, zMax + 3.4), M(0x7f7056, {roughness: 1}));
-    vialetto.rotation.x = -Math.PI / 2; vialetto.position.set(x0 + W / 2 - 2.4, 0.003, zMax / 2 - 1.1); vialetto.receiveShadow = true; impianto.add(vialetto);
-    // inquadratura
-    const centro = new T3.Vector3(x0 + W / 2 - 1.8, 0.3, zMax / 2 - 0.8);
-    if (!costruisci.inquadrato) {
-      controlli.target.copy(centro); camera.position.set(centro.x + 2.2, 2.6 + W * 0.12, centro.z + 5.2 + W * 0.4); costruisci.inquadrato = true;
-    }
-    mostraGiorno(giorno);
-  }
-  const SECCO = new T3.Color(0x9c7b52), BAGNATO = new T3.Color(0x3b2a1b), INCOLTO = new T3.Color(0x86704f);
-  function mostraGiorno(d) {
-    if (!simCorrente || !stato) return;
-    giorno = d;
-    const g = simCorrente.giorni[d], c = cfg;
-    const piove = g.pioggia > 1;
-    scena.background.copy(cielo).lerp(grigio, piove ? 0.7 : 0); scena.fog.color.copy(scena.background);
-    sole.intensity = piove ? 0.35 : 0.55 + g.sole / 8 * 0.6; emi.intensity = piove ? 0.5 : 0.65;
-    pioggia.visible = piove && !ridotto;
-    $("scena-box").style.background = "#" + scena.background.getHexString();
-    stato.zone.forEach((z, i) => {
-      const u = g.umid[i];
-      z.terra.color.copy(u == null ? INCOLTO : SECCO.clone().lerp(BAGNATO, Math.min(1, u)));
-      if (z.pacc) z.pacc.material.color.set(u == null ? 0xa88e58 : new T3.Color(0xb0955c).lerp(new T3.Color(0x6e5a36), Math.min(1, u) * 0.7));
-      z.pozza.material.opacity = Math.min(0.7, g.acquaFerma[i] * 1.2);
-      z.ala.color.set(g.irrigata[i] ? 0x2a78d6 : 0x161616); z.ala.emissive.set(g.irrigata[i] ? 0x0d3a70 : 0x000000);
-      const cr = g.crescita[i], on = u != null;
-      z.piante.forEach(p => {
-        p.visible = on;
-        p.scale.setScalar(0.12 + 0.88 * Math.min(1, cr * 1.5));
-        p.userData.frutti.forEach(f => f.visible = cr > 0.55);
-      });
-    });
-    if (stato.acquaCist) {
-      const a = stato.acquaCist, liv = Math.max(0.01, g.cisterna / Math.max(1, c.cisterna)) * a.h;
-      a.mesh.scale.set(a.w, liv, a.d); a.mesh.position.y = a.fondo + liv / 2;
-    }
-    if (stato.pompa) stato.pompa.material.emissive.set(g.litri > 0 ? 0x1e4f9a : 0x000000);
-    // allarmi del giorno
-    const avvisi = [];
-    g.umid.forEach((u, i) => { if (u != null && u < 0.30) avvisi.push(["crit", "Z" + (i + 1) + ": pianta in sofferenza"]);
-      if (g.acquaFerma[i] > 0.25) avvisi.push(["warn", "Z" + (i + 1) + "_ALLAGATA: acqua ferma"]); });
-    if (c.fonte === "cisterna" && g.cisterna < c.cisterna * 0.05) avvisi.push(["crit", "SERBATOIO_BASSO"]);
-    if (!g.acceso) avvisi.push(["crit", "ESP32 spento: batteria scarica"]);
-    else if (!g.pompaPermessa) avvisi.push(["warn", "BATTERIA_BASSA: pompa ferma"]);
-    const tempo = REGIONI[c.regione].t[meseDi(d)];
-    if (tempo - 6 <= 2) avvisi.push(["warn", "GELO di notte: niente irrigazione"]);
-    const colLed = avvisi.some(a => a[0] === "crit") ? 0xef4444 : avvisi.length ? 0xf59e0b : 0x22c55e;
-    stato.led.material.color.set(colLed); stato.led.material.emissive.set(colLed);
-    const m = meseDi(d);
-    const hud = $("hud-stato");
-    hud.replaceChildren(
-      el("span", {class: "data", text: (d - INIZIO_MESE[m] + 1) + " " + ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"][m]}),
-      el("span", {class: "piccolo", text: (piove ? "Pioggia " + fmt(g.pioggia) + " mm" : "Sereno") + " · " + tempo + " °C medi" + (g.litri > 0 ? " · irrigati " + fmt(g.litri) + " L" : "")}),
-      ...(c.fonte === "cisterna" ? [el("span", {class: "piccolo num", text: "Cisterna " + fmt(g.cisterna) + " / " + fmt(c.cisterna) + " L"})] : []),
-      ...(g.soc != null ? [el("span", {class: "piccolo num", text: "Batteria " + fmt(g.soc * 100) + "%"})] : []),
-      ...c.zone.map((z, i) => {
-        const u = g.umid[i];
-        return el("div", {class: "zchip"}, el("span", {class: "pallino", style: `background:${COLORI[i]}`}),
-          el("span", {text: PIANTE[z.coltura].nome}),
-          el("span", {class: "barra"}, el("span", {style: `width:${u == null ? 0 : u * 100}%;background:${COLORI[i]}`})),
-          el("b", {text: u == null ? "vuota" : fmt(u * 100) + "%"}));
-      }),
-      ...(avvisi.length ? avvisi.slice(0, 3).map(a => el("span", {class: "avviso " + a[0], text: a[1]})) : [el("span", {class: "avviso ok", text: "Tutto a posto"})]));
-    $("giorno").value = d;
-  }
-  // interazione
-  const ray = new T3.Raycaster(), pt = new T3.Vector2();
-  let giu = null;
-  renderer.domElement.addEventListener("pointerdown", e => giu = [e.clientX, e.clientY]);
-  renderer.domElement.addEventListener("pointerup", e => {
-    if (!giu || Math.hypot(e.clientX - giu[0], e.clientY - giu[1]) > 5) return;
-    const r = renderer.domElement.getBoundingClientRect();
-    pt.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
-    ray.setFromCamera(pt, camera);
-    const hit = ray.intersectObjects([impianto, casa], true).find(h => h.object.userData.info);
-    const box = $("hud-info");
-    if (!hit) { box.classList.add("vuoto"); return; }
-    box.classList.remove("vuoto");
-    const inf = hit.object.userData.info;
-    box.replaceChildren(el("span", {class: "etichetta", text: "Nel tuo impianto"}), el("strong", {text: inf.titolo}),
-      el("span", {class: "piccolo", text: inf.testo}), ...(inf.prezzo ? [el("span", {class: "num", text: inf.prezzo})] : []));
-  });
-  function dimensiona() {
-    const w = box.clientWidth, h = box.clientHeight;
-    if (!w || !h) return;
-    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
-  }
-  new ResizeObserver(dimensiona).observe(box);
-  const ridotto = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let inGioco = false, ultimo = 0, accumulo = 0, visibile = true;
-  new IntersectionObserver(v => visibile = v[0].isIntersecting).observe(box);
-  $("gioca").addEventListener("click", () => { inGioco = !inGioco; $("gioca").textContent = inGioco ? "❚❚" : "▶"; $("gioca").setAttribute("aria-label", inGioco ? "Ferma" : "Avvia l'anno"); });
-  $("giorno").addEventListener("input", e => mostraGiorno(+e.target.value));
-  function ciclo(t) {
-    requestAnimationFrame(ciclo);
-    const dt = Math.min(0.1, (t - ultimo) / 1000); ultimo = t;
-    if (!visibile || document.hidden) return;
-    if (inGioco) { accumulo += dt * +$("velocita").value; if (accumulo >= 1) { const passi = Math.floor(accumulo); accumulo -= passi; mostraGiorno((giorno + passi) % 365); } }
-    if (pioggia.visible) { const a = pioggiaGeo.attributes.position; for (let i = 0; i < NP; i++) { let y = a.array[i * 3 + 1] - dt * 7; if (y < 0) y += 9; a.array[i * 3 + 1] = y; } a.needsUpdate = true; }
-    controlli.update(); renderer.render(scena, camera);
-  }
-  dimensiona(); requestAnimationFrame(ciclo);
-  return {costruisci};
-})();
-
-function aggiorna() {
-  salva(); mostraCampi();
-  const M = meteo(cfg), s = simula(cfg, {meteo: M}), voci = materiali(cfg);
-  if (vista) vista.costruisci(cfg, s, voci);
-  kpi(cfg, s, voci); messaggi(cfg, s, M); disegnaSimulazione(cfg, s, M); disegnaCosti(cfg, s, voci);
-  disegnaMateriali(cfg, voci); disegnaStruttura(cfg); disegnaPercorso(cfg, voci);
-}
-// schede
-const SCHEDE = ["orto", "gemello", "costi", "materiali", "struttura", "gestione", "percorso"];
-function apri(nome) {
-  if (!SCHEDE.includes(nome)) nome = "orto";
-  document.querySelectorAll("nav.schede button").forEach(b => b.setAttribute("aria-selected", b.dataset.s === nome ? "true" : "false"));
-  SCHEDE.forEach(sx => $("s-" + sx).hidden = sx !== nome);
-  try { localStorage.setItem("gemello-scheda", nome); } catch (e) {}
-  if (nome === "gemello") aggiorna();     // i grafici misurano la larghezza visibile
-}
-document.querySelectorAll("nav.schede button").forEach(b => b.addEventListener("click", () => apri(b.dataset.s)));
-costruisciModulo(); disegnaZone(); disegnaGestione(); aggiorna();
-let iniziale = location.hash.slice(1);
-if (!SCHEDE.includes(iniziale)) { try { iniziale = localStorage.getItem("gemello-scheda") || "orto"; } catch (e) { iniziale = "orto"; } }
-apri(iniziale);
-</script>
+<script src="dati.js"></script>
+<script src="sim.js"></script>
+<script src="idro.js"></script>
+<script src="grafici.js"></script>
+<script src="vista3d.js"></script>
+<script src="ui.js"></script>

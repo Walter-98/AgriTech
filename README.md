@@ -12,7 +12,8 @@ tra una fase e l'altra.
 
 | Cartella / file | Cosa c'è |
 |---|---|
-| `gemello/index.html` | **gemello digitale 3D**: l'orto in scala reale e un anno simulato giorno per giorno (umidità, cisterna, corrente, raccolto), costi a tappe, lista della spesa con i sensori spiegati, schemi di acqua e corrente, gestione e allarmi. Si apre con il browser |
+| `gemello/index.html` | **gemello digitale 3D** (si apre con il browser, file accanto: `dati.js`, `sim.js`, `idro.js`, `grafici.js`, `vista3d.js`, `ui.js`). Due modi: **orto in terra** (esterno, serra o interno) e **idroponica in garage** (NFT, torri verticali, DWC, Kratky, secchi, microgreens). Ogni pezzo si cambia: microcontrollore, sensori indoor e outdoor, pompe, valvole, luci, alimentazione, logica di controllo; si provocano guasti e si vede un anno simulato giorno per giorno con costi, corrente, acqua, raccolto, lista della spesa, schemi e collegamenti |
+| `IDROPONICA.md` | guida da tecnico all'idroponica in garage: sistemi, piante per m², luci e consumi, nutrienti, pH, umidità, semi, automazione, costi |
 | `sistema/controllo.py` | logica di controllo e sicurezze: **la stessa** nel simulatore e sull'ESP32 (provata anche in MicroPython) |
 | `sistema/modello.py`, `sistema/scenari.py` | mondo virtuale (terreno, ristagno, piante, meteo ora per ora, cisterna, sensori, quadro, rete o pannello solare) e 22 scenari |
 | `sistema/simula.py`, `sistema/rapporto.py` | esegue uno scenario e crea registro CSV e rapporto HTML con grafici |
