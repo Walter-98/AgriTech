@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Strumenti per l'orto tecnologico partendo da zero: piano colture, simulazione irrigazione e registro.
 
-Non serve nessun hardware e nessuna libreria esterna (solo Python 3). Serve a imparare e a decidere PRIMA di spendere:
-la stessa logica di irrigazione (soglie con isteresi, tempo massimo pompa, salto se piove) è quella del firmware
-`firmware/esp32-irrigazione/main.py` per ESP32.
+Non serve nessun hardware e nessuna libreria esterna (solo Python 3). Serve a imparare e a decidere PRIMA di spendere.
+La simulazione qui è la versione semplice (1 zona, solo isteresi e tempo massimo); il sistema completo con più zone,
+cisterna, sicurezze e guasti è in `sistema/` (python3 -m sistema.simula) e la sua logica gira uguale sull'ESP32.
 
 Uso:
   python3 orto_sim.py piano --mese 4 [--spazio balcone|terreno]      -> cosa seminare/trapiantare questo mese

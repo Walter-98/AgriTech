@@ -5,19 +5,32 @@ Percorso pratico per arrivare a un orto/piccola azienda con sensori, irrigazione
 solo ciò che l'orto ha già fatto risparmiare o guadagnare, e si compra tecnologia solo dopo averla provata in
 simulazione.
 
-Strumenti nel repository:
-- `strumenti/orto_sim.py` – piano colture del mese, simulazione irrigazione (timer contro sensore), registro di
-  raccolti, spese e vendite. Solo Python, nessun hardware.
-- `firmware/esp32-irrigazione/main.py` – irrigazione automatica per ESP32 (MicroPython), stessa logica del simulatore.
-- `skills/agricoltura-tech/` – skill per l'agente: ti guida fase per fase, una cosa alla volta.
+## Sistema di controllo e gestione (prima virtuale, poi reale)
+**Il piano passo passo è in [`PIANO.md`](PIANO.md)**: strumenti, requisiti, simulazione e collaudo virtuale a 0 €, e
+solo dopo l'acquisto dell'hardware un pezzo alla volta, con le prove di [`COLLAUDO.md`](COLLAUDO.md) come cancello
+tra una fase e l'altra.
+
+| Cartella / file | Cosa c'è |
+|---|---|
+| `sistema/controllo.py` | logica di controllo e sicurezze: **la stessa** nel simulatore e sull'ESP32 (provata anche in MicroPython) |
+| `sistema/modello.py`, `sistema/scenari.py` | mondo virtuale (terreno, piante, meteo, cisterna, sensori) e scenari con guasti |
+| `sistema/simula.py`, `sistema/rapporto.py` | esegue uno scenario e crea registro CSV e rapporto HTML con grafici |
+| `test/` | collaudo virtuale automatico (logica, scenari, firmware con pin finti); gira anche su GitHub Actions |
+| `firmware/esp32-irrigazione/` | firmware MicroPython, configurazione, schema Wokwi per l'ESP32 virtuale, istruzioni |
+| `strumenti/orto_sim.py` | piano colture del mese, confronto timer/sensore semplice, registro di raccolti, spese e vendite |
+| `skills/agricoltura-tech/` | skill per l'agente: ti guida una fase alla volta |
 
 Per iniziare (serve solo Python 3):
 ```bash
-python3 strumenti/orto_sim.py piano --mese 10            # cosa seminare questo mese
-python3 strumenti/orto_sim.py simula --mese 7            # irrigazione a orario fisso contro sensore
+python3 -m unittest discover -s test -t .               # collaudo virtuale: deve finire con OK
+python3 -m sistema.simula --elenco                      # scenari disponibili
+python3 -m sistema.simula tutti                         # tutti gli scenari, normale e con guasti
+python3 -m sistema.simula normale --rapporto rapporto.html
+python3 strumenti/orto_sim.py piano --mese 10           # cosa seminare questo mese
 python3 strumenti/orto_sim.py registro aggiungi --attivita raccolto --coltura ravanello --kg 0.3
-python3 strumenti/orto_sim.py registro riepilogo
 ```
+
+Il resto di questa pagina è il percorso per chi parte da zero con l'orto (colture, compost, primi guadagni).
 
 ---
 
@@ -50,8 +63,8 @@ Tutto software, gratis:
   da un terzo a due terzi dell'acqua (dipende dalla pioggia: prova `--seme 1`, `--seme 3`) e fa ristagno. È il motivo per cui si misura invece di "dare acqua a orario".
 - **Meteo reale:** Open-Meteo offre gratuitamente evapotraspirazione (ET0) e pioggia; salvale in un CSV
   `giorno,et0_mm,pioggia_mm` e usale con `--meteo`.
-- **Elettronica senza comprare nulla:** il simulatore online Wokwi permette di provare un ESP32 con sensore e relè
-  virtuali e di caricare `firmware/esp32-irrigazione/main.py`.
+- **Elettronica senza comprare nulla:** il simulatore online Wokwi permette di provare un ESP32 con sensori e relè
+  virtuali: istruzioni in `firmware/esp32-irrigazione/LEGGIMI.md`, sistema completo e piano in `PIANO.md`.
 - Impara le basi in quest'ordine: Python (piccoli script) → cos'è un sensore analogico → cos'è un relè → MicroPython.
 
 **Fatto quando:** il firmware gira su Wokwi e sai spiegare a parole perché servono isteresi e tempo massimo pompa.
@@ -67,35 +80,17 @@ Prima di vendere informati sulle regole (vendita diretta di prodotti agricoli, e
 igienico-sanitari): chiedi a un'associazione di categoria o al CAF. Registra ogni euro: `--attivita spesa/vendita`,
 poi `orto_sim.py registro riepilogo`.
 
-**Obiettivo:** ~30-40 € di margine, cioè il primo kit della fase 3.
+**Obiettivo:** ~20 € di margine per il kit minimo da banco (fase 4 di `PIANO.md`), poi il resto.
 
-## Fase 3 – Il primo sistema "tech" (~30-40 €)
+## Fase 3 – Il sistema tecnologico (prima virtuale, poi reale)
 
-| Componente | Prezzo indicativo |
-|---|---|
-| ESP32 DevKit | 5-10 € |
-| Sensore di umidità **capacitivo** (non quello resistivo a forchetta: si corrode) | 2-4 € |
-| Modulo relè 1 canale o MOSFET | 2-3 € |
-| Pompetta 5 V + tubo + alimentatore USB 5 V | 8-12 € |
-| Gocciolatoi, raccordi, cavetti | 5-8 € |
+Segui **[`PIANO.md`](PIANO.md)**: simulazione del tuo orto e collaudo virtuale a 0 €, poi banco (~20-50 €) e campo
+(~40-90 €), un pezzo alla volta e solo dopo aver superato le prove di [`COLLAUDO.md`](COLLAUDO.md). Lì ci sono anche
+la lista della spesa, i dati sul telefono, il meteo e gli avvisi. Se conosci i PLC: la stessa logica su un LOGO! 8 è
+un ottimo esercizio (skill `plc-logo-programmazione` e simulatore `strumenti/logo_sim.py` nel repository
+`agenti-automazione`) e il passaggio naturale verso impianti più grandi.
 
-1. Monta tutto sul tavolo con un bicchiere d'acqua e un vaso di prova.
-2. Taratura: annota la lettura in aria e in acqua, scrivila in `ADC_SECCO`/`ADC_BAGNATO`.
-3. Una settimana su **un solo vaso**, confrontandolo con un vaso annaffiato a mano. Poi estendi.
-4. Solo bassa tensione (5-12 V). Pompe a 230 V, quadri ed elettrovalvole di rete: solo con un elettricista.
-
-**Fatto quando:** l'orto si annaffia da solo per una settimana senza piante sofferenti e senza ristagni.
-
-## Fase 4 – Dati e controllo da remoto (~20-50 € in più)
-
-- Più sensori: temperatura e umidità aria, livello del serbatoio dell'acqua piovana, luce.
-- I dati dell'ESP32 via Wi-Fi verso un pannello (Home Assistant o Node-RED su un vecchio PC/Raspberry Pi; MQTT).
-- Previsione meteo: niente irrigazione se domani piove (il simulatore già lo fa con `pioggia_prevista_mm`).
-- Allarmi sul telefono: serbatoio vuoto, sensore guasto, umidità fuori campo.
-- Se conosci i PLC: la stessa logica su un LOGO! 8 è un ottimo esercizio (skill `plc-logo-programmazione` e simulatore `strumenti/logo_sim.py` nel repository `agenti-automazione`) e il
-  passaggio naturale verso impianti più grandi.
-
-## Fase 5 – Crescere davvero
+## Fase 4 – Crescere davvero
 
 - **Idroponica senza pompa (metodo Kratky):** contenitore scuro, soluzione nutritiva, rete; ottima per lattughe ed erbe.
   Poi NFT/acquaponica con pompa e controllo di pH ed EC.
