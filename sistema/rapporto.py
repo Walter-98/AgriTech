@@ -27,6 +27,17 @@ def scrivi_rapporto(r, percorso):
     pts = [(k, row["serbatoio_l"] / cap) for k, row in enumerate(righe)]
     serie.append('<polyline fill="none" stroke="var(--grigio)" stroke-dasharray="4 3" stroke-width="1.5" points="%s"/>'
                  % _linea(pts, X0, L, Y0, A, 1.0, n))
+    extra = ""
+    if any(row.get("acqua_a_terra_mm", 0) > 0 for row in righe):      # acqua ferma: scala 0-100 mm
+        pts = [(k, row["acqua_a_terra_mm"] / 100.0) for k, row in enumerate(righe)]
+        serie.append('<polyline fill="none" stroke="#8a5a2b" stroke-width="2" points="%s"/>'
+                     % _linea(pts, X0, L, Y0, A, 1.0, n))
+        extra += '<span><i style="background:#8a5a2b"></i>acqua ferma a terra (100% = 10 cm)</span>'
+    if "batteria" in righe[0]:
+        pts = [(k, row["batteria"]) for k, row in enumerate(righe)]
+        serie.append('<polyline fill="none" stroke="#c9a400" stroke-width="1.5" points="%s"/>'
+                     % _linea(pts, X0, L, Y0, A, 1.0, n))
+        extra += '<span><i style="background:#c9a400"></i>batteria</span>'
     pompa = "".join('<rect x="%.1f" y="%d" width="%.1f" height="8" fill="var(--testo)"/>'
                     % (X0 + k / max(n - 1, 1) * L, Y0 + A + 8, max(L / n, 0.8)) for k, row in enumerate(righe)
                     if row["pompa"])
@@ -58,7 +69,7 @@ td,th{border-bottom:1px solid var(--griglia);padding:4px 8px;text-align:left}
 </style></head><body><main>
 <h1>Scenario: %(nome)s</h1><p>%(descrizione)s</p>
 <p class="leg">%(legenda)s<span><i style="background:var(--grigio)"></i>cisterna, %% della capacità (tratteggio)</span>
-<span><i style="background:var(--testo)"></i>pompa accesa (barra in basso)</span></p>
+<span><i style="background:var(--testo)"></i>pompa accesa (barra in basso)</span>%(extra)s</p>
 <svg viewBox="0 0 %(lv)d %(av)d" role="img" aria-label="Umidità del terreno, serbatoio e pompa nel tempo">
 %(soglie)s%(serie)s%(pompa)s%(tacche)s</svg>
 <p>Linee guida: 30%% sofferenza, 45%% inizio irrigazione, 70%% fine irrigazione.</p>
@@ -68,7 +79,7 @@ td,th{border-bottom:1px solid var(--griglia);padding:4px 8px;text-align:left}
 </main></body></html>""" % {
         "nome": html.escape(r["nome"]), "descrizione": html.escape(r["descrizione"]), "legenda": legenda,
         "lv": X0 + L + 20, "av": Y0 + A + 44, "soglie": soglie, "serie": "".join(serie), "pompa": pompa,
-        "tacche": tacche, "zone": zone, "litri": r["litri"], "pm": r["pompa_minuti"], "secco": r["minuti_a_secco"],
+        "tacche": tacche, "extra": extra, "zone": zone, "litri": r["litri"], "pm": r["pompa_minuti"], "secco": r["minuti_a_secco"],
         "sf": r["serbatoio_finale"], "eventi": eventi}
     with open(percorso, "w", encoding="utf-8") as f:
         f.write(pagina)

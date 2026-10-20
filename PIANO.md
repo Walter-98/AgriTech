@@ -74,11 +74,18 @@ Compila questa scheda (copiala in un file `mio-impianto.md`). Ogni risposta dive
    python3 -m sistema.simula normale --zone '[{"nome":"pomodori","area_m2":2,"kc":1.15},{"nome":"insalata","area_m2":1,"kc":1.0}]' --portata 1 --rapporto rapporto.html
    ```
    Apri `rapporto.html` nel browser: umidità per zona, cisterna, quando gira la pompa, allarmi.
-3. Prova tutti i guasti: `python3 -m sistema.simula tutti` (con le stesse opzioni `--zone`/`--portata`).
-4. Se qualcosa non va (ore di sofferenza, ristagno, falsi allarmi) cambia i parametri e riprova, ad esempio:
+3. Prova tutti i guasti e il meteo estremo: `python3 -m sistema.simula tutti` (con le stesse opzioni
+   `--zone`/`--portata`). Ci sono guasti di sensori, tubi, valvole e pompa, ondata di calore, siccità di 60 giorni,
+   nubifragio, due settimane di pioggia, previsione sbagliata, gelate, blackout, cali di tensione, pannello solare
+   con giorni coperti e quadro elettrico allagato.
+4. Meteo vero della tua zona: `python3 strumenti/scarica_meteo.py --lat .. --lon .. --da 2024-06-01 --a 2024-09-30
+   --file estate.csv`, poi `python3 -m sistema.simula normale --meteo estate.csv --rapporto r.html` (anche con `tutti`).
+5. Problemi e soluzioni a confronto: `python3 -m sistema.soluzioni` riscrive [`SOLUZIONI.md`](SOLUZIONI.md) con ogni
+   problema simulato senza e con la soluzione, e la lista di cosa fare in ordine con i costi.
+6. Se qualcosa non va (ore di sofferenza, ristagno, falsi allarmi) cambia i parametri e riprova, ad esempio:
    `--parametri '{"soglia_on": 0.5, "max_min": 15, "verifica_dopo_min": 10}'`.
    I parametri disponibili sono in `PARAMETRI_DEFAULT` all'inizio di `sistema/controllo.py`, ognuno spiegato.
-5. Scrivi i parametri scelti in `firmware/esp32-irrigazione/config.py` → `PARAMETRI`.
+7. Scrivi i parametri scelti in `firmware/esp32-irrigazione/config.py` → `PARAMETRI`.
 
 Esempio di cosa trova la simulazione: nella prima versione la pioggia riempiva la cisterna proprio mentre la pompa
 girava, il livello saliva e il sistema dava un falso "pompa guasta" bloccando l'irrigazione per settimane. Trovato e
@@ -89,8 +96,17 @@ a luglio la cisterna da 800 L non basta (allarme cisterna bassa e piante in soff
 allaga, perché 10 minuti a 2 L/min su 0,5 m² sono troppa acqua. Soluzioni da provare nel simulatore prima di
 comprare: cisterna più grande o rabbocco, gocciolatoi a portata più bassa sul basilico, `max_min` più corto.
 
-**Cancello 2:** con le tue zone lo scenario `normale` dà 0 ore di sofferenza e 0 di ristagno, e ogni guasto di
-`tutti` dà l'allarme giusto.
+**Cancello 2:** con le tue zone lo scenario `normale` dà 0 ore di sofferenza e 0 di ristagno, ogni guasto di
+`tutti` dà l'allarme giusto, e hai deciso quali soluzioni di `SOLUZIONI.md` ti servono (sono già nella lista della
+spesa qui sotto: quadro rialzato, alimentazione separata, aiuole rialzate, pacciamatura).
+
+Altre falle trovate così, sempre a costo zero, e già corrette nel controllo:
+- il rumore del sensore faceva sembrare "arrivata" l'acqua anche con un tubo scoppiato → letture filtrate e verifica
+  8 minuti dopo la fine dell'irrigazione;
+- con un alimentatore debole l'ESP32 si riavviava a ogni partenza della pompa e ogni riavvio azzerava le sicurezze:
+  la zona si allagava senza allarmi → memoria su file salvata prima di accendere la pompa e blocco dopo 3 riavvii;
+- bloccare tutto per una valvola bloccata aperta faceva seccare le altre zone → si continua a irrigare finché la
+  zona con la valvola guasta non è troppo bagnata.
 
 ## FASE 3 – Collaudo virtuale (0 €, 2-3 serate)
 1. Test automatici: `python3 -m unittest discover -s test -t .` → `OK` (logica, scenari, firmware con pin finti).
@@ -122,8 +138,12 @@ Prove **B1-B5** di `COLLAUDO.md`, con LED o lampadine al posto di pompa e valvol
 | JSN-SR04T (ultrasuoni impermeabile) | 6-9 € | livello cisterna; facoltativo |
 | Alimentatore 12 V 2 A + step-down 12→5 V | 9-12 € | l'ESP32 si alimenta dal 5 V |
 | Pompa 12 V piccola (a membrana) | 6-10 € | prova in un secchio |
+| Condensatore 1000 µF + secondo step-down per l'ESP32 | 2-3 € | contro i riavvii alla partenza della pompa |
+| Sonda acqua per il quadro (due fili o modulo) | 1-2 € | allarme acqua nel quadro |
+| Flussimetro YF-S201 (facoltativo) | 3-6 € | perdite in 2 minuti, pompa guasta |
+| Sensore di pioggia (facoltativo) | 2-5 € | serve per scoprire una valvola bloccata aperta |
 
-Prove **B6-B10**, compresa la prova di 72 ore.
+Prove **B6-B13**, compresa la prova di 72 ore e quella dei cali di tensione.
 
 **Cancello 4:** B1-B10 superate, nessun riavvio strano in 72 ore, sensori tarati e valori scritti in `config.py`.
 
@@ -133,13 +153,17 @@ Prove **B6-B10**, compresa la prova di 72 ore.
 | Cisterna | 0-60 € | fusti alimentari recuperati (gratis) o cisterna IBC 1000 L usata |
 | 2 elettrovalvole 12 V normalmente chiuse | 10-16 € | con diodo di ricircolo |
 | Tubo 16 mm, raccordi, gocciolatoi o ala gocciolante | 10-20 € | |
-| Scatola stagna IP65 + pressacavi | 6-10 € | l'elettronica non deve mai bagnarsi |
+| Scatola stagna IP65 + pressacavi | 6-10 € | l'elettronica non deve mai bagnarsi: a 50 cm o più da terra |
+| Palo o staffa per il quadro | 0-5 € | |
+| Filtro a rete prima delle valvole | 3-5 € | lo sporco blocca le valvole aperte |
 | Portafusibile + fusibile sul 12 V | 2-3 € | |
 
 1. **Una sola zona** per 14 giorni, con a fianco un vaso uguale annaffiato a mano (confronto).
 2. Prove **C1-C4**: annota acqua usata e umidità, confrontale con il simulatore e correggi il modello
-   (`capacita_mm`, ritardo del sensore) finché simulazione e realtà si somigliano.
-3. Poi la seconda zona (C5).
+   (`capacita_mm`, `drenaggio_mm_h`, ritardo del sensore) finché simulazione e realtà si somigliano (C7, con il
+   meteo vero degli stessi giorni).
+3. Aiuole rialzate e scoli dove dopo un temporale resta acqua ferma (C6), pacciamatura d'estate.
+4. Poi la seconda zona (C5).
 
 **Cancello 5:** 14 giorni senza piante sofferenti e senza intervento, guasti provati in campo con l'allarme giusto.
 

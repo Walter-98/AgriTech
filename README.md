@@ -13,8 +13,10 @@ tra una fase e l'altra.
 | Cartella / file | Cosa c'è |
 |---|---|
 | `sistema/controllo.py` | logica di controllo e sicurezze: **la stessa** nel simulatore e sull'ESP32 (provata anche in MicroPython) |
-| `sistema/modello.py`, `sistema/scenari.py` | mondo virtuale (terreno, piante, meteo, cisterna, sensori) e scenari con guasti |
+| `sistema/modello.py`, `sistema/scenari.py` | mondo virtuale (terreno, ristagno, piante, meteo ora per ora, cisterna, sensori, quadro, rete o pannello solare) e 22 scenari |
 | `sistema/simula.py`, `sistema/rapporto.py` | esegue uno scenario e crea registro CSV e rapporto HTML con grafici |
+| `sistema/soluzioni.py` → [`SOLUZIONI.md`](SOLUZIONI.md) | meteo, corrente, allagamenti e guasti simulati **senza e con la soluzione**, con costi e priorità |
+| `strumenti/scarica_meteo.py` | meteo reale di un periodo passato (Open-Meteo, gratuito) da usare con `--meteo` |
 | `test/` | collaudo virtuale automatico (logica, scenari, firmware con pin finti); gira anche su GitHub Actions |
 | `firmware/esp32-irrigazione/` | firmware MicroPython, configurazione, schema Wokwi per l'ESP32 virtuale, istruzioni |
 | `strumenti/orto_sim.py` | piano colture del mese, confronto timer/sensore semplice, registro di raccolti, spese e vendite |
@@ -25,7 +27,8 @@ Per iniziare (serve solo Python 3):
 python3 -m unittest discover -s test -t .               # collaudo virtuale: deve finire con OK
 python3 -m sistema.simula --elenco                      # scenari disponibili
 python3 -m sistema.simula tutti                         # tutti gli scenari, normale e con guasti
-python3 -m sistema.simula normale --rapporto rapporto.html
+python3 -m sistema.simula nubifragio --rapporto rapporto.html
+python3 -m sistema.soluzioni                            # problemi e soluzioni a confronto -> SOLUZIONI.md
 python3 strumenti/orto_sim.py piano --mese 10           # cosa seminare questo mese
 python3 strumenti/orto_sim.py registro aggiungi --attivita raccolto --coltura ravanello --kg 0.3
 ```

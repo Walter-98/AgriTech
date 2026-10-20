@@ -22,8 +22,14 @@ test. Le modifiche si fanno nel repository, si rilanciano i test, poi si ricopia
    - LED blu = pompa, LED verdi = valvole (accesi = relè eccitato);
    - interruttore a slitta = galleggiante della cisterna (chiuso = acqua al minimo);
    - pulsante rosso = reset degli allarmi bloccanti;
-   - DHT22 = temperatura aria (cliccalo per cambiarla); HC-SR04 = livello cisterna (cliccalo per cambiare la distanza).
-6. Esegui le prove W1–W8 di `COLLAUDO.md` e segna l'esito.
+   - DHT22 = temperatura aria (cliccalo per cambiarla); HC-SR04 = livello cisterna (cliccalo per cambiare la distanza);
+   - interruttore "pioggia" su GPIO23 (attivo solo con `PIN_PIOGGIA = 23` in `config.py`) e interruttore "acqua nel
+     quadro" su GPIO33 (chiuso = acqua sul fondo del quadro).
+6. Esegui le prove W1–W11 di `COLLAUDO.md` e segna l'esito.
+
+Il file `stato.json` lo crea il firmware da solo: è la memoria che fa sopravvivere blocchi e conteggio dei riavvii
+alle mancanze di corrente. Per ripartire da zero cancellalo (`mpremote rm :stato.json`) o premi il pulsante di reset
+allarmi.
 
 Il file `diagram.json` è stato scritto a mano e non ancora aperto su Wokwi: se un pin o un componente non
 corrisponde, correggi il collegamento nell'editor di Wokwi e aggiorna il file nel repository.
@@ -50,6 +56,16 @@ corrisponde, correggi il collegamento nell'editor di Wokwi e aggiorna il file ne
 | Galleggiante di minimo | 14 | contatto verso GND, pull-up interno |
 | Pulsante reset allarmi | 13 | verso GND |
 | DHT22 | 4 | |
+| Sonda acqua nel quadro | 33 | due fili sul fondo del quadro, uno al GPIO e uno a GND: l'acqua li collega |
+| Sensore di pioggia (facoltativo) | 23 | uscita digitale del modulo; `PIN_PIOGGIA = 23` |
+| Flussimetro YF-S201 (facoltativo) | 19 | uscita impulsi a 5 V: partitore 10 kΩ + 20 kΩ verso l'ESP32; `PIN_FLUSSIMETRO = 19` |
+| Tensione batteria (facoltativo) | 39 | partitore 40 kΩ + 10 kΩ dalla batteria 12 V; `PIN_BATTERIA = 39` |
 | Ultrasuoni TRIG / ECHO | 5 / 18 | se il sensore è a 5 V, ECHO con partitore (es. 1 kΩ + 2 kΩ) verso l'ESP32 |
+
+## Alimentazione (vedi SOLUZIONI.md, "Calo di tensione")
+- Alimentatore 12 V con almeno il 50% di margine sulla corrente della pompa.
+- ESP32 dal suo step-down 12→5 V, non dallo stesso 5 V della pompa; condensatore 470-1000 µF sul 5 V vicino all'ESP32.
+- Cavi della pompa corti e di sezione adeguata; diodo di ricircolo su pompa ed elettrovalvole.
+- Quadro stagno IP65 a 50 cm o più da terra, pressacavi rivolti verso il basso.
 
 Solo bassa tensione (5-12 V). Niente 230 V senza un elettricista e un quadro a norma.

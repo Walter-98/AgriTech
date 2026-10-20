@@ -12,3 +12,5 @@ jobs:
         run: python -m unittest discover -s test -t . -v
       - name: Riepilogo scenari
         run: python -m sistema.simula tutti
+      - name: Problemi e soluzioni a confronto
+        run: python -m sistema.soluzioni --file soluzioni-ci.md

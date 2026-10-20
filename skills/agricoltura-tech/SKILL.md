@@ -24,6 +24,9 @@ prima del cancello 3** (test automatici e prove Wokwi superati), poi un pezzo al
    `python3 -m sistema.simula tutti --zone '[...]' --portata N` e `... normale --rapporto rapporto.html`. Se ci sono ore
    di sofferenza, ristagno o falsi allarmi, regola `--parametri` (vedi `PARAMETRI_DEFAULT` in `sistema/controllo.py`)
    o il dimensionamento (cisterna, portata) e riprova; i valori scelti vanno in `firmware/esp32-irrigazione/config.py`.
+   Per meteo estremo, corrente e allagamenti usa gli scenari dedicati e `python3 -m sistema.soluzioni` (riscrive
+   `SOLUZIONI.md`); con il meteo vero della zona: `strumenti/scarica_meteo.py` e `--meteo`. Proponi le soluzioni con
+   i numeri del confronto (senza / con) e il costo, in ordine di priorità.
 3. Modifiche alla logica solo in `sistema/controllo.py` (compatibile MicroPython: niente f-string, dataclass, typing),
    con un test in `test/` per ogni nuova regola o guasto; poi `python3 -m unittest discover -s test -t .` deve dare OK.
 4. Hardware: segui `firmware/esp32-irrigazione/LEGGIMI.md` e le prove W, B, C, G di `COLLAUDO.md`; aiuta con taratura

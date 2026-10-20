@@ -1,0 +1,221 @@
+# Soluzioni provate in virtuale
+
+Documento generato da `python3 -m sistema.soluzioni`: ogni problema è simulato **senza e con la soluzione** con lo stesso controllo che gira sull'ESP32. I numeri sono del modello didattico (2 zone di prova, cisterna 1000 L, tetto 10 m²): rifai il confronto con le tue zone e tara il modello con le prove di campo (COLLAUDO.md, C2). Per uno scenario: `python3 -m sistema.simula <scenario> --rapporto r.html`.
+
+Legenda: *sofferenza* = ore con terreno sotto il 30%; *ristagno* = ore con acqua ferma sopra il terreno saturo; *radici senza ossigeno* = ore di ristagno oltre le prime 24 di fila (danno alla coltura).
+
+## Nubifragio su terreno argilloso
+
+**Problema.** 90 mm in 3 ore su un terreno che drena 2 mm/ora: l'acqua resta ferma sulle aiuole per giorni e le radici restano senza ossigeno. Il sistema non irriga (giusto) e avvisa con Zx_ALLAGATA, ma l'elettronica non può togliere l'acqua: la soluzione è nel terreno.
+
+| | ristagno h | radici senza ossigeno h | troppo pieno L |
+|---|---|---|---|
+| Aiuole a terra, argilla (2 mm/ora) | 67 | 19 | 500 |
+| Aiuole rialzate 20-30 cm con compost (15 mm/ora) | 10 | 0 | 500 |
+
+**Soluzione.** Aiuole rialzate 20-30 cm (terra + compost + sabbia) e un solco di scolo ai lati verso il punto più basso. Il troppo pieno della cisterna va portato con un tubo lontano da aiuole e quadro.
+
+**Costo.** 0-10 € (compost fatto in casa, terra di scavo, un tubo per il troppo pieno)
+
+Scenario: `nubifragio`
+
+## Acqua nel quadro elettrico
+
+**Problema.** Con il quadro appoggiato a terra l'acqua ferma del nubifragio arriva all'elettronica: ESP32 e relè da buttare, impianto fermo finché non si ricompra e si rimonta tutto.
+
+| | quadro | ESP32 spento h | radici senza ossigeno h |
+|---|---|---|---|
+| Quadro a 5 cm da terra | DISTRUTTO | 126.8 | 19 |
+| Quadro a 5 cm, aiuole rialzate | salvo | 0.0 | 0 |
+| Quadro a 50 cm su palo + sensore allagamento | salvo | 0.0 | 19 |
+
+**Soluzione.** Quadro stagno IP65 fissato a 50 cm o più da terra (palo, muro), pressacavi verso il basso, sensore di acqua sul fondo del quadro (allarme ALLAGAMENTO_QUADRO e pompa ferma). Qui anche le sole aiuole rialzate salvano il quadro, perché l'acqua ferma resta sotto i 5 cm; con un temporale più forte o un terreno in conca no: il quadro in alto è la protezione certa, le aiuole salvano le radici.
+
+**Costo.** 5-10 € (palo o staffa, sensore di acqua 1-2 €)
+
+Scenario: `quadro_allagato`
+
+## Due settimane di pioggia
+
+**Problema.** 12 giorni di pioggia (30 mm al giorno) su terreno pesante e compattato: ristagno quasi continuo, marciumi.
+
+| | ristagno h | radici senza ossigeno h | acqua L |
+|---|---|---|---|
+| Terreno pesante (1 mm/ora) | 668 | 606 | 0 |
+| Aiuole rialzate (15 mm/ora) | 0 | 0 | 0 |
+
+**Soluzione.** Aiuole rialzate e scoli come per il nubifragio; nei mesi piovosi colture che sopportano l'umido. Il sistema non irriga mai durante la pioggia e avvisa se una zona resta satura oltre 6 ore.
+
+**Costo.** 0-10 €
+
+Scenario: `pioggia_persistente`
+
+## Previsione di pioggia sbagliata
+
+**Problema.** La previsione annuncia pioggia per 7 giorni ma non piove: se il sistema si fida ciecamente, a luglio le piante restano senz'acqua.
+
+| | sofferenza h | acqua L |
+|---|---|---|
+| Si fida sempre della previsione | 173 | 160 |
+| Soglia critica: irriga comunque sotto il 30% | 0 | 190 |
+
+**Soluzione.** Già nel controllo: con pioggia prevista non si irriga, ma sotto la soglia critica (30%) si irriga lo stesso. La previsione fa risparmiare acqua, non decide mai da sola.
+
+**Costo.** 0 € (parametro soglia_critica)
+
+Scenario: `previsione_sbagliata`
+
+## Ondata di calore
+
+**Problema.** 10 giorni a 38-39 °C: le piante bevono il 40% in più e la cisterna scende in fretta.
+
+| | sofferenza h | acqua L |
+|---|---|---|
+| Terreno nudo | 0 | 450 |
+| Pacciamatura (paglia, foglie, cartone) | 0 | 350 |
+
+**Soluzione.** Pacciamatura di 5-10 cm (paglia, sfalci secchi, foglie, cartone): meno evaporazione e terreno più fresco. Rete ombreggiante sulle insalate. Il controllo segnala CALDO: controlla le piante.
+
+**Costo.** 0 € (materiale di recupero); rete ombreggiante 5-10 €
+
+Scenario: `ondata_calore`
+
+## Siccità di 60 giorni
+
+**Problema.** Due mesi senza pioggia: la cisterna da 1000 L finisce e le ultime settimane le piante soffrono.
+
+| | cisterna al minimo dal giorno | sofferenza h | acqua L |
+|---|---|---|---|
+| Terreno nudo, soglie normali | 51 | 323 | 951 |
+| Pacciamatura | mai | 0 | 930 |
+| Pacciamatura + risparmio sotto 300 L | mai | 0 | 880 |
+
+**Soluzione.** Pacciamatura, e soglie di risparmio quando la cisterna scende sotto la riserva (allarme SERBATOIO_RISERVA: irriga tra 35% e 55% invece che tra 45% e 70%). Se non basta: seconda cisterna o più tetto collegato alla grondaia (1 mm di pioggia su 10 m² = 8 L).
+
+**Costo.** 0 € (pacciamatura, parametro riserva_l); cisterna IBC usata 30-60 €
+
+Scenario: `siccita`
+
+## Gelata tardiva
+
+**Problema.** Terreno asciutto e notti sotto zero: irrigare col gelo fa ghiaccio su foglie e tubi (che possono spaccarsi).
+
+| | irrigazione col gelo min | sofferenza h |
+|---|---|---|
+| Irriga anche col gelo | 10 | 0 |
+| Blocco irrigazione sotto 2 °C | 0 | 0 |
+
+**Soluzione.** Già nel controllo: niente irrigazione sotto 2 °C (allarme GELO). In più: tessuto non tessuto sulle piantine, svuotare i tubi a fine stagione.
+
+**Costo.** 0 € (parametro blocco_gelo); tessuto non tessuto 3-5 €
+
+Scenario: `gelata_tardiva`
+
+## Blackout lungo durante il caldo
+
+**Problema.** Salta la corrente per 72 ore in piena ondata di calore mentre sei via: nessuno se ne accorge.
+
+| | sofferenza h | ESP32 spento h |
+|---|---|---|
+| Blackout 72 ore, nessun avviso | 68 | 72.0 |
+| Blackout 24 ore (avviso e intervento in giornata) | 0 | 24.0 |
+| Batteria tampone / UPS | 0 | 0.0 |
+
+**Soluzione.** Avviso sul telefono se il nodo non trasmette da 30 minuti (fase 6 del piano: lo fa la centrale, non l'ESP32 spento). Il terreno umido regge circa un giorno anche col caldo. Per chi è spesso via: batteria tampone 12 V con caricatore, o pannello solare dimensionato (vedi sotto).
+
+**Costo.** 0 € avviso; batteria 12 V 7 Ah + caricatore 20-30 €
+
+Scenario: `blackout_lungo`
+
+## Calo di tensione alla partenza della pompa
+
+**Problema.** Alimentatore debole o cavi sottili: quando parte la pompa la tensione cala e l'ESP32 si riavvia. Ogni riavvio azzera tempi e blocchi, la pompa riparte, e con un sensore fuori terra la zona si allaga senza che scatti mai un allarme.
+
+| | ristagno h | radici senza ossigeno h | acqua L | riavvii |
+|---|---|---|---|---|
+| Prima versione del controllo (senza memoria) | 80 | 56 | 685 | 684 |
+| Memoria + blocco RIAVVII_FREQUENTI | 0 | 0 | 3 | 3 |
+| Alimentazione corretta (nessun calo) | 0 | 0 | 80 | 0 |
+
+**Soluzione.** Software (già nel firmware): blocchi e stato della pompa salvati nella memoria dell'ESP32 prima di accenderla; dopo 3 riavvii di fila con la pompa accesa tutto si ferma con RIAVVII_FREQUENTI. Hardware: alimentatore con margine (pompa + 50%), ESP32 su step-down separato, condensatore 470-1000 µF sul 5 V, cavi della pompa di sezione adeguata e corti.
+
+**Costo.** 0 € software; condensatore e step-down 2-3 €
+
+Scenario: `brownout_pompa`
+
+## Pannello solare e giorni nuvolosi
+
+**Problema.** Pannello da 5 W e batteria da 7 Ah: con 6 giorni coperti la batteria si svuota, l'ESP32 si spegne e l'orto resta senza controllo proprio in estate.
+
+| | ESP32 spento h | sofferenza h | batteria minima |
+|---|---|---|---|
+| 5 W / 7 Ah, pompa fino a batteria vuota | 46.0 | 0 | 0% |
+| 5 W / 7 Ah, pompa ferma sotto il 35% | 12.3 | 128 | 0% |
+| 20 W / 12 Ah, pompa ferma sotto il 35% | 0.0 | 0 | 77% |
+
+**Soluzione.** Protezione batteria (già nel controllo: BATTERIA_BASSA, pompa ferma sotto il 35%, l'ESP32 resta acceso e avvisa). Dimensionamento: consumo giornaliero = ESP32 ~15 Wh + pompa (W x minuti/60); pannello almeno 3-4 volte il consumo diviso le ore di sole del mese peggiore; batteria per 3-4 giorni di autonomia. Il simulatore fa il conto: prova le misure con --zone e lo scenario solare.
+
+**Costo.** pannello 20 W 20-30 €, batteria 12 V 12 Ah 25-35 €, regolatore 8-12 €
+
+Scenario: `solare_nuvoloso`
+
+## Elettrovalvola bloccata aperta
+
+**Problema.** Una valvola resta aperta (sporco, molla rotta): ogni volta che si irriga un'altra zona, l'acqua finisce anche lì.
+
+| | ristagno h | acqua L | sofferenza h | allarme dopo |
+|---|---|---|---|---|
+| Senza controllo acqua inattesa | 3 | 180 | 0 | mai |
+| Con controllo acqua inattesa + sensore pioggia | 0 | 136 | 0 | 14 min dall'avvio |
+| Controllo attivo ma senza sensore pioggia | 2 | 180 | 0 | mai |
+
+**Soluzione.** Controllo Zx_ACQUA_INATTESA (già nel controllo): se una zona si bagna senza la sua valvola e senza pioggia scatta l'allarme; le altre zone si irrigano solo finché quella non è troppo bagnata, così niente allagamento e niente piante a secco finché non pulisci o cambi la valvola. Serve sapere se piove: sensore di pioggia (2-5 €) o dati dalla centrale. Filtro a rete prima delle valvole contro lo sporco.
+
+**Costo.** sensore pioggia 2-5 €, filtro a rete 3-5 €
+
+Scenario: `valvola_bloccata_aperta`
+
+## Tubo scoppiato
+
+**Problema.** Un raccordo salta: l'acqua esce a terra al doppio della portata.
+
+| | acqua persa L | allarme dopo |
+|---|---|---|
+| Senza flussimetro (se ne accorge l'umidità) | 20 | 18 min dall'avvio |
+| Con flussimetro (allarme Z1_PERDITA) | 4 | 2 min dall'avvio |
+
+**Soluzione.** Flussimetro a turbina (tipo YF-S201) dopo la pompa: perdita vista in 2 minuti invece che dopo l'irrigazione, e pompa guasta vista anche senza sensore di livello.
+
+**Costo.** flussimetro 3-6 €
+
+Scenario: `tubo_scoppiato`
+
+## Pompa guasta
+
+**Problema.** La pompa si rompe: bisogna saperlo subito, non quando le piante appassiscono.
+
+| | sofferenza h | allarme dopo |
+|---|---|---|
+| Sensore di livello in cisterna | 40 | 8 min dall'avvio |
+| Flussimetro | 40 | 2 min dall'avvio |
+
+**Soluzione.** Basta uno dei due: livello a ultrasuoni (serve anche per la riserva) o flussimetro (più rapido). L'avviso sul telefono (fase 6) è quello che salva le piante: il blocco evita solo di peggiorare.
+
+**Costo.** 3-9 €
+
+Scenario: `pompa_guasta`
+
+## Cosa fare, in ordine
+
+| Priorità | Soluzione | Costo | Contro |
+|---|---|---|---|
+| 1 | Quadro stagno a 50 cm da terra, pressacavi in basso, sensore acqua nel quadro | 5-10 € | allagamento dell'elettronica |
+| 2 | Alimentazione con margine, ESP32 su step-down separato, condensatore sul 5 V | 2-3 € | riavvii alla partenza della pompa |
+| 3 | Aiuole rialzate + scoli + troppo pieno della cisterna lontano | 0-10 € | nubifragi, pioggia persistente |
+| 4 | Pacciamatura | 0 € | caldo, siccità |
+| 5 | Sensore di livello o flussimetro (meglio entrambi) | 3-15 € | pompa guasta, tubi rotti, riserva |
+| 6 | Sensore di pioggia | 2-5 € | valvola bloccata aperta, irrigare sotto la pioggia |
+| 7 | Avvisi sul telefono dalla centrale (nodo muto, allarmi) | 0 € | blackout, ogni guasto mentre sei via |
+| 8 | Batteria tampone o solare dimensionato | 20-80 € | blackout lunghi, orti senza rete |
+
+Le soluzioni software (memoria e blocco riavvii, soglia critica, blocco gelo, riserva, acqua inattesa, protezione batteria, filtro delle letture, verifica dopo l'irrigazione) sono già nel controllo e provate dai test.
