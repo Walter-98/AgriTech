@@ -8,6 +8,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test numerici del gemello (motore idroponico)
+        run: node --test test/js/test_*.js
+      - name: Controllo sintassi del gemello
+        run: for f in gemello/*.js; do node --check "$f"; done
       - name: Test logica, scenari e firmware
         run: python -m unittest discover -s test -t . -v
       - name: Riepilogo scenari

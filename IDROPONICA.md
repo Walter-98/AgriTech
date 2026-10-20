@@ -5,8 +5,9 @@ Guida da tecnico per partire da zero, con i numeri calcolati dal gemello digital
 le tue misure (penne pH ed EC, termometro, peso del raccolto).
 
 ## In una riga
-In garage la spesa vera è la **corrente delle luci** (circa l'80%). Si risparmia con LED bianchi efficienti, luci di
-notte d'estate, tenda e garage isolato. Le insalate faticano a ripagare la corrente; basilico e microgreens sì.
+In garage la spesa vera è la **corrente** (luci circa l'80%, d'inverno anche la stufetta). Con la corrente a 0,28-0,30
+€/kWh **nessun impianto per la sola famiglia si ripaga**: si fa per imparare, per la qualità e la comodità. Diventa un
+affare solo vendendo prodotti di prezzo alto (microgreens, basilico) a clienti veri e con le regole in ordine.
 
 ## Quale sistema
 
@@ -24,20 +25,25 @@ la stessa densità delle torri con luce più efficiente (lampada sopra le piante
 
 ## Quante piante e quanto costa (dal gemello)
 Garage non isolato nel Sud o nelle Isole, tenda, stufetta con termostato a 17 °C, estrattore, LED bianchi, corrente
-0,30 €/kWh, acqua di casa media durezza. "Spese/anno" comprende corrente, acqua, nutrienti, semi, substrati, sonda pH.
+0,30 €/kWh, acqua di casa media durezza, famiglia di 3 persone. Ipotesi di produzione: 5% di piante perse, 2 giorni
+fermi tra un ciclo e l'altro, 10% di raccolto non utilizzabile. "Spese/anno" comprende corrente, acqua, nutrienti,
+semi, substrati, sonda pH e ricambi (lampade, pompa). Il costo al kg comprende l'ammortamento del materiale in 5 anni.
+"Valore" è quello che la famiglia mangia davvero, al prezzo del negozio, più quello che vende: il raccolto in più
+non vale niente se nessuno lo compra. Modelli e limiti in [MODELLI.md](MODELLI.md).
 
-| Impianto | Piante | Luci | Corrente/anno | Per iniziare | Spese/anno | Raccolto/anno | Valore al negozio | Costo al kg |
-|---|---|---|---|---|---|---|---|---|
-| NFT, scaffale 3 piani 120×60 (lattuga, basilico, rucola) | 77 | 280 W | 2066 kWh | 790–1404 € | 757 € | 66 kg | 497 € | 11,4 € |
-| Torri verticali ×2 | 71 | 560 W | 3753 kWh | 1068–1968 € | 1253 € | 74 kg | 490 € | 17,0 € |
-| DWC 120×120 (lattuga, basilico) | 35 | 190 W | 1718 kWh | 701–1215 € | 601 € | 42 kg | 258 € | 14,4 € |
-| Kratky 120×60, controllo a mano | 24 | 100 W | 1040 kWh | 390–693 € | 347 € | 20 kg | 153 € | 17,0 € |
-| Secchi: 6 tra pomodori e peperoncini | 9 | 700 W | 4423 kWh | 1185–2118 € | 1403 € | 35 kg | 228 € | 39,5 € |
-| Microgreens, scaffale 4 piani (vassoi) | 23 | 220 W | 1593 kWh | 703–1235 € | 1328 € | 175 kg | 5241 € | 7,6 € |
+| Impianto | Piante | Luci | Corrente/anno | Per iniziare | Spese/anno | Raccolto utile | Costo al kg | Valore/anno | Si ripaga in | Giudizio |
+|---|---|---|---|---|---|---|---|---|---|---|
+| NFT, scaffale 3 piani 120×60 (lattuga, basilico, rucola) | 77 | 280 W | 2079 kWh | 790–1404 € | 796 € | 61 kg | 16,8 € | 307 € | mai | **sconsigliato** |
+| Torri verticali ×2 | 71 | 560 W | 3784 kWh | 1068–1968 € | 1337 € | 67 kg | 24,6 € | 284 € | mai | **sconsigliato** |
+| DWC 120×120 (lattuga, basilico) | 35 | 190 W | 1756 kWh | 701–1215 € | 633 € | 38 kg | 21,8 € | 190 € | mai | **sconsigliato** |
+| Kratky 120×60, controllo a mano | 24 | 100 W | 1065 kWh | 384–681 € | 365 € | 19 kg | 25,3 € | 132 € | mai | **sconsigliato** |
+| Secchi: 6 tra pomodori e peperoncini | 9 | 700 W | 4438 kWh | 1185–2118 € | 1499 € | 35 kg | 51,9 € | 175 € | mai | **sconsigliato** |
+| Microgreens, scaffale 4 piani, in casa | 23 | 220 W | 1614 kWh | 703–1235 € | 1224 € | 139 kg | 10,2 € | 140 € | mai | **sconsigliato** |
+| Microgreens, scaffale 4 piani, 90% venduto al 70% del prezzo | 23 | 220 W | 1614 kWh | 703–1235 € | 1224 € | 139 kg | 10,2 € | 2767 € | 0,6 anni | conviene |
 
 Cosa dicono i numeri:
 - Con i **LED viola economici** lo stesso impianto NFT consuma circa il 55% in più; con i **neon T5** più del doppio.
-- **Luci di notte**: nell'impianto NFT i giorni troppo caldi scendono da 227 a 132, il raccolto sale da 56 a 66 kg e la corrente scende da 2.294 a 2.066 kWh (d'inverno le luci scaldano quando fa più freddo).
+- **Luci di notte**: nell'impianto NFT i giorni troppo caldi scendono da 227 a 132, il raccolto sale da 56 a 67 kg e la corrente scende da 2.294 a 2.066 kWh (d'inverno le luci scaldano quando fa più freddo).
 - In un garage non isolato del Sud resta comunque caldo d'estate: lì si coltiva basilico o si ferma da luglio ad agosto.
 - **Garage isolato** e **tenda**: meno stufetta d'inverno e meno caldo d'estate.
 - L'impianto automatico costa di più all'inizio (sonde, dosatori, UPS); il Kratky a mano è il modo giusto per imparare.

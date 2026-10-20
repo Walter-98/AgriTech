@@ -5,19 +5,20 @@
 
 // ec mS/cm, ph, ppfd µmol/m²/s, dli mol/m²/giorno, ore di luce, t °C [min, max] dell'aria, ur %, passo cm tra le piante,
 // giorni dal trapianto alla raccolta (+ vivaio), resa g per pianta per raccolta, acqua L/pianta/giorno a pianta grande,
-// seme € per pianta (o piantina), prezzo €/kg al negozio, sistemi adatti
+// seme € per pianta (o piantina), prezzo €/kg al negozio, consumo kg per persona a settimana (stima per una famiglia
+// italiana, da cambiare: oltre questo il raccolto va venduto o regalato), sistemi adatti
 const IDRO_PIANTE = {
-  lattuga:    {nome: "Lattuga", ec: [0.8, 1.2], ph: [5.5, 6.5], ppfd: [200, 300], dli: [12, 17], ore: 16, t: [16, 22], ur: [50, 70], passo: 20, giorni: 40, vivaio: 14, resa: 180, acqua: 0.15, seme: 0.02, prezzo: 3, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Sopra 24 °C va a seme (sale lo stelo) e diventa amara; sotto 5 °C si ferma. Bruciature ai bordi (tipburn) con poca ventilazione."},
-  basilico:   {nome: "Basilico", ec: [1.0, 1.6], ph: [5.5, 6.5], ppfd: [300, 500], dli: [15, 22], ore: 16, t: [21, 27], ur: [50, 60], passo: 20, giorni: 35, vivaio: 14, resa: 90, acqua: 0.12, seme: 0.01, prezzo: 20, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Soffre il freddo sotto 15 °C (foglie nere). Si raccoglie a tagli: cima sopra il secondo nodo, ricresce in 3 settimane."},
-  rucola:     {nome: "Rucola", ec: [0.8, 1.2], ph: [6.0, 6.5], ppfd: [200, 300], dli: [12, 16], ore: 14, t: [15, 21], ur: [50, 70], passo: 10, giorni: 25, vivaio: 7, resa: 40, acqua: 0.05, seme: 0.01, prezzo: 12, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Ciuffi di 4-5 semi per vasetto. Con caldo e luce lunga fiorisce presto."},
-  spinacio:   {nome: "Spinacio", ec: [1.8, 2.3], ph: [6.0, 7.0], ppfd: [250, 350], dli: [12, 15], ore: 12, t: [15, 20], ur: [50, 70], passo: 15, giorni: 40, vivaio: 14, resa: 80, acqua: 0.08, seme: 0.01, prezzo: 6, sistemi: ["nft", "torre", "dwc"], note: "Con più di 14 ore di luce o caldo va a seme: luce corta."},
-  cavolo_riccio: {nome: "Cavolo riccio (kale)", ec: [1.2, 1.8], ph: [5.5, 6.5], ppfd: [300, 400], dli: [14, 18], ore: 16, t: [15, 22], ur: [50, 70], passo: 25, giorni: 45, vivaio: 14, resa: 200, acqua: 0.15, seme: 0.02, prezzo: 8, sistemi: ["nft", "torre", "dwc"], note: "Si raccolgono le foglie basse, la pianta produce per mesi."},
-  prezzemolo: {nome: "Prezzemolo", ec: [0.8, 1.8], ph: [5.5, 6.0], ppfd: [250, 400], dli: [12, 18], ore: 16, t: [16, 24], ur: [50, 70], passo: 20, giorni: 60, vivaio: 21, resa: 100, acqua: 0.08, seme: 0.01, prezzo: 12, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Germina lentamente (2-3 settimane): seme in ammollo una notte."},
-  menta:      {nome: "Menta", ec: [2.0, 2.4], ph: [5.5, 6.5], ppfd: [300, 450], dli: [14, 20], ore: 16, t: [18, 24], ur: [50, 70], passo: 25, giorni: 45, vivaio: 14, resa: 120, acqua: 0.12, seme: 0.3, prezzo: 20, sistemi: ["nft", "dwc", "torre"], note: "Da talea (radica in acqua in 10 giorni). Invadente: radici che tappano i canali."},
-  fragola:    {nome: "Fragola (rifiorente)", ec: [1.2, 1.8], ph: [5.5, 6.2], ppfd: [400, 600], dli: [17, 25], ore: 14, t: [18, 24], ur: [60, 75], passo: 25, giorni: 90, vivaio: 0, resa: 150, acqua: 0.25, seme: 0.8, prezzo: 8, sistemi: ["nft", "torre", "bucket"], note: "Da piantina (stolone). Al chiuso va impollinata: pennellino o ventola sui fiori."},
-  pomodoro:   {nome: "Pomodoro ciliegino", ec: [2.0, 3.0], ph: [5.5, 6.5], ppfd: [500, 800], dli: [20, 30], ore: 16, t: [20, 26], ur: [60, 70], passo: 60, giorni: 120, vivaio: 28, resa: 3000, acqua: 1.2, seme: 0.05, prezzo: 5, sistemi: ["bucket", "dwc"], note: "Pianta grande: secchi olandesi con perlite e spago al soffitto. Fiori da scuotere ogni giorno per l'impollinazione."},
-  peperoncino: {nome: "Peperoncino", ec: [1.8, 2.4], ph: [5.8, 6.3], ppfd: [400, 600], dli: [18, 25], ore: 16, t: [22, 28], ur: [50, 70], passo: 50, giorni: 120, vivaio: 28, resa: 400, acqua: 0.6, seme: 0.05, prezzo: 15, sistemi: ["bucket", "dwc"], note: "Ama il caldo: ideale d'estate in garage. Germina a 25-30 °C."},
-  microgreens: {nome: "Microgreens (vassoi)", ec: [0, 0.6], ph: [5.5, 6.5], ppfd: [100, 250], dli: [6, 12], ore: 16, t: [18, 22], ur: [40, 60], passo: 0, giorni: 10, vivaio: 0, resa: 250, acqua: 0.25, seme: 0.75, prezzo: 30, sistemi: ["vassoi"], note: "Per vassoio 25×50 cm: 15-30 g di seme (girasole e piselli 80-100 g), 3-4 giorni al buio, poi luce. Si vendono a ristoranti."},
+  lattuga:    {nome: "Lattuga", ec: [0.8, 1.2], ph: [5.5, 6.5], ppfd: [200, 300], dli: [12, 17], ore: 16, t: [16, 22], ur: [50, 70], passo: 20, giorni: 40, vivaio: 14, resa: 180, acqua: 0.15, seme: 0.02, prezzo: 3, consumo: 0.3, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Sopra 24 °C va a seme (sale lo stelo) e diventa amara; sotto 5 °C si ferma. Bruciature ai bordi (tipburn) con poca ventilazione."},
+  basilico:   {nome: "Basilico", ec: [1.0, 1.6], ph: [5.5, 6.5], ppfd: [300, 500], dli: [15, 22], ore: 16, t: [21, 27], ur: [50, 60], passo: 20, giorni: 35, vivaio: 14, resa: 90, acqua: 0.12, seme: 0.01, prezzo: 20, consumo: 0.03, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Soffre il freddo sotto 15 °C (foglie nere). Si raccoglie a tagli: cima sopra il secondo nodo, ricresce in 3 settimane."},
+  rucola:     {nome: "Rucola", ec: [0.8, 1.2], ph: [6.0, 6.5], ppfd: [200, 300], dli: [12, 16], ore: 14, t: [15, 21], ur: [50, 70], passo: 10, giorni: 25, vivaio: 7, resa: 40, acqua: 0.05, seme: 0.01, prezzo: 12, consumo: 0.05, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Ciuffi di 4-5 semi per vasetto. Con caldo e luce lunga fiorisce presto."},
+  spinacio:   {nome: "Spinacio", ec: [1.8, 2.3], ph: [6.0, 7.0], ppfd: [250, 350], dli: [12, 15], ore: 12, t: [15, 20], ur: [50, 70], passo: 15, giorni: 40, vivaio: 14, resa: 80, acqua: 0.08, seme: 0.01, prezzo: 6, consumo: 0.15, sistemi: ["nft", "torre", "dwc"], note: "Con più di 14 ore di luce o caldo va a seme: luce corta."},
+  cavolo_riccio: {nome: "Cavolo riccio (kale)", ec: [1.2, 1.8], ph: [5.5, 6.5], ppfd: [300, 400], dli: [14, 18], ore: 16, t: [15, 22], ur: [50, 70], passo: 25, giorni: 45, vivaio: 14, resa: 200, acqua: 0.15, seme: 0.02, prezzo: 8, consumo: 0.1, sistemi: ["nft", "torre", "dwc"], note: "Si raccolgono le foglie basse, la pianta produce per mesi."},
+  prezzemolo: {nome: "Prezzemolo", ec: [0.8, 1.8], ph: [5.5, 6.0], ppfd: [250, 400], dli: [12, 18], ore: 16, t: [16, 24], ur: [50, 70], passo: 20, giorni: 60, vivaio: 21, resa: 100, acqua: 0.08, seme: 0.01, prezzo: 12, consumo: 0.02, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Germina lentamente (2-3 settimane): seme in ammollo una notte."},
+  menta:      {nome: "Menta", ec: [2.0, 2.4], ph: [5.5, 6.5], ppfd: [300, 450], dli: [14, 20], ore: 16, t: [18, 24], ur: [50, 70], passo: 25, giorni: 45, vivaio: 14, resa: 120, acqua: 0.12, seme: 0.3, prezzo: 20, consumo: 0.02, sistemi: ["nft", "dwc", "torre"], note: "Da talea (radica in acqua in 10 giorni). Invadente: radici che tappano i canali."},
+  fragola:    {nome: "Fragola (rifiorente)", ec: [1.2, 1.8], ph: [5.5, 6.2], ppfd: [400, 600], dli: [17, 25], ore: 14, t: [18, 24], ur: [60, 75], passo: 25, giorni: 90, vivaio: 0, resa: 150, acqua: 0.25, seme: 0.8, prezzo: 8, consumo: 0.15, sistemi: ["nft", "torre", "bucket"], note: "Da piantina (stolone). Al chiuso va impollinata: pennellino o ventola sui fiori."},
+  pomodoro:   {nome: "Pomodoro ciliegino", ec: [2.0, 3.0], ph: [5.5, 6.5], ppfd: [500, 800], dli: [20, 30], ore: 16, t: [20, 26], ur: [60, 70], passo: 60, giorni: 120, vivaio: 28, resa: 3000, acqua: 1.2, seme: 0.05, prezzo: 5, consumo: 0.5, sistemi: ["bucket", "dwc"], note: "Pianta grande: secchi olandesi con perlite e spago al soffitto. Fiori da scuotere ogni giorno per l'impollinazione."},
+  peperoncino: {nome: "Peperoncino", ec: [1.8, 2.4], ph: [5.8, 6.3], ppfd: [400, 600], dli: [18, 25], ore: 16, t: [22, 28], ur: [50, 70], passo: 50, giorni: 120, vivaio: 28, resa: 400, acqua: 0.6, seme: 0.05, prezzo: 15, consumo: 0.01, sistemi: ["bucket", "dwc"], note: "Ama il caldo: ideale d'estate in garage. Germina a 25-30 °C."},
+  microgreens: {nome: "Microgreens (vassoi)", ec: [0, 0.6], ph: [5.5, 6.5], ppfd: [100, 250], dli: [6, 12], ore: 16, t: [18, 22], ur: [40, 60], passo: 0, giorni: 10, vivaio: 0, resa: 250, acqua: 0.25, seme: 0.75, prezzo: 30, consumo: 0.03, sistemi: ["vassoi"], note: "Per vassoio 25×50 cm: 15-30 g di seme (girasole e piselli 80-100 g), 3-4 giorni al buio, poi luce. Si vendono a ristoranti."},
 };
 
 const SISTEMI_IDRO = {
@@ -29,12 +30,14 @@ const SISTEMI_IDRO = {
   vassoi: {nome: "Vassoi per microgreens", verticale: false, descr: "Vassoi 25×50 cm su scaffale, irrigati dal basso o con lo spruzzino.", pro: "Raccolta in 10 giorni, prezzo di vendita alto.", contro: "Tanto seme per vassoio, lavoro quotidiano.", tolleranza_ore: 24, struttura_m2: [10, 20]},
 };
 
-// Lampade: efficienza in µmol/J (quanta luce utile per watt), prezzo €/W
+// Lampade: efficienza in µmol/J (quanta luce utile per watt), prezzo €/W, vita in ore fino al 70% della luce (dato dei
+// costruttori, da verificare sulla scheda tecnica) e quota del prezzo da ricomprare a fine vita (i T5 cambiano solo i tubi).
+// Riferimento: il DLC (DesignLights Consortium) chiede almeno 1,9 µmol/J alle lampade per orticoltura; le migliori ~2,8-3.
 const LUCI_IDRO = {
-  led_qb:    {nome: "LED bianco full spectrum (quantum board o barre)", eff: 2.7, euro_w: [0.7, 1.3], pro: "La più efficiente: luce bianca, vedi bene piante e malattie, scalda poco.", contro: "Costa di più all'acquisto."},
-  led_tubi:  {nome: "Tubi LED T8 bianchi da negozio", eff: 2.0, euro_w: [0.4, 0.8], pro: "Economici e facili, vanno bene per microgreens, piantine e insalate.", contro: "Poca luce per piante da frutto."},
-  led_viola: {nome: "LED economico rosso/blu (viola)", eff: 1.6, euro_w: [0.3, 0.6], pro: "Costa poco.", contro: "Consuma il 70% in più a parità di luce; con la luce viola non vedi le carenze."},
-  t5:        {nome: "Neon T5 HO", eff: 1.1, euro_w: [0.6, 1.0], pro: "Luce uniforme.", contro: "Tecnologia vecchia: consuma più del doppio dei LED buoni, tubi da cambiare ogni anno."},
+  led_qb:    {nome: "LED bianco full spectrum (quantum board o barre)", eff: 2.7, euro_w: [0.7, 1.3], vita_h: 50000, quota_ricambio: 1, pro: "La più efficiente: luce bianca, vedi bene piante e malattie, scalda poco.", contro: "Costa di più all'acquisto."},
+  led_tubi:  {nome: "Tubi LED T8 bianchi da negozio", eff: 2.0, euro_w: [0.4, 0.8], vita_h: 30000, quota_ricambio: 1, pro: "Economici e facili, vanno bene per microgreens, piantine e insalate.", contro: "Poca luce per piante da frutto."},
+  led_viola: {nome: "LED economico rosso/blu (viola)", eff: 1.6, euro_w: [0.3, 0.6], vita_h: 25000, quota_ricambio: 1, pro: "Costa poco.", contro: "Consuma il 70% in più a parità di luce; con la luce viola non vedi le carenze."},
+  t5:        {nome: "Neon T5 HO", eff: 1.1, euro_w: [0.6, 1.0], vita_h: 10000, quota_ricambio: 0.3, pro: "Luce uniforme.", contro: "Tecnologia vecchia: consuma più del doppio dei LED buoni, tubi da cambiare ogni anno."},
 };
 const DUREZZE = {dolce: {nome: "Dolce (< 15 °f)", ec: 0.15, ph_ml: 0.05}, media: {nome: "Media (15-30 °f)", ec: 0.4, ph_ml: 0.15}, dura: {nome: "Dura (> 30 °f)", ec: 0.7, ph_ml: 0.3}};
 const NUTRIENTI = {
@@ -63,12 +66,14 @@ const ALLARMI_IDRO = [
 const IDRO_ESEMPIO = {
   sistema: "nft", disposizione: "scaffale", piani: 3, superficie_piano: 0.72, torri: 2, secchi: 6, vassoi: 0,
   colture: [{coltura: "lattuga", quota: 60}, {coltura: "basilico", quota: 25}, {coltura: "rucola", quota: 15}],
-  luce: {tipo: "led_qb", ppfd: 0, ore: 0, notte: true},
+  luce: {tipo: "led_qb", ppfd: 0, ore: 0, notte: true, w_installati: 0},
   clima: {garage: "non_isolato", tenda: true, riscaldamento: "stufetta", t_min: 17, estrattore: true, circolazione: true, deumidificatore: false},
   acqua: {durezza: "media", osmosi: false, piovana: false, cambio_giorni: 21},
   nutrienti: "polvere",
   auto: {micro: "esp32", ph: true, ec: true, temp_acqua: true, aria: true, co2: false, livello: true, perdita: true, dosaggio: true,
          rabbocco: true, flusso: true, luce_sens: true, connessione: "wifi", centrale: "pc", ups: true, prese_smart: true, taratura_giorni: 30},
+  produzione: {mortalita: 5, fermo_giorni: 2, scarto: 10},
+  economia: {vita_anni: 5, ore_settimana: 3, euro_ora: 0, persone: 3, quota_vendita: 0, prezzo_vendita: 70},
   guasti: [],
 };
 
@@ -93,7 +98,10 @@ function capacitaIdro(c) {
   const ore = I.luce.ore > 0 ? I.luce.ore : Math.round(colture.reduce((a, x) => a + x.quota * x.P.ore, 0));
   const L = LUCI_IDRO[I.luce.tipo];
   const geometria = S.verticale ? 0.55 : 0.85;           // luce che arriva davvero alle foglie
-  const wLuci = Math.ceil(ppfd * Math.max(chioma, 0.1) / (L.eff * geometria) / 10) * 10;
+  // watt che servono per l'obiettivo e watt montati davvero: la luce che arriva alle piante viene da quelli montati
+  const wRichiesti = Math.ceil(ppfd * Math.max(chioma, 0.1) / (L.eff * geometria) / 10) * 10;
+  const wLuci = I.luce.w_installati > 0 ? I.luce.w_installati : wRichiesti;
+  const ppfdReale = wLuci * L.eff * geometria / Math.max(chioma, 0.1);
   const footprint = S.verticale ? Math.max(0.6, I.torri * 0.5) : I.superficie_piano * (I.sistema === "bucket" ? 1.4 : 1);
   const lato = Math.max(0.8, Math.sqrt(footprint));
   const altezza = 2.0;
@@ -104,8 +112,22 @@ function capacitaIdro(c) {
   serbatoio = Math.ceil(serbatoio / 10) * 10;
   const ec = colture.reduce((a, x) => a + x.quota * (x.P.ec[0] + x.P.ec[1]) / 2, 0);
   const ph = colture.reduce((a, x) => a + x.quota * (x.P.ph[0] + x.P.ph[1]) / 2, 0);
-  return {S, colture, piante, piani, superficie, chioma, ppfd, ore, dli: ppfd * ore * 0.0036, L, wLuci, footprint, lato, altezza,
+  return {S, colture, piante, piani, superficie, chioma, ppfdObiettivo: ppfd, ppfd: Math.round(ppfdReale), ore, dli: ppfdReale * ore * 0.0036,
+          dliObiettivo: ppfd * ore * 0.0036, L, geometria, wRichiesti, wLuci, footprint, lato, altezza,
           superficieTenda, volume, serbatoio, ec, ph};
+}
+
+// ---------- risposta alla luce ----------
+// Modello a efficienza d'uso della luce (Monteith): sotto la saturazione la massa fresca cresce in proporzione alla luce
+// del giorno (DLI). Prove su lattuga e basilico mostrano una risposta quasi lineare tra circa 6 e 17 mol/m²/giorno.
+// La resa di tabella (P.resa) vale al centro dell'intervallo P.dli; sopra il massimo non cresce di più (per la lattuga
+// sopra 16-17 aumenta il rischio di bruciature ai bordi). Stima euristica da calibrare con le pesate vere.
+function rispostaLuce(P, dli) {
+  const rif = (P.dli[0] + P.dli[1]) / 2;
+  return Math.max(0, Math.min(dli, P.dli[1])) / rif;
+}
+function statoLuce(P, dli) {
+  return {dli, min: P.dli[0], max: P.dli[1], fattore: rispostaLuce(P, dli), stato: dli < P.dli[0] * 0.95 ? "poca" : dli > P.dli[1] * 1.05 ? "troppa" : "giusta"};
 }
 
 // ---------- simulazione di un anno ----------
@@ -133,6 +155,8 @@ function simulaIdro(c, opz = {}) {
                giorniAcquaCalda: 0, giorniUmido: 0, perse: 0, k, ecBase, ecNutr, UA};
   const evento = (d, tipo, testo) => out.eventi.push({d, tipo, testo});
   let perditaKgStock = 0, lampadaFino = -1, phFino = -1, pompaFino = -1;
+  const PR = Object.assign({mortalita: 0, fermo_giorni: 0, scarto: 0}, I.produzione || {});
+  const vive = 1 - PR.mortalita / 100, fermo = PR.fermo_giorni;
   for (let d = 0; d < 365; d++) {
     const m = meseDi(d);
     const tEst = R.t[m] + gaussDa(rnd) * 1.5;
@@ -189,14 +213,14 @@ function simulaIdro(c, opz = {}) {
     if (acquaCalda) out.giorniAcquaCalda++;
     // crescita e raccolto (produzione continua a semina scaglionata)
     let kgGiorno = 0, traspirazione = 0;
-    const fattoreLuce = Math.min(1, k.dli * luceFattore / Math.max(...k.colture.map(x => x.P.dli[0])));
+    const fattoreLuce = Math.min(...k.colture.map(x => rispostaLuce(x.P, k.dli * luceFattore)));
     for (const x of k.colture) {
-      let f = Math.min(1, k.dli * luceFattore / x.P.dli[0]) * phFattore * (A.dosaggio ? 0.98 : 0.92);
+      let f = rispostaLuce(x.P, k.dli * luceFattore) * phFattore * (A.dosaggio ? 0.98 : 0.92) * vive;
       if (tLuci > x.P.t[1] + 2) f *= 0.5;
       if (tBuio < x.P.t[0] - 4) f *= 0.5;
       if (acquaCalda && (I.sistema === "dwc" || I.sistema === "kratky" || I.sistema === "nft")) f *= 0.8;
       f *= Math.max(0, 1 - perditaKgStock);
-      const raccolte = x.piante / x.P.giorni;
+      const raccolte = x.piante / (x.P.giorni + fermo);
       kgGiorno += raccolte * x.P.resa / 1000 * f;
       out.raccolti += raccolte;
       out.semi += raccolte * 1.2 * x.P.seme;
@@ -231,17 +255,16 @@ function simulaIdro(c, opz = {}) {
     M.luci += whLuci / 1000; M.clima += whClima / 1000; M.pompe += whPompe / 1000; M.elettronica += whEl / 1000;
     M.acqua += acqua; M.kg += kgGiorno; M.nutrienti += nutr;
     out.acqua += acqua; out.kg += kgGiorno;
-    out.valore += k.colture.reduce((a, x) => a, 0);
     const allarmi = [];
     if (caldo) allarmi.push("CALDO"); if (freddo) allarmi.push("FREDDO"); if (acquaCalda) allarmi.push("ACQUA_CALDA"); if (umido) allarmi.push("UMIDITA_ALTA");
     if (d < phFino) allarmi.push(A.ph ? "PH_FUORI (sonda da tarare)" : "PH_FUORI"); if (d < lampadaFino) allarmi.push("LUCE_ASSENTE");
     out.giorni.push({d, tGarage, tLuci, tBuio, tAcqua, ur, kg: kgGiorno, acqua, wh, allarmi, luce: fattoreLuce, perse: perditaKgStock, blackout: blackoutEff});
   }
   // valore del raccolto: ripartito per coltura
-  const pesi = k.colture.map(x => x.piante / x.P.giorni * x.P.resa);
+  const pesi = k.colture.map(x => x.piante / (x.P.giorni + fermo) * x.P.resa * rispostaLuce(x.P, k.dli));
   const totPesi = pesi.reduce((a, b) => a + b, 0) || 1;
-  out.perColtura = k.colture.map((x, i) => ({coltura: x.coltura, piante: x.piante, kg: out.kg * pesi[i] / totPesi, valore: out.kg * pesi[i] / totPesi * x.P.prezzo,
-                                             raccolti: x.piante / x.P.giorni * 365}));
+  out.perColtura = k.colture.map((x, i) => ({coltura: x.coltura, piante: x.piante, quota: x.quota, kg: out.kg * pesi[i] / totPesi, valore: out.kg * pesi[i] / totPesi * x.P.prezzo,
+                                             raccolti: x.piante / (x.P.giorni + fermo) * 365, luce: statoLuce(x.P, k.dli)}));
   out.valore = out.perColtura.reduce((a, x) => a + x.valore, 0);
   out.eventi.sort((a, b) => a.d - b.d);
   return out;
@@ -260,9 +283,71 @@ function costiAnnuiIdro(c, s) {
     ["Semi e piantine", Math.round(s.raccolti * 1.2) + " pezzi", s.semi],
     ["Cubetti, spugne, vasetti", "", s.raccolti * 1.2 * 0.06],
   ];
+  const k = s.k, L = k.L, oreLuci = k.ore * 365;
+  const prezzoLuci = k.wLuci * (L.euro_w[0] + L.euro_w[1]) / 2;
+  righe.push(["Ricambio lampade (vita " + fmtMigliaia(L.vita_h) + " ore)", Math.round(oreLuci) + " ore all'anno", prezzoLuci * L.quota_ricambio * oreLuci / L.vita_h]);
+  if (["nft", "torre", "bucket"].includes(c.idro.sistema)) righe.push(["Ricambio pompa (ogni 3 anni circa)", "", 20 * (c.idro.sistema === "torre" ? c.idro.torri : 1) / 3]);
   if (A.ph) righe.push(["Sonda pH (da cambiare ogni 12-18 mesi) e soluzioni di taratura", "", 30]);
   if (A.connessione === "g4") righe.push(["SIM 4G", "", 12]);
-  return {righe, totale: righe.reduce((a, r) => a + r[2], 0)};
+  const E = Object.assign({ore_settimana: 0, euro_ora: 0}, c.idro.economia || {});
+  if (E.euro_ora > 0) righe.push(["Lavoro", Math.round(E.ore_settimana * 52) + " ore", E.ore_settimana * 52 * E.euro_ora]);
+  return {righe, totale: righe.reduce((a, r) => a + r[2], 0), ore: E.ore_settimana * 52};
+}
+const n1 = x => x.toFixed(1).replace(".", ",");
+const fmtMigliaia = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+// ---------- bilancio economico ----------
+// CAPEX = materiale per partire (forbice min-max dei prezzi), OPEX = spese di ogni anno, ammortamento = CAPEX medio diviso
+// per gli anni di vita. Il raccolto mangiato in casa vale quanto costerebbe al negozio (valore di sostituzione), quello
+// venduto vale il prezzo di vendita: sono due cose diverse e si tengono separate. Gli scenari pessimistico e ottimistico
+// sono prove di robustezza con fattori dichiarati, non probabilità.
+const SCENARI_ECO = {
+  pessimistico: {nome: "Pessimistico", capex: "max", resa: 0.7, energia: 1.15, prezzo: 0.8},
+  centrale:     {nome: "Centrale", capex: "medio", resa: 1, energia: 1, prezzo: 1},
+  ottimistico:  {nome: "Ottimistico", capex: "min", resa: 1.1, energia: 0.95, prezzo: 1},
+};
+function economiaIdro(c, s, voci, costi) {
+  const E = Object.assign({vita_anni: 5, persone: 3, quota_vendita: 0, prezzo_vendita: 70}, c.idro.economia || {});
+  const PR = Object.assign({scarto: 0}, c.idro.produzione || {});
+  costi = costi || costiAnnuiIdro(c, s);
+  const capex = {min: somma(voci, "min"), max: somma(voci, "max")}; capex.medio = (capex.min + capex.max) / 2;
+  const perCategoria = [...new Set(voci.map(v => v.cat))].map(cat => {
+    const v = voci.filter(x => x.cat === cat); return {cat, min: somma(v, "min"), max: somma(v, "max")}; });
+  const energia = s.kwh * c.prezzi.kwh, altro = costi.totale - energia;
+  // per coltura: prima la parte venduta, poi quello che la famiglia mangia davvero, il resto è eccedenza (regalata o buttata)
+  const ripartisci = (x, resa) => {
+    const P = IDRO_PIANTE[x.coltura], kgU = x.kg * resa * (1 - PR.scarto / 100);
+    const venduti = kgU * E.quota_vendita / 100, casa = Math.max(0, Math.min(kgU - venduti, P.consumo * E.persone * 52));
+    return {P, kgU, venduti, casa, eccedenza: kgU - venduti - casa};
+  };
+  const scenari = {};
+  for (const [kk, sc] of Object.entries(SCENARI_ECO)) {
+    let kgUtili = 0, venduti = 0, casa = 0, eccedenza = 0, sostituzione = 0, ricavo = 0;
+    for (const x of s.perColtura) { const r = ripartisci(x, sc.resa);
+      kgUtili += r.kgU; venduti += r.venduti; casa += r.casa; eccedenza += r.eccedenza;
+      sostituzione += r.casa * r.P.prezzo * sc.prezzo; ricavo += r.venduti * r.P.prezzo * E.prezzo_vendita / 100 * sc.prezzo; }
+    const opex = energia * sc.energia + altro;
+    const inv = capex[sc.capex], ammortamento = inv / E.vita_anni;
+    const margine = sostituzione + ricavo - opex;                    // senza ammortamento: quello che resta in tasca ogni anno
+    scenari[kk] = {nome: sc.nome, kgUtili, venduti, casa, eccedenza, sostituzione, ricavo, opex, capex: inv, ammortamento, costoAnno: opex + ammortamento,
+                   costoKg: kgUtili > 0 ? (opex + ammortamento) / kgUtili : Infinity, margine, utile: margine - ammortamento,
+                   pareggioAnni: margine > 0 ? inv / margine : Infinity};
+  }
+  // coltura per coltura: spese ripartite per spazio occupato
+  const C = scenari.centrale;
+  const colture = s.perColtura.map(x => {
+    const kgU = x.kg * (1 - PR.scarto / 100), costo = C.costoAnno * x.quota;
+    return {coltura: x.coltura, kg: kgU, costoKg: kgU > 0 ? costo / kgU : Infinity, prezzo: IDRO_PIANTE[x.coltura].prezzo, conviene: kgU > 0 && costo / kgU <= IDRO_PIANTE[x.coltura].prezzo};
+  });
+  const motivi = [];
+  if (C.margine <= 0) motivi.push("Le spese di ogni anno (" + Math.round(C.opex) + " €) superano il valore del raccolto (" + Math.round(C.sostituzione + C.ricavo) + " €): l'impianto non si ripaga mai.");
+  else if (C.pareggioAnni > E.vita_anni) motivi.push("Si ripaga in " + n1(C.pareggioAnni) + " anni, più della vita dell'impianto (" + E.vita_anni + " anni).");
+  if (energia > 0.5 * costi.totale) motivi.push("La corrente è il " + Math.round(energia / costi.totale * 100) + "% delle spese: conta l'efficienza delle lampade e il prezzo del kWh.");
+  for (const x of colture) if (!x.conviene) motivi.push(IDRO_PIANTE[x.coltura].nome + ": costa " + (isFinite(x.costoKg) ? n1(x.costoKg) + " €/kg" : "più di quanto produce") + " contro " + x.prezzo + " €/kg al negozio.");
+  if (scenari.pessimistico.margine <= 0 && C.margine > 0) motivi.push("Nello scenario pessimistico (resa -30%, corrente +15%, prezzi -20%) le spese non sono coperte: margine fragile.");
+  if (C.eccedenza > 0.2 * C.kgUtili) motivi.push(n1(C.eccedenza) + " kg all'anno in più di quanto mangia una famiglia di " + E.persone + " persone: senza venderli non valgono niente (vendere richiede clienti e regole, vedi Percorso).");
+  const giudizio = C.margine <= 0 || C.pareggioAnni > E.vita_anni ? "non_conviene" : scenari.pessimistico.margine <= 0 ? "fragile" : "conviene";
+  return {capex, perCategoria, energia, opex: costi.totale, ore: costi.ore, scenari, colture, giudizio, motivi, vita: E.vita_anni};
 }
 
 function materialiIdro(c) {
@@ -333,6 +418,10 @@ function compatibilitaIdro(c) {
   if (k.colture.length > 1 && ecMin > ecMax) add("warn", "Colture con nutrienti diversi nello stesso serbatoio", k.colture.map(x => x.P.nome + " EC " + x.P.ec.join("-")).join(", ") + ". Si lavora a EC " + k.ec.toFixed(1) + ": meglio due serbatoi.", "colture");
   const tMin = Math.max(...k.colture.map(x => x.P.t[0])), tMax = Math.min(...k.colture.map(x => x.P.t[1]));
   if (k.colture.length > 1 && tMin > tMax) add("warn", "Temperature incompatibili", k.colture.map(x => x.P.nome + " " + x.P.t.join("-") + " °C").join(", ") + ". Idea: d'inverno le colture fresche, d'estate quelle da caldo.", "colture");
+  if (k.wLuci < k.wRichiesti * 0.95) add("warn", "Lampade sotto l'obiettivo", "Montati " + k.wLuci + " W, ne servono circa " + k.wRichiesti + " per " + k.ppfdObiettivo + " µmol/m²/s: arrivano " + k.ppfd + " µmol/m²/s (DLI " + n1(k.dli) + ") e le piante crescono in proporzione meno.", "luce");
+  for (const x of k.colture) { const st = statoLuce(x.P, k.dli);
+    if (st.stato === "poca") add("warn", x.P.nome + ": poca luce", "DLI " + n1(k.dli) + " contro " + x.P.dli.join("-") + " mol/m²/giorno: resa circa " + Math.round(st.fattore * 100) + "% di quella di riferimento.", "luce");
+    if (st.stato === "troppa") add("warn", x.P.nome + ": luce oltre il necessario", "DLI " + n1(k.dli) + " sopra " + x.P.dli[1] + ": niente resa in più, solo corrente" + (x.coltura === "lattuga" ? " e rischio di bruciature ai bordi (tipburn)" : "") + ".", "luce"); }
   if (k.L.eff < 2) add("warn", "Lampade poco efficienti", "Con LED bianchi buoni (2,7 µmol/J) la stessa luce costerebbe " + Math.round((1 - k.L.eff / 2.7) * 100) + "% di corrente in meno.", "luce");
   if (k.S.verticale) add("warn", "Verticale: si risparmia spazio, non luce", "Ogni pianta ha bisogno della stessa luce: le torri richiedono lampade intorno e più watt per pianta (luce persa nella geometria).", "sistema");
   if (k.S.tolleranza_ore <= 2 && !A.ups) add("crit", "Nessun UPS su un sistema a ricircolo", k.S.nome + ": senza pompa le radici seccano in " + k.S.tolleranza_ore + " ore. Prova il guasto 'Blackout'.", "ups");
@@ -376,4 +465,4 @@ function pinMappaIdro(c) {
   if (A.prese_smart) righe.push(["Luci, estrattore, stufetta, deumidificatore", "Wi-Fi", "prese smart comandate via rete"]);
   return righe;
 }
-if (typeof module !== "undefined") module.exports = {simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro};
+if (typeof module !== "undefined") module.exports = {simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce};

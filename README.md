@@ -14,6 +14,8 @@ tra una fase e l'altra.
 |---|---|
 | `gemello/index.html` | **gemello digitale 3D** (si apre con il browser, file accanto: `dati.js`, `sim.js`, `idro.js`, `grafici.js`, `vista3d.js`, `ui.js`). Due modi: **orto in terra** (esterno, serra o interno) e **idroponica in garage** (NFT, torri verticali, DWC, Kratky, secchi, microgreens). Ogni pezzo si cambia: microcontrollore, sensori indoor e outdoor, pompe, valvole, luci, alimentazione, logica di controllo; si provocano guasti e si vede un anno simulato giorno per giorno con costi, corrente, acqua, raccolto, lista della spesa, schemi e collegamenti |
 | `IDROPONICA.md` | guida da tecnico all'idroponica in garage: sistemi, piante per m², luci e consumi, nutrienti, pH, umidità, semi, automazione, costi |
+| `AUDIT.md` | **stato reale del progetto**: cosa è testato e cosa no, errori trovati e corretti, architettura, roadmap, criteri di validazione, risposta al caso "garage, 500 €, Marche" |
+| `MODELLI.md` | schede dei modelli del gemello: formula, fonte, ipotesi, limiti, esempio numerico, affidabilità |
 | `sistema/controllo.py` | logica di controllo e sicurezze: **la stessa** nel simulatore e sull'ESP32 (provata anche in MicroPython) |
 | `sistema/modello.py`, `sistema/scenari.py` | mondo virtuale (terreno, ristagno, piante, meteo ora per ora, cisterna, sensori, quadro, rete o pannello solare) e 22 scenari |
 | `sistema/simula.py`, `sistema/rapporto.py` | esegue uno scenario e crea registro CSV e rapporto HTML con grafici |
@@ -27,6 +29,7 @@ tra una fase e l'altra.
 Per iniziare (serve solo Python 3):
 ```bash
 python3 -m unittest discover -s test -t .               # collaudo virtuale: deve finire con OK
+node --test test/js/test_*.js                           # test numerici del motore del gemello
 python3 -m sistema.simula --elenco                      # scenari disponibili
 python3 -m sistema.simula tutti                         # tutti gli scenari, normale e con guasti
 python3 -m sistema.simula nubifragio --rapporto rapporto.html

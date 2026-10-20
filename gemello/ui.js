@@ -59,7 +59,7 @@ function messaggio(tipo, titolo, testo, chiave) {
       chiave ? el("button", {class: "link", type: "button", text: "Cambia", onclick: () => vaiA(chiave)}) : null));
 }
 function vaiA(chiave) {
-  const sezioni = idro() ? {sistema: "progetto", colture: "progetto", luce: "progetto", clima: "progetto", tenda: "progetto", acqua: "progetto", nutrienti: "progetto", scaffale: "progetto", serbatoio: "progetto", substrato: "progetto", semi: "progetto", strumenti: "progetto"}
+  const sezioni = idro() ? {sistema: "progetto", colture: "progetto", luce: "progetto", economia: "progetto", clima: "progetto", tenda: "progetto", acqua: "progetto", nutrienti: "progetto", scaffale: "progetto", serbatoio: "progetto", substrato: "progetto", semi: "progetto", strumenti: "progetto"}
                         : {ambiente: "progetto", cisterna: "progetto", logica: "logica"};
   apri(sezioni[chiave] || "componenti");
   setTimeout(() => { const t = document.getElementById("ed-" + chiave); if (t) { t.scrollIntoView({behavior: "smooth", block: "center"}); t.classList.add("evidenzia"); setTimeout(() => t.classList.remove("evidenzia"), 1600); } }, 60);
@@ -232,10 +232,15 @@ function editorProgettoIdro(box) {
   // luce
   box.append(riquadro("Luce", el("div", {id: "ed-luce"}),
     schede("Lampade", I.luce.tipo, Object.entries(LUCI_IDRO).map(([kk, l]) => [kk, l.nome, l.eff + " µmol/J · " + l.euro_w[0] + "–" + l.euro_w[1] + " €/W", l.pro, l.contro]), v => set(I.luce, "tipo", v)),
-    griglia(campoNum("Intensità (0 = consigliata dalle colture)", I.luce.ppfd, 0, 1000, 10, v => set(I.luce, "ppfd", v), "µmol/m²/s"),
-      campoNum("Ore di luce (0 = consigliate)", I.luce.ore, 0, 20, 1, v => set(I.luce, "ore", v))),
+    griglia(campoNum("Obiettivo di luce (0 = consigliato dalle colture)", I.luce.ppfd, 0, 1000, 10, v => set(I.luce, "ppfd", v), "µmol/m²/s"),
+      campoNum("Ore di luce (0 = consigliate)", I.luce.ore, 0, 20, 1, v => set(I.luce, "ore", v)),
+      campoNum("Watt di lampade montati (0 = quelli che servono)", I.luce.w_installati || 0, 0, 3000, 10, v => set(I.luce, "w_installati", v), "W")),
     spunta("Luci accese di notte (da 20:00)", I.luce.notte, v => set(I.luce, "notte", v), "d'estate il garage è più fresco, d'inverno le luci scaldano quando fa più freddo"),
-    el("p", {class: "piccolo", text: "Risultato: " + k.wLuci + " W di lampade, " + k.ppfd + " µmol/m²/s per " + k.ore + " ore = DLI " + k.dli.toFixed(1) + " mol/m²/giorno. Lampade a 30-45 cm dalle foglie."})));
+    el("p", {class: "piccolo", text: "Per " + k.ppfdObiettivo + " µmol/m²/s servono circa " + k.wRichiesti + " W. Montati " + k.wLuci + " W × " + k.L.eff + " µmol/J × " + k.geometria + " (luce che arriva alle foglie) ÷ " + k.chioma.toFixed(2) + " m² = " + k.ppfd + " µmol/m²/s per " + k.ore + " ore = DLI " + k.dli.toFixed(1) + " mol/m²/giorno. Lampade a 30-45 cm dalle foglie."}),
+    el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Coltura", "DLI ideale", "DLI che riceve", "Resa rispetto al riferimento"].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
+      el("tbody", null, ...k.colture.map(x => { const st = statoLuce(x.P, k.dli); return el("tr", null, el("td", {text: x.P.nome}), el("td", {class: "n", text: x.P.dli.join("–")}), el("td", {class: "n", text: k.dli.toFixed(1)}),
+        el("td", {class: "n", text: Math.round(st.fattore * 100) + "%" + (st.stato === "poca" ? " · poca luce" : st.stato === "troppa" ? " · oltre il necessario" : "")})); })))),
+    el("p", {class: "piccolo", text: "La resa cresce in proporzione alla luce del giorno fino al massimo della coltura, poi non cresce più (modello a efficienza d'uso della luce, da calibrare con le tue pesate)."})));
   // clima
   const CL = I.clima;
   box.append(riquadro("Clima del garage", el("div", {id: "ed-clima"}), el("div", {id: "ed-tenda"}),
@@ -253,6 +258,19 @@ function editorProgettoIdro(box) {
     griglia(campoSel("Zona d'Italia (clima del garage)", cfg.regione, Object.entries(REGIONI).map(([kk, r]) => [kk, r.nome]), v => { cfg.regione = v; aggiorna(); }),
       campoNum("Prezzo corrente", cfg.prezzi.kwh, 0, 1, 0.01, v => { cfg.prezzi.kwh = v; aggiorna(); }, "€/kWh"),
       campoNum("Prezzo acqua", cfg.prezzi.acqua_m3, 0, 10, 0.1, v => { cfg.prezzi.acqua_m3 = v; aggiorna(); }, "€/m³"))));
+  // produzione ed economia
+  const PR = I.produzione, E = I.economia;
+  box.append(riquadro("Produzione ed economia", el("div", {id: "ed-economia"}),
+    griglia(campoNum("Piante che muoiono o si scartano", PR.mortalita, 0, 50, 1, v => set(PR, "mortalita", v, false), "%"),
+      campoNum("Giorni fermi tra un ciclo e l'altro", PR.fermo_giorni, 0, 30, 1, v => set(PR, "fermo_giorni", v, false), "pulizia e trapianto"),
+      campoNum("Raccolto non utilizzabile", PR.scarto, 0, 50, 1, v => set(PR, "scarto", v, false), "%"),
+      campoNum("Vita dell'impianto", E.vita_anni, 1, 15, 1, v => set(E, "vita_anni", v, false), "anni"),
+      campoNum("Lavoro", E.ore_settimana, 0, 40, 0.5, v => set(E, "ore_settimana", v, false), "ore a settimana"),
+      campoNum("Valore del tuo lavoro", E.euro_ora, 0, 50, 1, v => set(E, "euro_ora", v, false), "€/ora, 0 = hobby"),
+      campoNum("Persone in famiglia", E.persone, 1, 10, 1, v => set(E, "persone", v, false), "quanto si mangia in casa"),
+      campoNum("Raccolto venduto", E.quota_vendita, 0, 100, 5, v => set(E, "quota_vendita", v, false), "%"),
+      campoNum("Prezzo di vendita", E.prezzo_vendita, 10, 150, 5, v => set(E, "prezzo_vendita", v, false), "% del prezzo al negozio")),
+    el("p", {class: "piccolo", text: "Il raccolto mangiato in casa (fino a quanto mangia la tua famiglia) vale quanto costerebbe al negozio; quello venduto vale il prezzo di vendita (a ristoranti o mercati di solito meno del negozio). Per vendere servono le regole della scheda Percorso."})));
 }
 function editorComponentiIdro(box) {
   const A = cfg.idro.auto, set = (kk, v) => { A[kk] = v; aggiorna(true); };
@@ -289,7 +307,7 @@ function editorLogicaIdro(box) {
 }
 
 // ---------- KPI, HUD, messaggi ----------
-let S = null, M = null, VOCI = [], COSTI = null;
+let S = null, M = null, VOCI = [], COSTI = null, ECO = null;
 function kpi() {
   const tile = (et, val, sotto) => el("div", null, el("span", {class: "etichetta", text: et}), el("span", {class: "val", text: val}), el("span", {class: "sotto", text: sotto}));
   const ini = forbice(somma(VOCI, "min"), somma(VOCI, "max"));
@@ -298,7 +316,7 @@ function kpi() {
     $("kpi").replaceChildren(tile("Per iniziare", ini, "materiale e automazione"), tile("Piante", fmt(k.piante), fmt(S.kg) + " kg all'anno · " + euro(S.valore)),
       tile("Corrente all'anno", fmt(S.kwh) + " kWh", euro(S.kwh * cfg.prezzi.kwh) + " · luci " + Math.round(S.kwhLuci / Math.max(1, S.kwh) * 100) + "%"),
       tile("Spese all'anno", euro(COSTI.totale), "corrente, acqua, nutrienti, semi"),
-      tile("Costo al kg", S.kg ? euro(COSTI.totale / S.kg) : "-", "al negozio ≈ " + euro(S.valore / Math.max(1, S.kg))));
+      tile("Costo al kg", isFinite(ECO.scenari.centrale.costoKg) ? euro(ECO.scenari.centrale.costoKg) : "-", "con ammortamento · al negozio ≈ " + euro(S.valore / Math.max(1, S.kg))));
   } else {
     const correnteEuro = S.solare ? 0 : S.kwh * cfg.prezzi.kwh;
     $("kpi").replaceChildren(tile("Per iniziare", ini, cfg.preset ? "pacchetto " + PRESET[cfg.preset].nome.toLowerCase() : "componenti scelti da te"),
@@ -338,13 +356,14 @@ function messaggi() {
   const ord = {crit: 0, warn: 1, ok: 2};
   if (idro()) {
     const k = S.k;
-    lista.push({tipo: S.valore >= COSTI.totale ? "ok" : "warn", titolo: S.valore >= COSTI.totale ? "Il raccolto ripaga le spese" : "Il raccolto non ripaga le spese di ogni anno",
-      testo: "Raccolto ≈ " + euro(S.valore) + " al prezzo del negozio, spese " + euro(COSTI.totale) + " (luci " + euro(S.kwhLuci * cfg.prezzi.kwh) + "). " + (S.valore < COSTI.totale ? "Le insalate rendono poco rispetto alla corrente: colture pregiate (basilico, microgreens, fragole) o meno ore di luce e tariffa notturna." : "")});
+    const C = ECO.scenari.centrale;
+    lista.push({tipo: ECO.giudizio === "conviene" ? "ok" : ECO.giudizio === "fragile" ? "warn" : "crit",
+      titolo: ECO.giudizio === "conviene" ? "Economicamente sensato: si ripaga in " + fmt(C.pareggioAnni, 1) + " anni" : ECO.giudizio === "fragile" ? "Si ripaga, ma il margine è fragile" : "Sconsigliato: economicamente non conviene",
+      testo: ECO.motivi.slice(0, 3).join(" ") || "Valore del raccolto " + euro(C.sostituzione + C.ricavo) + ", spese " + euro(C.opex) + " all'anno.", chiave: "economia"});
     if (S.giorniCaldo > 20) lista.push({tipo: "warn", titolo: S.giorniCaldo + " giorni troppo caldi per le colture", testo: "D'estate il garage scalda: luci di notte, estrattore, o colture da caldo (basilico, peperoncino).", chiave: "clima"});
     if (S.giorniFreddo > 20) lista.push({tipo: "warn", titolo: S.giorniFreddo + " notti troppo fredde", testo: "Alza la temperatura minima o metti la stufetta; l'inverno costa in corrente.", chiave: "clima"});
     if (S.giorniAcquaCalda > 20) lista.push({tipo: "warn", titolo: S.giorniAcquaCalda + " giorni con l'acqua sopra 24 °C", testo: "Serbatoio isolato e all'ombra, luci di notte, bottiglie di ghiaccio d'estate.", chiave: "clima"});
     if (S.giorniUmido > 20) lista.push({tipo: "warn", titolo: S.giorniUmido + " giorni con umidità troppo alta", testo: "Più ricambio d'aria o deumidificatore: rischio muffe.", chiave: "clima"});
-    if (k.dli < Math.max(...k.colture.map(x => x.P.dli[0]))) lista.push({tipo: "warn", titolo: "Poca luce per alcune colture", testo: "DLI " + k.dli.toFixed(1) + " contro un minimo di " + Math.max(...k.colture.map(x => x.P.dli[0])) + ": crescono meno.", chiave: "luce"});
     if (S.perse > 0) lista.push({tipo: "crit", titolo: "Piante perse per i guasti", testo: "Vedi gli eventi nella scheda Simulazione.", chiave: "ups"});
   } else {
     const comp = cfg.componenti;
@@ -432,10 +451,11 @@ function schedaCosti(box) {
   const ta = el("tbody", null, ...COSTI.righe.map(r => el("tr", null, el("td", {text: r[0]}), el("td", {class: "n", text: r[1]}), el("td", {class: "n", text: euro(r[2])}))),
     el("tr", null, el("th", {text: "Totale spese"}), el("td"), el("th", {class: "n", text: euro(COSTI.totale)})));
   const iniziale = (somma(VOCI, "min") + somma(VOCI, "max")) / 2, netto = S.valore - COSTI.totale;
-  const rit = netto > 0 ? "Il materiale (≈ " + euro(iniziale) + ") si ripaga in circa " + fmt(Math.max(1, Math.ceil(iniziale / netto * 12))) + " mesi di raccolto, al prezzo del negozio." : "Con queste scelte il raccolto (≈ " + euro(S.valore) + ") non copre le spese di ogni anno (" + euro(COSTI.totale) + ").";
+  const rit = idro() ? "Il bilancio completo, con ammortamento e scenari, è qui sotto." : netto > 0 ? "Il materiale (≈ " + euro(iniziale) + ") si ripaga in circa " + fmt(Math.max(1, Math.ceil(iniziale / netto * 12))) + " mesi di raccolto, al prezzo del negozio." : "Con queste scelte il raccolto (≈ " + euro(S.valore) + ") non copre le spese di ogni anno (" + euro(COSTI.totale) + ").";
   box.append(el("div", {class: "due"}, riquadro("Spesa a tappe", gT, el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, el("th", {text: "Tappa"}), el("th", {class: "n", text: "Questa tappa"}), el("th", {class: "n", text: "Totale fin qui"}))), tb))),
     riquadro("Ogni anno", el("div", {class: "scorri"}, el("table", null, ta)), el("p", {class: "piccolo", text: rit}))));
   barChart(gT, {larghezza: 520, titolo: "Spesa cumulata", categorie: righe.map(r => "Fase " + r[0]), etichetteLunghe: righe.map(r => r[1]), serie: [{nome: "Totale fin qui (medio)", colore: "var(--accent)", valori: cumul}], fmt: v => fmt(v) + " €", fmtTip: v => fmt(v) + " €", altezza: 240, largo: 1.6});
+  if (idro()) bilancioIdro(box);
   // confronti rapidi
   const varianti = idro() ? [
     ["La tua configurazione", {}],
@@ -444,6 +464,8 @@ function schedaCosti(box) {
     ["Garage isolato", {clima: Object.assign({}, cfg.idro.clima, {garage: "isolato"})}],
     ["Senza tenda", {clima: Object.assign({}, cfg.idro.clima, {tenda: false})}],
     ["Kratky (senza pompe, controllo a mano)", {sistema: "kratky", disposizione: cfg.idro.disposizione, auto: Object.assign({}, cfg.idro.auto, {dosaggio: false, ph: false, ec: false, flusso: false})}],
+    ["Senza automazione (penne pH ed EC, timer)", {auto: Object.assign({}, cfg.idro.auto, {dosaggio: false, ph: false, ec: false, rabbocco: false, co2: false, centrale: "nessuna"})}],
+    ["Metà dei watt di lampade", {luce: Object.assign({}, cfg.idro.luce, {w_installati: Math.round(capacitaIdro(cfg).wLuci / 2)})}],
   ] : [
     ["La tua configurazione", {}],
     ["Pacchetto base", {componenti: PRESET.base.componenti, extra: PRESET.base.extra}],
@@ -455,16 +477,43 @@ function schedaCosti(box) {
   const tc = el("tbody");
   for (const [nome, mod] of varianti) {
     let r, cst, voci;
-    if (idro()) { const c2 = Object.assign({}, cfg, {idro: Object.assign({}, cfg.idro, mod)}); r = simulaIdro(c2); cst = costiAnnuiIdro(c2, r); voci = materialiIdro(c2);
-      tc.append(el("tr", null, el("td", {text: nome}), el("td", {class: "n", text: forbice(somma(voci, "min"), somma(voci, "max"))}), el("td", {class: "n", text: fmt(r.kwh)}), el("td", {class: "n", text: euro(cst.totale)}), el("td", {class: "n", text: fmt(r.kg)}), el("td", {class: "n", text: r.kg ? euro(cst.totale / r.kg) : "-"})));
+    if (idro()) { const c2 = Object.assign({}, cfg, {idro: Object.assign({}, cfg.idro, mod)}); r = simulaIdro(c2); cst = costiAnnuiIdro(c2, r); voci = materialiIdro(c2); const e2 = economiaIdro(c2, r, voci, cst), C2 = e2.scenari.centrale;
+      tc.append(el("tr", null, el("td", {text: nome}), el("td", {class: "n", text: forbice(somma(voci, "min"), somma(voci, "max"))}), el("td", {class: "n", text: fmt(r.kwh)}), el("td", {class: "n", text: euro(cst.totale)}), el("td", {class: "n", text: fmt(r.kg)}),
+        el("td", {class: "n", text: isFinite(C2.costoKg) ? euro(C2.costoKg) : "-"}), el("td", {class: "n", text: isFinite(C2.pareggioAnni) ? fmt(C2.pareggioAnni, 1) + " anni" : "mai"})));
     } else { const c2 = JSON.parse(JSON.stringify(cfg));
       if (mod.componenti) Object.assign(c2.componenti, mod.componenti); if (mod.extra) Object.assign(c2.extra, mod.extra); if (mod.logica) Object.assign(c2.logica, mod.logica);
       if (mod.zone) c2.zone.forEach(z => z.pacciamatura = true);
       r = simula(c2, {meteo: M}); voci = materiali(c2); cst = costiAnnui(c2, r, voci);
       tc.append(el("tr", null, el("td", {text: nome}), el("td", {class: "n", text: forbice(somma(voci, "min"), somma(voci, "max"))}), el("td", {class: "n", text: fmt(r.litri)}), el("td", {class: "n", text: euro(cst.totale)}), el("td", {class: "n", text: fmt(r.stress)}), el("td", {class: "n", text: fmt(r.drenati)}))); }
   }
-  const intest = idro() ? ["Variante", "Per iniziare", "kWh/anno", "Spese/anno", "kg/anno", "€ al kg"] : ["Variante", "Per iniziare", "Acqua L", "Spese/anno", "Sofferenza gg", "Drenata L"];
+  const intest = idro() ? ["Variante", "Per iniziare", "kWh/anno", "Spese/anno", "kg/anno", "€ al kg con ammortamento", "Si ripaga in"] : ["Variante", "Per iniziare", "Acqua L", "Spese/anno", "Sofferenza gg", "Drenata L"];
   box.append(riquadro("Confronti rapidi", el("p", {class: "piccolo", text: "Stesso anno, una sola differenza per riga."}), el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...intest.map((t, i) => el("th", {class: i ? "n" : "", text: t})))), tc))));
+}
+function bilancioIdro(box) {
+  const SC = ECO.scenari, C = SC.centrale;
+  const riga = (n, v, forte) => el("tr", null, el("td", null, forte ? el("strong", {text: n}) : document.createTextNode(n)), el("td", {class: "n"}, forte ? el("strong", {text: v}) : document.createTextNode(v)));
+  const anni = x => isFinite(x) ? fmt(x, 1) + " anni" : "mai";
+  box.append(el("div", {class: "due"},
+    riquadro("Bilancio (scenario centrale)", el("div", {class: "scorri"}, el("table", null, el("tbody", null,
+      riga("Investimento iniziale (CAPEX)", forbice(ECO.capex.min, ECO.capex.max)),
+      ...ECO.perCategoria.map(x => riga("· " + x.cat, forbice(x.min, x.max))),
+      riga("Spese di ogni anno (OPEX)", euro(C.opex)), riga("· di cui corrente", euro(ECO.energia)),
+      riga("Ammortamento (" + ECO.vita + " anni)", euro(C.ammortamento)), riga("Costo totale all'anno", euro(C.costoAnno), true),
+      riga("Raccolto utilizzabile", fmt(C.kgUtili, 1) + " kg"), riga("Costo al kg", isFinite(C.costoKg) ? euro(C.costoKg) : "-", true),
+      riga("Mangiato in casa", fmt(C.casa, 1) + " kg"), riga("Venduto", fmt(C.venduti, 1) + " kg"), riga("In più (regalato o buttato)", fmt(C.eccedenza, 1) + " kg"),
+      riga("Valore in casa (prezzo del negozio)", euro(C.sostituzione)), riga("Ricavo dalle vendite", euro(C.ricavo)),
+      riga("Margine di ogni anno (senza ammortamento)", euro(C.margine), true), riga("Si ripaga in", anni(C.pareggioAnni), true),
+      riga("Lavoro", fmt(ECO.ore) + " ore all'anno"))))),
+    riquadro("Caso peggiore, normale e migliore", el("p", {class: "piccolo", text: "Pessimistico: prezzi alti del materiale, resa -30%, corrente +15%, prezzi -20%. Ottimistico: prezzi bassi, resa +10%, corrente -5%. Sono prove di robustezza, non probabilità."}),
+      el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["", "Pessimistico", "Centrale", "Ottimistico"].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
+        el("tbody", null, ...[["Investimento", x => euro(x.capex)], ["Raccolto", x => fmt(x.kgUtili) + " kg"], ["Spese all'anno", x => euro(x.opex)], ["Costo al kg", x => isFinite(x.costoKg) ? euro(x.costoKg) : "-"],
+          ["Margine all'anno", x => euro(x.margine)], ["Si ripaga in", x => anni(x.pareggioAnni)]].map(([n, f]) => el("tr", null, el("td", {text: n}), ...["pessimistico", "centrale", "ottimistico"].map(kk => el("td", {class: "n", text: f(SC[kk])}))))))),
+      el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Coltura", "kg utili", "Costo al kg", "Al negozio", ""].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
+        el("tbody", null, ...ECO.colture.map(x => el("tr", null, el("td", {text: IDRO_PIANTE[x.coltura].nome}), el("td", {class: "n", text: fmt(x.kg, 1)}), el("td", {class: "n", text: isFinite(x.costoKg) ? euro(x.costoKg) : "-"}),
+          el("td", {class: "n", text: euro(x.prezzo)}), el("td", null, chip(x.conviene ? "ok" : "warn", x.conviene ? "conviene" : "non conviene")))))))),
+    ));
+  box.append(riquadro(ECO.giudizio === "conviene" ? "Giudizio: conviene" : ECO.giudizio === "fragile" ? "Giudizio: si ripaga, ma fragile" : "Giudizio: sconsigliato",
+    ...(ECO.motivi.length ? ECO.motivi : ["Nessun motivo per sconsigliarlo con queste ipotesi: verificale con un piccolo impianto di prova."]).map(t => el("p", {class: "piccolo", text: t}))));
 }
 function schedaMateriali(box) {
   const cats = [...new Set(VOCI.map(v => v.cat))];
@@ -646,7 +695,7 @@ function disegnaScheda() {
 let timer3d = null;
 function aggiorna(ricostruisci3d = true) {
   salva();
-  if (idro()) { S = simulaIdro(cfg); VOCI = materialiIdro(cfg); COSTI = costiAnnuiIdro(cfg, S); M = null; }
+  if (idro()) { S = simulaIdro(cfg); VOCI = materialiIdro(cfg); COSTI = costiAnnuiIdro(cfg, S); ECO = economiaIdro(cfg, S, VOCI, COSTI); M = null; }
   else { M = meteo(cfg); S = simula(cfg, {meteo: M}); VOCI = materiali(cfg); COSTI = costiAnnui(cfg, S, VOCI); }
   kpi(); messaggi(); disegnaScheda(); hud(giorno);
   document.querySelectorAll(".modo button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === cfg.modalita ? "true" : "false"));
