@@ -12,6 +12,7 @@ tra una fase e l'altra.
 
 | Cartella / file | Cosa c'è |
 |---|---|
+| `gemello/index.html` | **gemello digitale 3D**: l'orto in scala reale e un anno simulato giorno per giorno (umidità, cisterna, corrente, raccolto), costi a tappe, lista della spesa con i sensori spiegati, schemi di acqua e corrente, gestione e allarmi. Si apre con il browser |
 | `sistema/controllo.py` | logica di controllo e sicurezze: **la stessa** nel simulatore e sull'ESP32 (provata anche in MicroPython) |
 | `sistema/modello.py`, `sistema/scenari.py` | mondo virtuale (terreno, ristagno, piante, meteo ora per ora, cisterna, sensori, quadro, rete o pannello solare) e 22 scenari |
 | `sistema/simula.py`, `sistema/rapporto.py` | esegue uno scenario e crea registro CSV e rapporto HTML con grafici |

@@ -64,6 +64,11 @@ Compila questa scheda (copiala in un file `mio-impianto.md`). Ogni risposta dive
 | Wi-Fi arriva all'orto? | sì / no | fase 6 |
 | Quanto puoi stare senza controllare? | 3 giorni | soglie e allarmi |
 
+Il modo più semplice: apri il gemello digitale `gemello/index.html` con il browser (anche dal telefono). Inserisci zone,
+piante, terreno, acqua e corrente e vedi subito in 3D come viene l'orto, quanta acqua e corrente consuma in un anno,
+quanto costa a tappe, quali sensori servono e perché. Nella scheda "Percorso" c'è il comando già pronto per portare
+le tue zone nel simulatore dettagliato della fase 2.
+
 **Cancello 1:** scheda compilata, sai dire in una frase cosa deve fare l'impianto e cosa non deve mai fare
 (es. "mai pompa a secco, mai allagare, avvisarmi se qualcosa si rompe").
 
