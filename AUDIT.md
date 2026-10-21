@@ -1,7 +1,8 @@
 # Audit del progetto AgriTech e roadmap
 
-Fotografia del 20 ottobre 2026 dopo la fase 1 (audit e correzione dei calcoli). Ogni funzione ha uno stato esplicito:
-niente è dichiarato "validato" finché non è confrontato con misure vere.
+Fotografia del 21 ottobre 2026, dopo le 10 fasi della roadmap. Ogni funzione ha uno stato esplicito: niente è
+dichiarato "validato" finché non è confrontato con misure vere. **Nessuna parte è stata ancora provata su hardware vero
+o confrontata con un raccolto vero**: è il prossimo passo, ed è tuo (sezione 8).
 
 ## 1. Cosa c'è oggi
 
@@ -11,11 +12,14 @@ niente è dichiarato "validato" finché non è confrontato con misure vere.
 | Simulatore orto | `sistema/modello.py`, `scenari.py`, `simula.py`, `soluzioni.py` | Bilancio idrico giornaliero del terreno, scenari meteo/blackout/allagamento, confronto delle soluzioni |
 | Firmware ESP32 | `firmware/esp32-irrigazione/` | Firmware MicroPython per l'irrigazione, con schema per Wokwi |
 | Strumenti | `strumenti/` | Simulatore da riga di comando, scaricamento del meteo storico (Open-Meteo) |
-| Gemello digitale | `gemello/` (HTML + 6 moduli JS) | Configuratore e simulatore in browser: orto in terra e idroponica in garage, 3D, distinta, costi, guasti, schemi |
+| Gemello digitale | `gemello/` (HTML + 10 moduli JS) | Simulatore in browser: orto in terra e idroponica in garage, 3D parametrico, percorso guidato, crescita, luce, idraulica, ricetta, economia, registro e calibrazione, documenti |
+| Controllo idroponica | `sistema/idro_controllo.py`, `sistema/idro_modello.py` | Logica di dosaggio e sicurezze (simulazione/ombra/reale) e serbatoio simulato con 12 scenari di guasto |
+| Firmware idroponica | `firmware/esp32-idroponica/` | MicroPython: sonde, dosatori con limite hardware, prese smart, MQTT verso Home Assistant |
+| Monitoraggio | `monitoraggio/` | ESPHome di sorveglianza (validato), pacchetto e plancia Home Assistant, guida; `strumenti/storico_ha.py` |
 | Documenti | `PIANO.md`, `COLLAUDO.md`, `SOLUZIONI.md`, `IDROPONICA.md`, `MODELLI.md` | Piano a fasi, collaudo, soluzioni, guida idroponica, schede dei modelli |
-| Test | `test/*.py` (83), `test/js/` (59) | Logica, scenari, firmware con hardware simulato; test numerici del motore idroponico. Girano su GitHub a ogni modifica |
+| Test | `test/*.py` (87), `test/js/` (74) | Logica, scenari, firmware con hardware simulato; test numerici del motore idroponico. Girano su GitHub a ogni modifica |
 
-Architettura attuale: due motori separati. Python serve per il controllo e per il simulatore dell'orto (lo stesso
+Architettura: due motori separati. Python serve per il controllo e per il simulatore dell'orto (lo stesso
 codice va sull'ESP32). JavaScript serve per il gemello nel browser (gratis, senza server, funziona anche offline).
 L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js`, `idro.js`), che non toccano la pagina.
 
@@ -83,22 +87,22 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 
 ## 4. La tua domanda: garage, 500 €, Marche, lattuga, basilico o fragole
 
-Il gemello attuale risponde così. Zona Centro, garage non isolato, tenda, LED bianchi, corrente 0,28 €/kWh, famiglia
+Il gemello (dopo le fasi 1-10) risponde così; la scheda **Inizia** fa questo confronto da sola. Zona Centro, garage non isolato, tenda, LED bianchi, corrente 0,28 €/kWh, famiglia
 di 3 persone. I 15 m² non sono un limite: lo è la corrente.
 
 | Proposta | Piante | Per iniziare | Spese/anno | Corrente/anno | Raccolto utile | Costo al kg | Valore in casa | Giudizio economico |
 |---|---|---|---|---|---|---|---|---|
-| A · minimo investimento: Kratky 120×60, lattuga e basilico, controllo a mano | 17 | 376–667 € | 370 € | 1191 kWh (luci 584, clima 564) | 17 kg | 27,7 € | 125 € | sconsigliato |
-| A senza stufetta (d'inverno cresce poco) | 17 | 356–627 € | 255 € | 779 kWh (luci 584, clima 153) | 16 kg | 21,6 € | 119 € | sconsigliato |
-| B · rapporto costo/prestazioni: NFT 1 piano 120×60, lattuga e basilico, UPS e galleggianti | 17 | 467–824 € | 412 € | 1323 kWh (luci 584, clima 564) | 17 kg | 31,6 € | 125 € | sconsigliato |
-| C · più automazione: NFT 2 piani, pH/EC e dosaggio automatici | 35 | 698–1235 € | 583 € | 1706 kWh (luci 1168, clima 352) | 37 kg | 21,1 € | 177 € | sconsigliato |
-| Fragole: 2 secchi olandesi (8 piante) | 8 | 497–891 € | 424 € | 1280 kWh (luci 562, clima 637) | 4 kg | 132,3 € | 34 € | sconsigliato |
+| A · minimo investimento: Kratky 120×60, lattuga e basilico, controllo a mano | 17 | 441–757 € | 564 € | 1881 kWh (luci 584, clima 1255) | 17 kg | 41,3 € | 97 € | sconsigliato |
+| A senza stufetta (d'inverno cresce poco) | 17 | 421–717 € | 252 € | 778 kWh (luci 584, clima 151) | 13 kg | 27,9 € | 78 € | sconsigliato |
+| B · rapporto costo/prestazioni: NFT 1 piano 120×60, lattuga e basilico, UPS e galleggianti | 17 | 569–981 € | 592 € | 1964 kWh (luci 584, clima 1255) | 17 kg | 45,2 € | 97 € | sconsigliato |
+| C · più automazione: NFT 2 piani, pH/EC e dosaggio automatici | 35 | 790–1370 € | 748 € | 2286 kWh (luci 1168, clima 980) | 36 kg | 26,5 € | 184 € | sconsigliato |
+| Fragole: 2 secchi olandesi (8 piante) | 8 | 558–978 € | 559 € | 1764 kWh (luci 562, clima 1129) | 4 kg | 166,5 € | 34 € | sconsigliato |
 
 Cosa ne segue:
-- **Per autoconsumo nessuna versione si ripaga**: la lattuga costa 20-30 €/kg contro 3 €/kg al negozio. Si fa per
+- **Per autoconsumo nessuna versione si ripaga**: la lattuga costa 25-45 €/kg contro 3 €/kg al negozio. Si fa per
   imparare, non per risparmiare.
-- **Nelle Marche d'inverno la stufetta consuma quanto le luci.** Senza stufetta si spende un terzo di meno, ma
-  d'inverno si raccoglie poco.
+- **Nelle Marche d'inverno la stufetta consuma più delle luci** (tenda 120×120 a 17 °C). Senza stufetta le spese
+  scendono a meno della metà, ma d'inverno si raccoglie poco.
 - **Fragole al chiuso: sconsigliate.** Vogliono molta luce, 8 piante danno pochi kg e il costo supera i 100 €/kg.
 - **Il basilico vale molto, ma una famiglia ne mangia poco**: conviene solo se ne vendi una parte.
 - **Consiglio**: la proposta A, ma senza tenda e senza elettronica, nella stagione mite (da marzo a giugno e da

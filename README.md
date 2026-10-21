@@ -12,8 +12,11 @@ tra una fase e l'altra.
 
 | Cartella / file | Cosa c'è |
 |---|---|
-| `gemello/index.html` | **gemello digitale 3D** (si apre con il browser, file accanto: `dati.js`, `sim.js`, `idro.js`, `grafici.js`, `vista3d.js`, `ui.js`). Due modi: **orto in terra** (esterno, serra o interno) e **idroponica in garage** (NFT, torri verticali, DWC, Kratky, secchi, microgreens). Ogni pezzo si cambia: microcontrollore, sensori indoor e outdoor, pompe, valvole, luci, alimentazione, logica di controllo; si provocano guasti e si vede un anno simulato giorno per giorno con costi, corrente, acqua, raccolto, lista della spesa, schemi e collegamenti |
+| `gemello/index.html` | **gemello digitale 3D** (si apre con il browser insieme ai file `.js` della cartella). Due modi: **orto in terra** (esterno, serra o interno) e **idroponica in garage** (NFT, torri, DWC, Kratky, flusso e riflusso, goccia su substrato, secchi, microgreens). Schede: **Inizia** (percorso guidato con tre proposte e giudizio), Progetto (misure, colture, luce con mappa, clima, meteo vero, ricetta dei nutrienti, economia), Componenti, Logica, Guasti, Simulazione (crescita giorno per giorno), **Registro** (raccolti veri e calibrazione), Costi (bilancio e scenari), Materiali, Struttura (idraulica, pianta del locale), Gestione, Guida (con le fonti), **Documenti** (relazione in PDF, Excel), Percorso |
 | `IDROPONICA.md` | guida da tecnico all'idroponica in garage: sistemi, piante per m², luci e consumi, nutrienti, pH, umidità, semi, automazione, costi |
+| `sistema/idro_controllo.py`, `sistema/idro_modello.py` | controllo dell'idroponica (pH, EC, dosaggio, sicurezze, modi simulazione/ombra/reale) e serbatoio simulato con 12 guasti |
+| `firmware/esp32-idroponica/` | firmware ESP32 per l'idroponica: sonde, dosatori, prese smart, MQTT; guida di collegamento e taratura |
+| `monitoraggio/` | vedere l'impianto dal telefono: ESPHome, Home Assistant (avvisi e plancia), accesso sicuro da fuori |
 | `AUDIT.md` | **stato reale del progetto**: cosa è testato e cosa no, errori trovati e corretti, architettura, roadmap, criteri di validazione, risposta al caso "garage, 500 €, Marche" |
 | `MODELLI.md` | schede dei modelli del gemello: formula, fonte, ipotesi, limiti, esempio numerico, affidabilità |
 | `sistema/controllo.py` | logica di controllo e sicurezze: **la stessa** nel simulatore e sull'ESP32 (provata anche in MicroPython) |

@@ -26,7 +26,7 @@ Orizzontale o verticale? Uno **scaffale a più piani** (3-4 ripiani da 120 × 60
 la stessa densità delle torri con luce più efficiente (lampada sopra le piante, non di lato).
 
 ## Quante piante e quanto costa (dal gemello)
-Garage non isolato nel Sud o nelle Isole, tenda, stufetta con termostato a 17 °C, estrattore, LED bianchi, corrente
+Garage non isolato nel Sud, tenda scelta tra le misure in commercio, stufetta con termostato a 17 °C, estrattore, LED bianchi, corrente
 0,30 €/kWh, acqua di casa media durezza, famiglia di 3 persone. Ipotesi di produzione: 5% di piante perse, 2 giorni
 fermi tra un ciclo e l'altro, 10% di raccolto non utilizzabile. "Spese/anno" comprende corrente, acqua, nutrienti,
 semi, substrati, sonda pH e ricambi (lampade, pompa). Il costo al kg comprende l'ammortamento del materiale in 5 anni.
@@ -35,17 +35,17 @@ non vale niente se nessuno lo compra. Modelli e limiti in [MODELLI.md](MODELLI.m
 
 | Impianto | Piante | Luci | Corrente/anno | Per iniziare | Spese/anno | Raccolto utile | Costo al kg | Valore/anno | Si ripaga in | Giudizio |
 |---|---|---|---|---|---|---|---|---|---|---|
-| NFT, scaffale 3 piani 120×60 (lattuga, basilico, rucola) | 77 | 280 W | 2079 kWh | 790–1404 € | 796 € | 61 kg | 16,8 € | 307 € | mai | **sconsigliato** |
-| Torri verticali ×2 | 71 | 560 W | 3784 kWh | 1068–1968 € | 1337 € | 67 kg | 24,6 € | 284 € | mai | **sconsigliato** |
-| DWC 120×120 (lattuga, basilico) | 35 | 190 W | 1756 kWh | 701–1215 € | 633 € | 38 kg | 21,8 € | 190 € | mai | **sconsigliato** |
-| Kratky 120×60, controllo a mano | 24 | 100 W | 1065 kWh | 384–681 € | 365 € | 19 kg | 25,3 € | 132 € | mai | **sconsigliato** |
-| Secchi: 6 tra pomodori e peperoncini | 9 | 700 W | 4438 kWh | 1185–2118 € | 1499 € | 35 kg | 51,9 € | 175 € | mai | **sconsigliato** |
-| Microgreens, scaffale 4 piani, in casa | 23 | 220 W | 1614 kWh | 703–1235 € | 1224 € | 139 kg | 10,2 € | 140 € | mai | **sconsigliato** |
-| Microgreens, scaffale 4 piani, 90% venduto al 70% del prezzo | 23 | 220 W | 1614 kWh | 703–1235 € | 1224 € | 139 kg | 10,2 € | 2767 € | 0,6 anni | conviene |
+| NFT, scaffale 3 piani 110×55 (lattuga, basilico, rucola) | 65 | 230 W | 1779 kWh | 791–1401 € | 687 € | 51 kg | 17,8 € | 292 € | mai | **sconsigliato** |
+| Torri verticali ×2 | 71 | 560 W | 3692 kWh | 1046–1927 € | 1315 € | 66 kg | 24,4 € | 281 € | mai | **sconsigliato** |
+| DWC 120×120 (lattuga, basilico) | 35 | 190 W | 1990 kWh | 731–1255 € | 707 € | 38 kg | 23,8 € | 189 € | mai | **sconsigliato** |
+| Kratky 120×60, controllo a mano | 24 | 100 W | 1582 kWh | 449–771 € | 522 € | 19 kg | 33,8 € | 122 € | mai | **sconsigliato** |
+| Secchi: 6 tra pomodori e peperoncini | 9 | 700 W | 4643 kWh | 1316–2330 € | 1560 € | 37 kg | 52,2 € | 184 € | mai | **sconsigliato** |
+| Microgreens, scaffale 4 piani, in casa | 19 | 190 W | 2579 kWh | 836–1422 € | 1391 € | 122 kg | 13,3 € | 140 € | mai | **sconsigliato** |
+| Microgreens, scaffale 4 piani, 90% venduto al 70% del prezzo | 19 | 190 W | 2579 kWh | 836–1422 € | 1391 € | 122 kg | 13,3 € | 2443 € | 1,1 anni | fragile |
 
 Cosa dicono i numeri:
-- Con i **LED viola economici** lo stesso impianto NFT consuma circa il 55% in più; con i **neon T5** più del doppio.
-- **Luci di notte**: nell'impianto NFT i giorni troppo caldi scendono da 227 a 132, il raccolto sale da 56 a 67 kg e la corrente scende da 2.294 a 2.066 kWh (d'inverno le luci scaldano quando fa più freddo).
+- Con i **LED viola economici** lo stesso impianto NFT consuma circa il 60% in più; con i **neon T5** più del doppio.
+- **Luci di notte**: nell'impianto NFT i giorni troppo caldi scendono da 217 a 124, il raccolto sale da 50 a 57 kg e la corrente scende da 1.981 a 1.764 kWh (d'inverno le luci scaldano quando fa più freddo).
 - In un garage non isolato del Sud resta comunque caldo d'estate: lì si coltiva basilico o si ferma da luglio ad agosto.
 - **Garage isolato** e **tenda**: meno stufetta d'inverno e meno caldo d'estate.
 - L'impianto automatico costa di più all'inizio (sonde, dosatori, UPS); il Kratky a mano è il modo giusto per imparare.
