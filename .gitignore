@@ -3,3 +3,6 @@ __pycache__/
 registro_orto.csv
 rapporto*.html
 registro*.csv
+secrets.yaml
+__pycache__/
+*.pyc

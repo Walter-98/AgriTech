@@ -41,6 +41,13 @@ PRESE = {
 WIFI_SSID = None              # None = niente rete: il controllo lavora uguale, solo senza prese smart e avvisi
 WIFI_PASSWORD = ""
 
+# MQTT verso Home Assistant (broker Mosquitto in casa). None = niente MQTT. Dalla rete arrivano SOLO due comandi:
+# reset degli allarmi e lettura della penna; pompe e dosatori non si comandano da fuori.
+MQTT_BROKER = None            # es. "192.168.1.10"
+MQTT_UTENTE = ""
+MQTT_PASSWORD = ""
+MQTT_BASE = "agritech/idro"
+
 FILE_MEMORIA = "stato_idro.json"
 FILE_PENNA = "penna.json"     # lettura della penna pH inserita a mano: main.penna(6.1)
 SECONDI_PER_PASSO = 60

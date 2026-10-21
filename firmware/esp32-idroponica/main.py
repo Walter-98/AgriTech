@@ -219,6 +219,71 @@ def riga(s, l, c):
         "ON" if c["pompa"] else "off", c["dose_a_ml"], c["dose_b_ml"], c["dose_ph_ml"], c["modo"], ",".join(c["allarmi"]) or "-")
 
 
+# ---- MQTT verso Home Assistant: stato in uscita, dalla rete solo reset e penna ----
+SENSORI_HA = (("ph", "pH", "pH", None), ("ec", "EC", "mS/cm", None), ("t_acqua", "Temperatura acqua", "°C", "temperature"),
+              ("t_aria", "Temperatura aria", "°C", "temperature"), ("ur", "Umidità aria", "%", "humidity"),
+              ("flusso_l_min", "Flusso", "L/min", None))
+
+
+def scoperta_ha(base):
+    """Messaggi di auto-scoperta di Home Assistant: (topic, payload JSON) per ogni sensore e per gli allarmi."""
+    dev = {"identifiers": ["agritech_idro"], "name": "AgriTech idroponica", "manufacturer": "AgriTech"}
+    msg = []
+    for chiave, nome, unita, classe in SENSORI_HA:
+        cfg = {"name": nome, "unique_id": "agritech_idro_" + chiave, "state_topic": base + "/stato",
+               "value_template": "{{ value_json." + chiave + " }}", "unit_of_measurement": unita, "device": dev}
+        if classe:
+            cfg["device_class"] = classe
+        msg.append(("homeassistant/sensor/agritech_idro_" + chiave + "/config", json.dumps(cfg)))
+    msg.append(("homeassistant/sensor/agritech_idro_allarmi/config", json.dumps({
+        "name": "Allarmi", "unique_id": "agritech_idro_allarmi", "state_topic": base + "/stato",
+        "value_template": "{{ value_json.allarmi | join(', ') if value_json.allarmi else 'nessuno' }}", "device": dev})))
+    msg.append(("homeassistant/binary_sensor/agritech_idro_perdita/config", json.dumps({
+        "name": "Perdita", "unique_id": "agritech_idro_perdita", "state_topic": base + "/stato", "device_class": "moisture",
+        "value_template": "{{ 'ON' if value_json.perdita else 'OFF' }}", "device": dev})))
+    return msg
+
+
+def stato_json(l, c):
+    d = {}
+    for k in ("ph", "ec", "t_acqua", "t_aria", "ur", "flusso_l_min", "perdita", "livello_min", "livello_max"):
+        v = l.get(k)
+        d[k] = round(v, 3) if isinstance(v, float) else v
+    for k in ("pompa", "luci", "rabbocco", "dose_a_ml", "dose_b_ml", "dose_ph_ml", "modo", "allarmi"):
+        d[k] = c.get(k)
+    if "proposti" in c:
+        d["proposti"] = c["proposti"]
+    return json.dumps(d)
+
+
+def comando_da_rete(dati, stato):
+    """Accetta solo {"reset": true} e {"penna": 6.1}: niente comandi a pompe o dosatori dalla rete."""
+    try:
+        m = json.loads(dati)
+    except ValueError:
+        return
+    if m.get("reset") is True:
+        stato["reset"] = True
+    if isinstance(m.get("penna"), (int, float)) and 3 <= m["penna"] <= 10:
+        penna(float(m["penna"]))
+
+
+def collega_mqtt(stato):
+    if not config.MQTT_BROKER:
+        return None
+    try:
+        from umqtt.simple import MQTTClient
+        cl = MQTTClient("agritech-idro", config.MQTT_BROKER, user=config.MQTT_UTENTE or None, password=config.MQTT_PASSWORD or None, keepalive=120)
+        cl.set_callback(lambda topic, msg: comando_da_rete(msg, stato))
+        cl.connect()
+        cl.subscribe((config.MQTT_BASE + "/comando").encode())
+        for t, p in scoperta_ha(config.MQTT_BASE):
+            cl.publish(t.encode(), p.encode(), retain=True)
+        return cl
+    except Exception:
+        return None                                   # niente rete: il controllo continua da solo
+
+
 def collega_wifi():
     if not config.WIFI_SSID:
         return
@@ -244,13 +309,29 @@ def avvia():
     collega_wifi()
     ctrl = ControlloIdro(config.PARAMETRI, s_avvio=0, memoria=carica_memoria())
     wdt = WDT(timeout=max(120000, (config.SECONDI_PER_PASSO + config.MAX_SECONDI_DOSE * 3) * 2000))
+    rete = {"reset": False}
+    mqtt = collega_mqtt(rete)
     s = 0
     while True:
+        if mqtt is not None:
+            try:
+                mqtt.check_msg()
+            except Exception:
+                mqtt = None
         l = leggi(hw, s)
+        if rete["reset"]:
+            l["reset"], rete["reset"] = True, False
         c = ctrl.passo(l)
         salva_memoria(ctrl.memoria())                 # prima di dosare: le dosi del giorno sopravvivono al riavvio
         scrivi(hw, c, wdt)
         print(riga(s, l, c))
+        if mqtt is None and s % 600 == 0:
+            mqtt = collega_mqtt(rete)
+        if mqtt is not None:
+            try:
+                mqtt.publish((config.MQTT_BASE + "/stato").encode(), stato_json(l, c).encode())
+            except Exception:
+                mqtt = None
         wdt.feed()
         time.sleep(config.SECONDI_PER_PASSO)
         s += config.SECONDI_PER_PASSO

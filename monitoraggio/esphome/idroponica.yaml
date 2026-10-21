@@ -1,0 +1,192 @@
+# ESPHome per l'impianto idroponico AgriTech: livello "sorveglianza".
+# Legge pH, EC, temperature, umidità, livelli, perdita e flusso e li manda a Home Assistant in rete locale.
+# Sicurezze locali (funzionano anche senza Wi-Fi e senza Home Assistant): perdita o serbatoio sotto il minimo -> pompa
+# spenta. Il DOSAGGIO NON è qui di proposito: dosare acido e nutrienti richiede la logica provata nei test
+# (firmware/esp32-idroponica). Su una scheda o l'uno o l'altro firmware, non entrambi.
+# Validato con: esphome config idroponica.yaml (serve secrets.yaml, vedi secrets.yaml.example).
+
+esphome:
+  name: agritech-idro
+  friendly_name: AgriTech idroponica
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "AgriTech-Idro-Config"
+    password: !secret ap_password
+
+captive_portal:
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+
+ads1115:
+  - address: 0x48
+
+one_wire:
+  - platform: gpio
+    pin: GPIO4
+
+sensor:
+  # pH: taratura a due punti (volt nella soluzione pH 7 e pH 4, come in firmware/esp32-idroponica/config.py)
+  - platform: ads1115
+    multiplexer: A0_GND
+    gain: 4.096
+    name: "pH"
+    id: ph
+    update_interval: 30s
+    accuracy_decimals: 2
+    unit_of_measurement: "pH"
+    filters:
+      - median:
+          window_size: 5
+          send_every: 2
+      - calibrate_linear:
+          - 1.50 -> 7.0
+          - 2.03 -> 4.0
+  # EC grezza (a temperatura dell'acqua), taratura con la soluzione 1413 µS/cm
+  - platform: ads1115
+    multiplexer: A1_GND
+    gain: 4.096
+    id: ec_grezza
+    internal: true
+    update_interval: 30s
+    filters:
+      - median:
+          window_size: 5
+          send_every: 2
+      - calibrate_linear:
+          - 0.0 -> 0.0
+          - 1.10 -> 1.413
+  - platform: template
+    name: "EC a 25 °C"
+    id: ec
+    unit_of_measurement: "mS/cm"
+    accuracy_decimals: 2
+    update_interval: 60s
+    lambda: |-
+      if (isnan(id(ec_grezza).state)) return NAN;
+      float t = isnan(id(t_acqua).state) ? 25.0 : id(t_acqua).state;
+      return id(ec_grezza).state / (1.0 + 0.02 * (t - 25.0));
+  - platform: dallas_temp
+    name: "Temperatura acqua"
+    id: t_acqua
+    update_interval: 60s
+  - platform: sht3xd
+    address: 0x44
+    temperature:
+      name: "Temperatura aria"
+      id: t_aria
+    humidity:
+      name: "Umidità aria"
+      id: ur
+    update_interval: 60s
+  - platform: pulse_counter
+    pin:
+      number: GPIO19
+      mode:
+        input: true
+        pullup: true
+    name: "Flusso ritorno"
+    id: flusso
+    unit_of_measurement: "L/min"
+    update_interval: 30s
+    filters:
+      - multiply: 0.002222   # 1/450 impulsi per litro
+  - platform: wifi_signal
+    name: "Segnale Wi-Fi"
+    update_interval: 120s
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO14
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: "Acqua sopra il minimo"
+    id: livello_min
+    filters:
+      - delayed_on_off: 5s
+    on_release:
+      then:
+        - switch.turn_off: pompa
+    on_press:
+      then:
+        - if:
+            condition:
+              binary_sensor.is_off: perdita
+            then:
+              - switch.turn_on: pompa
+  - platform: gpio
+    pin:
+      number: GPIO27
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: "Serbatoio pieno"
+    id: livello_max
+  - platform: gpio
+    pin:
+      number: GPIO33
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: "Perdita a pavimento"
+    id: perdita
+    device_class: moisture
+    filters:
+      - delayed_on: 2s
+    on_press:
+      then:
+        - switch.turn_off: pompa
+
+switch:
+  - platform: gpio
+    pin: GPIO26
+    name: "Pompa"
+    id: pompa
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      then:
+        # mai accesa con perdita o serbatoio basso, chiunque la accenda (anche da Home Assistant)
+        - if:
+            condition:
+              or:
+                - binary_sensor.is_on: perdita
+                - binary_sensor.is_off: livello_min
+            then:
+              - switch.turn_off: pompa
+
+interval:
+  # pompa accesa da più di 2 minuti ma flusso assente: spenta, l'allarme lo vede Home Assistant
+  - interval: 60s
+    then:
+      - if:
+          condition:
+            and:
+              - switch.is_on: pompa
+              - lambda: 'return !isnan(id(flusso).state) && id(flusso).state < 0.3;'
+              - lambda: 'return millis() > 180000;'
+          then:
+            - logger.log: "Flusso assente con pompa accesa"

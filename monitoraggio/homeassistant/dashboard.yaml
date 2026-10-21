@@ -1,0 +1,50 @@
+# Plancia AgriTech per Home Assistant: Impostazioni > Plance > Aggiungi plancia > (tre puntini) Modifica in YAML.
+title: AgriTech
+views:
+  - title: Idroponica
+    path: idroponica
+    cards:
+      - type: markdown
+        content: >
+          **Allarmi:** {{ states('sensor.agritech_idroponica_allarmi') }}
+      - type: horizontal-stack
+        cards:
+          - type: gauge
+            entity: sensor.agritech_idroponica_ph
+            name: pH
+            min: 4
+            max: 8
+            needle: true
+            segments:
+              - from: 4
+                color: "#b02a2a"
+              - from: 5.5
+                color: "#006300"
+              - from: 6.5
+                color: "#b02a2a"
+          - type: gauge
+            entity: sensor.agritech_idroponica_ec
+            name: EC
+            min: 0
+            max: 3
+            needle: true
+      - type: entities
+        title: Serbatoio e sicurezze
+        entities:
+          - entity: sensor.agritech_idroponica_temperatura_acqua
+          - entity: sensor.agritech_idroponica_temperatura_aria
+          - entity: sensor.agritech_idroponica_umidita_aria
+          - entity: sensor.agritech_idroponica_flusso
+          - entity: binary_sensor.agritech_idroponica_perdita
+      - type: history-graph
+        title: Ultime 48 ore
+        hours_to_show: 48
+        entities:
+          - entity: sensor.agritech_idroponica_ph
+          - entity: sensor.agritech_idroponica_ec
+      - type: history-graph
+        title: Temperature
+        hours_to_show: 168
+        entities:
+          - entity: sensor.agritech_idroponica_temperatura_acqua
+          - entity: sensor.agritech_idroponica_temperatura_aria

@@ -1,0 +1,94 @@
+# Pacchetto Home Assistant per l'impianto AgriTech (idroponica). Va in /config/packages/agritech.yaml e in
+# configuration.yaml:  homeassistant: { packages: !include_dir_named packages }
+# Le entità arrivano da sole: dal firmware MicroPython via MQTT (auto-scoperta) oppure da ESPHome (vedi LEGGIMI.md).
+# Avvisi sul telefono con l'app Home Assistant (notify.notify = tutti i telefoni registrati).
+
+automation:
+  - id: agritech_perdita
+    alias: "AgriTech: acqua sul pavimento"
+    triggers:
+      - trigger: state
+        entity_id:
+          - binary_sensor.agritech_idroponica_perdita
+          - binary_sensor.agritech_idroponica_perdita_a_pavimento
+        to: "on"
+    actions:
+      - action: notify.notify
+        data:
+          title: "AgriTech: PERDITA"
+          message: "Acqua sul pavimento del garage: pompe e dosatori spenti. Non toccare prese bagnate, stacca il salvavita."
+          data:
+            priority: high
+            ttl: 0
+
+  - id: agritech_allarmi
+    alias: "AgriTech: nuovo allarme"
+    triggers:
+      - trigger: state
+        entity_id: sensor.agritech_idroponica_allarmi
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.to_state.state not in ['nessuno', 'unknown', 'unavailable'] and trigger.to_state.state != trigger.from_state.state }}"
+    actions:
+      - action: notify.notify
+        data:
+          title: "AgriTech: allarme"
+          message: "{{ trigger.to_state.state }}"
+
+  - id: agritech_ph_fuori
+    alias: "AgriTech: pH fuori intervallo da 30 minuti"
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.agritech_idroponica_ph
+        below: 5.3
+        for: "00:30:00"
+      - trigger: numeric_state
+        entity_id: sensor.agritech_idroponica_ph
+        above: 6.8
+        for: "00:30:00"
+    actions:
+      - action: notify.notify
+        data:
+          title: "AgriTech: pH {{ states('sensor.agritech_idroponica_ph') }}"
+          message: "Misura con la penna: se la sonda sbaglia, tarala (pH 7 e 4). Se è vero, controlla flacone e dosatore del pH-."
+
+  - id: agritech_acqua_calda
+    alias: "AgriTech: acqua sopra 26 °C da un'ora"
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.agritech_idroponica_temperatura_acqua
+        above: 26
+        for: "01:00:00"
+    actions:
+      - action: notify.notify
+        data:
+          title: "AgriTech: acqua calda"
+          message: "Soluzione a {{ states('sensor.agritech_idroponica_temperatura_acqua') }} °C: poco ossigeno, rischio di marciume delle radici. Bottiglie di ghiaccio, serbatoio all'ombra, luci di notte."
+
+  - id: agritech_flusso
+    alias: "AgriTech: niente flusso nei canali"
+    triggers:
+      - trigger: numeric_state
+        entity_id:
+          - sensor.agritech_idroponica_flusso
+          - sensor.agritech_idroponica_flusso_ritorno
+        below: 0.3
+        for: "00:20:00"          # più dei 15 minuti di pausa delle torri a cicli: nessun falso allarme
+    actions:
+      - action: notify.notify
+        data:
+          title: "AgriTech: flusso assente"
+          message: "La pompa dovrebbe girare ma nei canali non scorre acqua. NFT: le radici seccano in 1-2 ore."
+
+  - id: agritech_offline
+    alias: "AgriTech: centralina muta da 15 minuti"
+    triggers:
+      - trigger: state
+        entity_id: sensor.agritech_idroponica_ph
+        to: "unavailable"
+        for: "00:15:00"
+    actions:
+      - action: notify.notify
+        data:
+          title: "AgriTech: nessun dato"
+          message: "La centralina non manda dati da 15 minuti (corrente, Wi-Fi o ESP32). Il controllo locale continua, ma tu non vedi niente."

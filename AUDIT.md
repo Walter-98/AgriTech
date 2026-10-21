@@ -44,7 +44,7 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 | 3D | Parametrico (fase 5): tenda rettangolare e scaffale con le misure vere in cm, piani, distanza tra i ripiani. Resta una visualizzazione, non un CAD, e non prova niente |
 | Logica idroponica (pH, EC, dosaggio, sicurezze, modi simulazione/ombra/reale) | Implementata e testata (fase 6): 16 test su serbatoio simulato con 12 scenari di guasto |
 | Firmware idroponica ESP32 | Implementato, provato con hardware finto (9 test); non provato su scheda vera |
-| Monitoraggio remoto | Da sviluppare (previsti ESPHome + Home Assistant) |
+| Monitoraggio remoto | Implementato (fase 7): ESPHome di sorveglianza validato con `esphome config`, MQTT con auto-scoperta nel firmware, pacchetto Home Assistant con 6 avvisi e plancia, esportazione dello storico. Non provato con un Home Assistant vero |
 | Confronto con dati reali e calibrazione | Da sviluppare |
 | Normativa per la vendita | Da sviluppare (solo cenni) |
 | Esportazione PDF, CSV, XLSX | Da sviluppare (oggi copia del testo) |
@@ -138,7 +138,7 @@ Ordine per importanza, ognuna con test di accettazione.
 5. ✅ **3D parametrico collegato alla distinta** (con pianta del locale in SVG; niente esportazione CAD): ripiani, canali e tubi dimensionati che aggiornano quantità e costi.
 6. ✅ **Automazione simulata**: modalità simulazione / shadow / controllo reale, guasti e interblocchi, firmware
    idroponica con dosaggio limitato, a piccole dosi, con attesa di miscelazione e blocchi.
-7. **Hardware e monitoraggio**: ESPHome + Home Assistant, storico, allarmi.
+7. ✅ **Hardware e monitoraggio** (configurazioni pronte e validate; prova su hardware vero a carico tuo): ESPHome + Home Assistant, storico, allarmi.
 8. **Dati reali e calibrazione**: registro colture, confronto previsto/misurato, ricalibrazione con versioni e
    ritorno indietro.
 9. Altre colture e tecnologie (ebb & flow, goccia su substrato).

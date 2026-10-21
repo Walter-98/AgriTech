@@ -15,8 +15,16 @@ jobs:
         run: node --test test/js/test_*.js
       - name: Controllo sintassi del gemello
         run: for f in gemello/*.js; do node --check "$f"; done
-      - name: Test logica, scenari e firmware
-        run: python -m unittest discover -s test -t . -v
+      - name: Test logica, scenari, firmware e monitoraggio
+        run: |
+          pip install pyyaml
+          python -m unittest discover -s test -t . -v
+      - name: Validazione della configurazione ESPHome
+        run: |
+          pip install esphome
+          cd monitoraggio/esphome
+          printf 'wifi_ssid: "x"\nwifi_password: "xxxxxxxx"\nap_password: "xxxxxxxx"\napi_key: "%s"\nota_password: "x"\n' "$(openssl rand -base64 32)" > secrets.yaml
+          esphome config idroponica.yaml
       - name: Riepilogo scenari
         run: python -m sistema.simula tutti
       - name: Problemi e soluzioni a confronto

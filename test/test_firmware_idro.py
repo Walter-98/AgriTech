@@ -169,6 +169,25 @@ class TestFirmwareIdro(unittest.TestCase):
         self.hw["i2c"].readfrom_mem = guasta
         self.assertIsNone(self.fw.leggi(self.hw, 0)["ph"])
 
+    def test_mqtt_scoperta_stato_e_comandi_limitati(self):
+        msg = dict(self.fw.scoperta_ha("agritech/idro"))
+        import json
+        ph = json.loads(msg["homeassistant/sensor/agritech_idro_ph/config"])
+        self.assertEqual(ph["state_topic"], "agritech/idro/stato")
+        self.assertIn("value_json.ph", ph["value_template"])
+        c = {"pompa": True, "luci": False, "rabbocco": False, "dose_a_ml": 0, "dose_b_ml": 0, "dose_ph_ml": 0, "modo": "ombra", "allarmi": []}
+        st = json.loads(self.fw.stato_json(self.fw.leggi(self.hw, 0), c))
+        self.assertAlmostEqual(st["ph"], 7.0, places=2)
+        rete = {"reset": False}
+        self.fw.comando_da_rete(b'{"reset": true}', rete)
+        self.assertTrue(rete["reset"])
+        self.fw.comando_da_rete(b'{"pompa": true, "dose_ph_ml": 50}', rete)     # ignorato: niente comandi agli attuatori
+        self.fw.comando_da_rete(b'{"penna": 6.2}', rete)
+        self.assertEqual(self.fw.leggi(self.hw, 0)["ph_penna"], 6.2)
+        self.fw.comando_da_rete(b'{"penna": 99}', rete)                        # fuori campo: ignorato
+        self.assertIsNone(self.fw.leggi(self.hw, 60)["ph_penna"])
+        self.fw.comando_da_rete(b'non json', rete)
+
 
 if __name__ == "__main__":
     unittest.main()
