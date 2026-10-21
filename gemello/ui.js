@@ -831,6 +831,95 @@ function mappaLuceUI(I, set) {
     el("p", {class: "piccolo", text: "Ai bordi arriva il " + Math.round((1 - m.min / m.media) * 100) + "% di luce in meno della media: DLI da " + fmt(m.dliMin, 1) + " a " + fmt(m.max * capacitaIdro(cfg).ore * 0.0036, 1) + ". " + (m.uniformita < 0.6 ? "Uniformità bassa: alza la lampada o usa barre distribuite; ai bordi metti le piante che vogliono meno luce." : "Uniformità accettabile (sopra 0,6).") + " Calcolo con sorgenti lambertiane" + (I.clima.tenda ? " e pareti riflettenti della tenda (90%)" : "") + "; con la mappa del costruttore è più preciso."})];
 }
 
+// ---------- documenti di progetto ----------
+function tabella(intest, righe, numeriche = []) {
+  return el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...intest.map((t, i) => el("th", {class: numeriche.includes(i) ? "n" : "", text: t})))),
+    el("tbody", null, ...righe.map(r => el("tr", null, ...r.map((v, i) => el("td", {class: numeriche.includes(i) ? "n" : "", text: String(v)})))))));
+}
+function schedaDocumenti(box) {
+  const oggi = new Date().toISOString().slice(0, 10), ver = versioneConfig(cfg);
+  const barra = el("div", {class: "blocco no-stampa"});
+  const stampa = el("button", {class: "az", type: "button", text: "Stampa o salva in PDF"}); stampa.addEventListener("click", () => window.print());
+  const xlsx = el("button", {class: "az sec", type: "button", text: "Scarica Excel (.xlsx)"}), esito = el("span", {class: "piccolo", "aria-live": "polite"});
+  xlsx.addEventListener("click", () => esportaXlsx(esito));
+  const csv = el("button", {class: "az sec", type: "button", text: "Lista materiali (CSV)"}); csv.addEventListener("click", () => scarica("lista-materiali.csv", "text/csv;charset=utf-8", distintaCsv()));
+  barra.append(el("p", {class: "piccolo", text: "Tutti i documenti del progetto in un'unica relazione: stampala o salvala in PDF dal browser (Stampa → Salva come PDF). Ogni documento riporta data, versione della configurazione, ipotesi e limiti."}), stampa, document.createTextNode(" "), xlsx, document.createTextNode(" "), csv, document.createTextNode(" "), esito);
+  box.append(barra);
+  const testa = el("div", {class: "doc-testa"}, el("h2", {text: "Progetto AgriTech · " + (idro() ? SISTEMI_IDRO[cfg.idro.sistema].nome : "orto in terra")}),
+    el("p", {class: "piccolo", text: "Data " + oggi + " · versione della configurazione " + ver + " · generato dal gemello digitale AgriTech. Valori simulati e stimati, non misure: vedi Ipotesi e limiti."}));
+  box.append(testa);
+  let n = 0;
+  const sez = (titolo, ...figli) => { const d = el("section", {class: "doc-sezione blocco"}, el("h3", {text: (++n) + ". " + titolo}), ...figli); box.append(d); return d; };
+  const dentro = f => { const d = el("div"); f(d); return d; };
+  if (!idro()) {
+    sez("Studio preliminare", el("p", {class: "piccolo", text: "Orto di " + cfg.zone.reduce((a, z) => a + z.area, 0) + " m² in zona " + REGIONI[cfg.regione].nome + ", " + cfg.zone.length + " zone. Acqua all'anno " + fmt(S.litri / 1000, 1) + " m³, corrente " + fmt(S.kwh, 1) + " kWh, raccolto " + fmt(S.kg) + " kg (≈ " + euro(S.valore) + " al negozio), spese " + euro(COSTI.totale) + " all'anno."}));
+    sez("Distinta base e piano di acquisto", dentro(schedaMateriali));
+    sez("Costi", dentro(schedaCosti));
+    sez("Schemi e collegamenti", dentro(schedaStruttura));
+    sez("Manutenzione", dentro(schedaGestione));
+    sez("Ipotesi e limiti", ...ipotesiELimiti(cfg).map(t => el("p", {class: "piccolo", text: "• " + t})));
+    sez("Regole per vendere", ...normativaUI());
+    return;
+  }
+  const I = cfg.idro, k = S.k, C = ECO.scenari.centrale;
+  sez("Studio preliminare", el("p", {class: "piccolo", text: SISTEMI_IDRO[I.sistema].nome + " con " + k.piante + " piante (" + I.colture.map(x => IDRO_PIANTE[x.coltura].nome.toLowerCase() + " " + x.quota + "%").join(", ") + ") in zona " + REGIONI[cfg.regione].nome + ". Per iniziare " + forbice(ECO.capex.min, ECO.capex.max) + ", spese " + euro(C.opex) + " all'anno, raccolto utile " + fmt(C.kgUtili) + " kg, costo " + (isFinite(C.costoKg) ? euro(C.costoKg) : "-") + " al kg."}),
+    el("p", null, el("strong", {text: ECO.giudizio === "conviene" ? "Giudizio: conviene" : ECO.giudizio === "fragile" ? "Giudizio: si ripaga, ma fragile" : "Giudizio: sconsigliato come investimento"})),
+    ...ECO.motivi.map(t => el("p", {class: "piccolo", text: "• " + t})));
+  sez("Relazione tecnica", tabella(["Voce", "Scelta"], [
+    ["Sistema", SISTEMI_IDRO[I.sistema].nome], ["Misure", Math.round(k.misure.lung * 100) + " × " + Math.round(k.misure.prof * 100) + " cm, " + k.piani + (k.piani > 1 ? " piani" : " piano") + ", alto " + Math.round(k.misure.alt * 100) + " cm"],
+    ["Tenda", I.clima.tenda ? k.tenda.nome : "nessuna"], ["Serbatoio", k.serbatoio + " L"],
+    ["Luce", k.wLuci + " W di " + k.L.nome.toLowerCase() + ", " + k.ppfd + " µmol/m²/s per " + k.ore + " h (DLI " + fmt(k.dli, 1) + ")"],
+    ["Clima", (I.clima.garage === "isolato" ? "garage isolato" : "garage non isolato") + ", minima " + I.clima.t_min + " °C" + (I.clima.riscaldamento === "stufetta" ? " con stufetta" : "") + (I.clima.estrattore ? ", estrattore" : "")],
+    ["Soluzione", "EC " + fmt(k.ec, 1) + " mS/cm, pH " + fmt(k.ph, 1) + ", cambio ogni " + I.acqua.cambio_giorni + " giorni"],
+    ["Automazione", I.auto.micro === "nessuno" ? "nessuna (timer e penne)" : CATALOGO.micro.opzioni[I.auto.micro].nome + (I.auto.dosaggio ? ", dosaggio automatico" : "") + (I.auto.ups ? ", UPS" : "")],
+    ["Consumi all'anno", fmt(S.kwh) + " kWh, " + fmt((S.acqua + S.acquaScarto) / 1000, 1) + " m³ d'acqua"]]));
+  sez("Layout, schema idraulico, schema elettrico preliminare e lista I/O", dentro(schedaStruttura),
+    el("p", {class: "piccolo", text: "Lo schema elettrico è preliminare: la parte a 230 V (salvavita, magnetotermico, prese) va verificata da un elettricista."}));
+  sez("Distinta base e piano di acquisto per fasi", dentro(schedaMateriali));
+  sez("Piano di montaggio", tabella(["Passo", "Cosa fare"], pianoMontaggio(cfg).map((p, i) => [(i + 1) + ". " + p[0], p[1]])));
+  sez("Piano di collaudo", tabella(["Prova", "Come", "Superata se"], pianoCollaudo(cfg)));
+  sez("Piano di manutenzione", dentro(schedaGestione));
+  sez("Manuale: allarmi e cosa fare", tabella(["Allarme", "Cosa succede", "Cosa fare", "Si azzera"], ALLARMI_IDRO));
+  const cal = calendarioIdro(cfg, S);
+  sez("Piano di coltivazione e calendario di semina e raccolta", el("p", {class: "piccolo", text: "Semina scaglionata ogni settimana per tenere pieni i posti; il 20% in più di semi per le piantine che non partono. La raccolta prevista viene dal modello di crescita con il clima della tua tenda."}),
+    tabella(["Mese di semina", "Coltura", "Semi a settimana", "Trapianti a settimana", "Dalla semina alla raccolta", "Raccolta prevista"], cal.map(r => [MESI_LUNGHI[r.mese], IDRO_PIANTE[r.coltura].nome, r.seminaSettimana, r.trapiantoSettimana, r.giorniSeminaRaccolta + " giorni", r.raccolta]), [2, 3]));
+  sez("Analisi economica", dentro(bilancioIdro));
+  const compat = compatibilitaIdro(cfg);
+  sez("Report dei rischi", tabella(["Livello", "Rischio", "Dettaglio"], compat.map(m => [m.tipo === "crit" ? "alto" : m.tipo === "warn" ? "medio" : "basso", m.titolo, m.testo])),
+    tabella(["Guasto provabile nella scheda Guasti", "Cosa succede"], Object.values(GUASTI_IDRO).map(g => [g.nome, g.spiega])));
+  sez("Report di simulazione", tabella(["Grandezza", "Valore"], [["Raccolto", fmt(S.kg) + " kg"], ["Corrente", fmt(S.kwh) + " kWh (luci " + fmt(S.kwhLuci) + ", clima " + fmt(S.kwhClima) + ", pompe " + fmt(S.kwhPompe) + ")"],
+    ["Acqua", fmt(S.acqua) + " L"], ["Giorni troppo caldi / freddi", S.giorniCaldo + " / " + S.giorniFreddo], ["Giorni con acqua sopra 24 °C", S.giorniAcquaCalda], ["Giorni con umidità alta", S.giorniUmido],
+    ["Clima usato", cfg.meteoReale ? cfg.meteoReale.fonte : "medie della zona"], ["Calibrazione attiva", (I.calibrazioni || []).length ? "versione " + I.calibrazioni[I.calibrazioni.length - 1].versione : "nessuna"]]));
+  sez("Ipotesi e limiti del modello", ...ipotesiELimiti(cfg).map(t => el("p", {class: "piccolo", text: "• " + t})));
+  sez("Regole per vendere (Italia)", ...normativaUI());
+}
+function normativaUI() {
+  return [el("p", {class: "piccolo", text: "Quadro informativo, non un parere legale né un'autorizzazione: ogni voce dice cosa verificare e con chi prima di vendere."}),
+    tabella(["Tema", "Cosa dice la norma", "Da verificare con"], NORMATIVA.map(x => [x.tema, x.testo, x.verifica]))];
+}
+function esportaXlsx(esito) {
+  const fai = () => {
+    const wb = XLSX.utils.book_new(), foglio = (nome, righe) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(righe), nome);
+    foglio("Distinta", [["Categoria", "Fase", "Descrizione", "Quantità", "Prezzo min €", "Prezzo max €", "Stato del prezzo"], ...VOCI.map(v => [v.cat, v.fase, v.nome, v.q, +v.min.toFixed(2), +v.max.toFixed(2), "stima, da verificare"])]);
+    if (idro()) {
+      foglio("Bilancio", [["", "Pessimistico", "Centrale", "Ottimistico"], ...[["Investimento €", "capex"], ["Raccolto utile kg", "kgUtili"], ["Spese annue €", "opex"], ["Ammortamento €", "ammortamento"], ["Costo al kg €", "costoKg"], ["Margine annuo €", "margine"], ["Pareggio anni", "pareggioAnni"]]
+        .map(([n, kk]) => [n, ...["pessimistico", "centrale", "ottimistico"].map(s => { const v = ECO.scenari[s][kk]; return isFinite(v) ? +v.toFixed(2) : "mai"; })])]);
+      foglio("Calendario", [["Mese di semina", "Coltura", "Semi a settimana", "Trapianti a settimana", "Giorni semina-raccolta", "Raccolta prevista"], ...calendarioIdro(cfg, S).map(r => [MESI_LUNGHI[r.mese], IDRO_PIANTE[r.coltura].nome, r.seminaSettimana, r.trapiantoSettimana, r.giorniSeminaRaccolta, r.raccolta])]);
+      foglio("Collegamenti", [["Cosa", "Pin", "Note"], ...pinMappaIdro(cfg)]);
+      foglio("Mesi", [["Mese", "kWh luci", "kWh clima", "kWh pompe", "kWh elettronica", "Acqua L", "Raccolto kg"], ...S.mesi.map((m, i) => [MESI[i], +m.luci.toFixed(1), +m.clima.toFixed(1), +m.pompe.toFixed(1), +m.elettronica.toFixed(1), Math.round(m.acqua), +m.kg.toFixed(2)])]);
+    }
+    foglio("Ipotesi", [["Ipotesi e limiti"], ...ipotesiELimiti(cfg).map(t => [t]), [""], ["Versione configurazione", versioneConfig(cfg)], ["Data", new Date().toISOString().slice(0, 10)]]);
+    XLSX.writeFile(wb, "progetto-agritech.xlsx");
+    esito.textContent = "Excel scaricato.";
+  };
+  if (typeof XLSX !== "undefined") return fai();
+  esito.textContent = "Carico la libreria per Excel…";
+  const sc = document.createElement("script");
+  sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  sc.onload = fai; sc.onerror = () => { esito.textContent = "Libreria per Excel non raggiungibile: usa il CSV (si apre in Excel)."; };
+  document.head.append(sc);
+}
+
 // ---------- registro e calibrazione ----------
 function schedaRegistro(box) {
   if (!idro()) { box.append(el("p", {class: "piccolo", text: "Il registro con la calibrazione per ora è per l'idroponica. Per l'orto: il simulatore Python accetta il meteo vero e le tue soglie (scheda Percorso)."})); return; }
@@ -944,7 +1033,7 @@ function schedaInizia(box) {
 }
 
 // ---------- schede e aggiornamento ----------
-const SCHEDE = [["inizia", "Inizia"], ["progetto", "Progetto"], ["componenti", "Componenti"], ["logica", "Logica"], ["guasti", "Guasti"], ["simulazione", "Simulazione"], ["registro", "Registro"], ["costi", "Costi"], ["materiali", "Materiali"], ["struttura", "Struttura"], ["gestione", "Gestione"], ["guida", "Guida"], ["percorso", "Percorso"]];
+const SCHEDE = [["inizia", "Inizia"], ["progetto", "Progetto"], ["componenti", "Componenti"], ["logica", "Logica"], ["guasti", "Guasti"], ["simulazione", "Simulazione"], ["registro", "Registro"], ["costi", "Costi"], ["materiali", "Materiali"], ["struttura", "Struttura"], ["gestione", "Gestione"], ["documenti", "Documenti"], ["guida", "Guida"], ["percorso", "Percorso"]];
 let schedaAperta = "progetto";
 function apri(nome) {
   if (!SCHEDE.some(s => s[0] === nome)) nome = "progetto";
@@ -955,10 +1044,10 @@ function apri(nome) {
 }
 function disegnaScheda() {
   const box = $("contenuto"); box.replaceChildren();
-  const titoli = {registro: "Registro: misure vere contro gemello", inizia: "Progetta il tuo primo impianto", progetto: idro() ? "Il tuo impianto idroponico" : "Il tuo orto", componenti: "Componenti", logica: "Logica di controllo", guasti: "Guasti e scenari", simulazione: "Un anno nel gemello",
+  const titoli = {documenti: "Documenti di progetto", registro: "Registro: misure vere contro gemello", inizia: "Progetta il tuo primo impianto", progetto: idro() ? "Il tuo impianto idroponico" : "Il tuo orto", componenti: "Componenti", logica: "Logica di controllo", guasti: "Guasti e scenari", simulazione: "Un anno nel gemello",
     costi: "Quanto costa, davvero", materiali: "Lista della spesa", struttura: "Come è fatto", gestione: "Gestirlo ogni giorno", guida: idro() ? "Guida da tecnico dell'idroponica" : "Guida", percorso: "Dal gemello alla realtà"};
   box.append(el("h2", {text: titoli[schedaAperta]}));
-  const f = {registro: () => schedaRegistro(box), inizia: () => schedaInizia(box), progetto: () => idro() ? editorProgettoIdro(box) : editorProgettoOrto(box), componenti: () => idro() ? editorComponentiIdro(box) : editorComponentiOrto(box),
+  const f = {documenti: () => schedaDocumenti(box), registro: () => schedaRegistro(box), inizia: () => schedaInizia(box), progetto: () => idro() ? editorProgettoIdro(box) : editorProgettoOrto(box), componenti: () => idro() ? editorComponentiIdro(box) : editorComponentiOrto(box),
     logica: () => idro() ? editorLogicaIdro(box) : editorLogicaOrto(box), guasti: () => editorGuasti(box, idro() ? GUASTI_IDRO : GUASTI, !idro()),
     simulazione: () => schedaSimulazione(box), costi: () => schedaCosti(box), materiali: () => schedaMateriali(box), struttura: () => schedaStruttura(box),
     gestione: () => schedaGestione(box), guida: () => schedaGuida(box), percorso: () => schedaPercorso(box)}[schedaAperta];

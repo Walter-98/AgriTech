@@ -141,6 +141,17 @@ table.guida td { font-size: 0.85rem; }
 pre { font-family: var(--f-data); font-size: 0.8rem; background: var(--bg); border: 1px solid var(--riga); border-radius: 8px; padding: 10px; overflow-x: auto; margin: 0; }
 details > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.9rem; }
 .scorri svg text { fill: var(--muted); }
+.doc-sezione { break-inside: avoid-page; }
+.doc-testa { border-bottom: 2px solid var(--ink); padding-bottom: 8px; margin-bottom: 16px; }
+@media print {
+  body { background: #fff !important; }
+  header, .scena-box, #kpi, nav.schede, .no-stampa, button, input[type=file], .riquadro.blocco:has(#messaggi) { display: none !important; }
+  .riquadro { box-shadow: none !important; border: 1px solid #ccc !important; break-inside: avoid; }
+  .doc-sezione { break-before: auto; }
+  a { color: inherit; text-decoration: none; }
+  .scorri { overflow: visible !important; }
+  .scorri > svg, .riquadro svg { max-width: 100% !important; height: auto !important; }
+}
 </style>
 
 <div class="pagina">
@@ -184,6 +195,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; fon
 <script src="ricetta.js"></script>
 <script src="progetta.js"></script>
 <script src="registro.js"></script>
+<script src="documenti.js"></script>
 <script src="grafici.js"></script>
 <script src="vista3d.js"></script>
 <script src="ui.js"></script>

@@ -46,8 +46,8 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 | Firmware idroponica ESP32 | Implementato, provato con hardware finto (9 test); non provato su scheda vera |
 | Monitoraggio remoto | Implementato (fase 7): ESPHome di sorveglianza validato con `esphome config`, MQTT con auto-scoperta nel firmware, pacchetto Home Assistant con 6 avvisi e plancia, esportazione dello storico. Non provato con un Home Assistant vero |
 | Confronto con dati reali e calibrazione | Implementato e testato (fase 8): scheda Registro, previsione per le stesse date con le temperature misurate, errore, correzione per coltura solo con 2+ cicli, versioni e ritorno indietro, confronto dei kWh |
-| Normativa per la vendita | Da sviluppare (solo cenni) |
-| Esportazione PDF, CSV, XLSX | Da sviluppare (oggi copia del testo) |
+| Normativa per la vendita | Quadro informativo (fase 10) con norme citate e verifiche da fare presso SUAP, AST, Regione e commercialista; non è un parere legale |
+| Documenti ed esportazioni | Implementati (fase 10): relazione di progetto in 17 sezioni stampabile in PDF, Excel (5 fogli), CSV della distinta, pianta in SVG; data, versione, ipotesi e limiti in ogni documento |
 | Pianta del locale, ingombri, spazio per lavorare e passaggio | Implementata e testata (fase 5), esportabile in SVG |
 | Salvataggio | Solo nel browser (localStorage) |
 
@@ -142,8 +142,8 @@ Ordine per importanza, ognuna con test di accettazione.
 8. ✅ **Dati reali e calibrazione** (pronto: servono i tuoi raccolti): registro colture, confronto previsto/misurato, ricalibrazione con versioni e
    ritorno indietro.
 9. ✅ Altre colture e tecnologie: flusso e riflusso, goccia su substrato, cetriolo, peperone (valori C, da verificare).
-10. Documenti in PDF/XLSX, normativa per la vendita (D.Lgs. 228/2001, Reg. CE 852/2004, SUAP e AST delle Marche),
-    funzioni commerciali.
+10. ✅ Documenti in PDF/XLSX/CSV e quadro delle regole per vendere (D.Lgs. 228/2001, Reg. CE 852/2004, 178/2002,
+    Reg. UE 208-210/2013, 1169/2011; SUAP e AST).
 
 ## 7. Come si validano le simulazioni
 
