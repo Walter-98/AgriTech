@@ -37,16 +37,17 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 | Nutrienti: ricetta per ione dall'analisi dell'acqua | Implementata e testata (fase 4): Hoagland scalato, 5 sali, taniche A/B, acido; microelementi a etichetta |
 | Bilancio economico: CAPEX, OPEX, ammortamento, scenari, pareggio | Implementata e testata (fase 1) |
 | Giudizio "conviene / fragile / sconsigliato" | Implementata e testata (fase 1) |
-| Distinta base | Prototipo: prezzi stimati a forbice, senza fornitori, link o date |
+| Distinta base | Collegata alle misure (fase 5): canali, tubi in metri, scaffale, tenda e pompa si aggiornano; esportazione CSV per Excel. Prezzi ancora stimati, senza fornitori né link |
 | Database colture con fonti | Implementato (fase 3): 27 dati con fonte, condizioni e affidabilità A-D; il resto dei valori di tabella resta C |
 | Confronto tra alternative | Prototipo: "confronti rapidi" a una variabile; ottimizzazione da sviluppare |
 | Percorso guidato per principianti (scheda Inizia) | Implementata e testata (fase 2): prova circa 400 configurazioni, rispetta i vincoli, propone A/B/C, sa dire di no |
-| 3D | Dimostrazione: coerente con i numeri (piante, lampade, serbatoio) ma non è un CAD; non prova niente |
+| 3D | Parametrico (fase 5): tenda rettangolare e scaffale con le misure vere in cm, piani, distanza tra i ripiani. Resta una visualizzazione, non un CAD, e non prova niente |
 | Firmware idroponica (pH, EC, dosaggio) | Da sviluppare |
 | Monitoraggio remoto | Da sviluppare (previsti ESPHome + Home Assistant) |
 | Confronto con dati reali e calibrazione | Da sviluppare |
 | Normativa per la vendita | Da sviluppare (solo cenni) |
 | Esportazione PDF, CSV, XLSX | Da sviluppare (oggi copia del testo) |
+| Pianta del locale, ingombri, spazio per lavorare e passaggio | Implementata e testata (fase 5), esportabile in SVG |
 | Salvataggio | Solo nel browser (localStorage) |
 
 ## 3. Errori trovati
@@ -133,7 +134,7 @@ Ordine per importanza, ognuna con test di accettazione.
    temperatura, con intervalli. Accettazione: riproduce entro ±20% le rese pubblicate per DLI e temperatura note.
 4. ✅ **Luce, clima, acqua, nutrienti** (unificazione con il modello Python dell'orto ancora da fare): mappa PPFD sul ripiano, clima con meteo orario vero (Open-Meteo), NFT con
    portata e pendenza, ricetta nutritiva da analisi dell'acqua. Unificazione con il modello Python dell'orto.
-5. **3D parametrico collegato alla distinta**: ripiani, canali e tubi dimensionati che aggiornano quantità e costi.
+5. ✅ **3D parametrico collegato alla distinta** (con pianta del locale in SVG; niente esportazione CAD): ripiani, canali e tubi dimensionati che aggiornano quantità e costi.
 6. **Automazione simulata**: modalità simulazione / shadow / controllo reale, guasti e interblocchi, firmware
    idroponica con dosaggio limitato, a piccole dosi, con attesa di miscelazione e blocchi.
 7. **Hardware e monitoraggio**: ESPHome + Home Assistant, storico, allarmi.

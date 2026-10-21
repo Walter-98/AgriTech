@@ -15,9 +15,9 @@ test("DLI = PPFD × ore × 0,0036", () => {
 
 test("PPFD dai watt montati: W × µmol/J × utilizzo ÷ superficie", () => {
   const c = config(G, {luce: {w_installati: 280, tipo: "led_qb", ore: 16}});
-  const k = G.capacitaIdro(c);                         // scaffale 3 × 0,72 m² = 2,16 m² di chioma
-  vicino(k.chioma, 2.16, 1e-9);
-  vicino(k.ppfd, Math.round(280 * 2.7 * 0.85 / 2.16), 0);
+  const k = G.capacitaIdro(c);                         // scaffale 3 ripiani 110 × 55 cm = 1,815 m² di chioma
+  vicino(k.chioma, 3 * 1.1 * 0.55, 1e-9);
+  vicino(k.ppfd, Math.round(280 * 2.7 * 0.85 / 1.815), 0);
 });
 
 test("energia delle luci senza guasti = W × ore × 365", () => {

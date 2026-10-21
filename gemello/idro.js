@@ -120,7 +120,8 @@ const ALLARMI_IDRO = [
 ];
 
 const IDRO_ESEMPIO = {
-  sistema: "nft", disposizione: "scaffale", piani: 3, superficie_piano: 0.72, torri: 2, secchi: 6, vassoi: 0,
+  sistema: "nft", disposizione: "scaffale", piani: 3, superficie_piano: 0.605, torri: 2, secchi: 6, vassoi: 0,
+  struttura: {lung_cm: 110, prof_cm: 55, h_piano_cm: 40},
   colture: [{coltura: "lattuga", quota: 60}, {coltura: "basilico", quota: 25}, {coltura: "rucola", quota: 15}],
   luce: {tipo: "led_qb", ppfd: 0, ore: 0, notte: true, w_installati: 0, distanza_cm: 35},
   clima: {garage: "non_isolato", tenda: true, riscaldamento: "stufetta", t_min: 17, estrattore: true, circolazione: true, deumidificatore: false},
@@ -133,12 +134,53 @@ const IDRO_ESEMPIO = {
   guasti: [],
 };
 
+// ---------- struttura: misure vere, tenda, locale ----------
+// Tende in commercio (cm) con prezzo indicativo; si sceglie la più piccola che contiene l'impianto con 5 cm di margine.
+const TENDE = [[60, 60, 160, [40, 60]], [80, 80, 180, [55, 80]], [100, 100, 200, [70, 100]], [120, 60, 180, [60, 90]], [120, 120, 200, [90, 130]],
+               [150, 150, 200, [120, 170]], [240, 120, 200, [150, 220]], [300, 150, 200, [200, 290]]];
+function misureImpianto(I) {
+  const S = SISTEMI_IDRO[I.sistema];
+  if (S.verticale) { const n = Math.max(1, I.torri); return {lung: Math.min(n, 3) * 0.5, prof: Math.ceil(n / 3) * 0.5, alt: 1.7}; }
+  const st = I.struttura || {};
+  const d = DIMENSIONI_PIANO[I.superficie_piano];
+  let lung = st.lung_cm ? st.lung_cm / 100 : d ? d[0] / 100 : Math.sqrt(I.superficie_piano), prof = st.prof_cm ? st.prof_cm / 100 : d ? d[1] / 100 : Math.sqrt(I.superficie_piano);
+  if (I.sistema === "bucket") { lung = Math.max(lung, Math.min(4, I.secchi) * 0.4); prof = Math.max(prof, Math.ceil(I.secchi / 4) * 0.45); }
+  const piani = I.disposizione === "scaffale" && !["bucket"].includes(I.sistema) ? Math.max(1, I.piani) : 1;
+  const hPiano = (st.h_piano_cm || 45) / 100;
+  const alt = I.sistema === "bucket" ? 1.9 : 0.5 + piani * hPiano + 0.1;       // sotto il primo ripiano il serbatoio
+  return {lung, prof, alt, piani, hPiano};
+}
+function sceltaTenda(m) {
+  const t = [...TENDE].sort((x, y) => x[0] * x[1] - y[0] * y[1]).find(([a, b, h]) => (a / 100 >= m.lung + 0.049 && b / 100 >= m.prof + 0.049 || b / 100 >= m.lung + 0.049 && a / 100 >= m.prof + 0.049) && h / 100 >= m.alt - 0.001) || TENDE[TENDE.length - 1];
+  return {lung: t[0] / 100, prof: t[1] / 100, alt: t[2] / 100, nome: t[0] + "×" + t[1] + "×" + t[2] + " cm", prezzo: t[3], basta: t !== TENDE[TENDE.length - 1] || (t[0] / 100 >= m.lung + 0.1 && t[2] / 100 >= m.alt)};
+}
+
+// Posizione nel locale: impianto (o tenda) in un angolo in fondo, quadro e stufetta accanto, 60 cm liberi davanti per
+// lavorare e 80 cm per passare fino alla porta. Locale in metri (lung × larg × alt), porta sul lato corto davanti.
+function posizionaImpianto(c) {
+  const I = c.idro, Lc = Object.assign({lung: 5, larg: 3, alt: 2.4, auto: true}, I.locale || {});
+  const m = misureImpianto(I), t = I.clima.tenda ? sceltaTenda(m) : {lung: m.lung, prof: m.prof, alt: m.alt};
+  const ingombro = {x: 0.1, y: 0.1, lung: t.lung, prof: t.prof};
+  const quadro = {x: ingombro.x + ingombro.lung + 0.1, y: 0.05, lung: 0.6, prof: 0.25};
+  const lavoro = {x: ingombro.x, y: ingombro.y + ingombro.prof, lung: Math.max(ingombro.lung, 0.8), prof: 0.6};
+  const passaggio = Lc.auto ? {x: 0, y: Lc.larg - 0.8, lung: Lc.lung, prof: 0.8} : null;      // corridoio per l'auto o il passaggio
+  const occupato = ingombro.prof + lavoro.prof + 0.1;
+  const altezza = Math.max(t.alt || 0, m.alt);
+  let motivo = "";
+  if (quadro.x + quadro.lung > Lc.lung) motivo = "Lungo " + (quadro.x + quadro.lung).toFixed(1) + " m con il quadro, il locale " + Lc.lung + " m.";
+  else if (occupato > Lc.larg - (passaggio ? passaggio.prof : 0)) motivo = "Profondo " + occupato.toFixed(1) + " m con lo spazio per lavorare: " + (passaggio ? "resta meno di 80 cm per passare." : "il locale è largo " + Lc.larg + " m.");
+  else if (altezza > Lc.alt) motivo = "Alto " + altezza.toFixed(1) + " m, il locale " + Lc.alt + " m.";
+  return {locale: Lc, ingombro, quadro, lavoro, passaggio, altezza, entra: !motivo, motivo, m2: (ingombro.lung + 0.7) * (ingombro.prof + lavoro.prof)};
+}
+
 // ---------- capacità e luce ----------
 function capacitaIdro(c) {
   const I = c.idro, S = SISTEMI_IDRO[I.sistema];
   const quote = I.colture.reduce((a, x) => a + x.quota, 0) || 1;
   const piani = I.disposizione === "scaffale" && !S.verticale ? Math.max(1, I.piani) : 1;
-  const superficie = S.verticale ? I.torri * 0.5 : I.superficie_piano * piani;
+  const st = I.struttura || {};
+  const supPiano = st.lung_cm && st.prof_cm ? st.lung_cm * st.prof_cm / 10000 : I.superficie_piano;
+  const superficie = S.verticale ? I.torri * 0.5 : supPiano * piani;
   const colture = I.colture.map(x => {
     const P = IDRO_PIANTE[x.coltura], q = x.quota / quote;
     let piante;
@@ -158,18 +200,19 @@ function capacitaIdro(c) {
   const wRichiesti = Math.ceil(ppfd * Math.max(chioma, 0.1) / (L.eff * geometria) / 10) * 10;
   const wLuci = I.luce.w_installati > 0 ? I.luce.w_installati : wRichiesti;
   const ppfdReale = wLuci * L.eff * geometria / Math.max(chioma, 0.1);
-  const footprint = S.verticale ? Math.max(0.6, I.torri * 0.5) : I.superficie_piano * (I.sistema === "bucket" ? 1.4 : 1);
-  const lato = Math.max(0.8, Math.sqrt(footprint));
-  const altezza = 2.0;
-  const superficieTenda = 2 * (lato * lato + 2 * lato * altezza);
-  const volume = (c.idro.clima.tenda ? lato * lato * altezza : 30);
+  const misure = misureImpianto(I), tenda = sceltaTenda(misure);
+  const footprint = c.idro.clima.tenda ? tenda.lung * tenda.prof : misure.lung * misure.prof;
+  const lato = Math.sqrt(footprint);
+  const altezza = c.idro.clima.tenda ? tenda.alt : 2.0;
+  const superficieTenda = 2 * (tenda.lung * tenda.prof + (tenda.lung + tenda.prof) * tenda.alt);
+  const volume = (c.idro.clima.tenda ? tenda.lung * tenda.prof * tenda.alt : 30);
   const piante = colture.reduce((a, x) => a + x.piante, 0);
   let serbatoio = {nft: Math.max(40, piante * 1.5), torre: I.torri * 60, dwc: superficie * 80, kratky: superficie * 60, bucket: Math.max(50, I.secchi * 8), vassoi: 10}[I.sistema];
   serbatoio = Math.ceil(serbatoio / 10) * 10;
   const ec = colture.reduce((a, x) => a + x.quota * (x.P.ec[0] + x.P.ec[1]) / 2, 0);
   const ph = colture.reduce((a, x) => a + x.quota * (x.P.ph[0] + x.P.ph[1]) / 2, 0);
   return {S, colture, piante, piani, superficie, chioma, ppfdObiettivo: ppfd, ppfd: Math.round(ppfdReale), ore, dli: ppfdReale * ore * 0.0036,
-          dliObiettivo: ppfd * ore * 0.0036, L, geometria, wRichiesti, wLuci, footprint, lato, altezza,
+          dliObiettivo: ppfd * ore * 0.0036, L, geometria, wRichiesti, wLuci, footprint, lato, altezza, misure, tenda,
           superficieTenda, volume, serbatoio, ec, ph};
 }
 
@@ -426,6 +469,7 @@ const fmtMigliaia = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, 
 // del fascio (lambertiano) e la riflettività sono ipotesi (C): con il file fotometrico della lampada si sostituiscono.
 const DIMENSIONI_PIANO = {0.36: [60, 60], 0.48: [80, 60], 0.72: [120, 60], 1: [100, 100], 1.44: [120, 120], 2.25: [150, 150]};
 function dimensioniPiano(I) {
+  if (I.struttura && I.struttura.lung_cm && I.struttura.prof_cm) return {lung: I.struttura.lung_cm / 100, prof: I.struttura.prof_cm / 100};
   const d = DIMENSIONI_PIANO[I.superficie_piano];
   if (d) return {lung: d[0] / 100, prof: d[1] / 100};
   const lato = Math.sqrt(I.superficie_piano); return {lung: lato, prof: lato};
@@ -578,10 +622,11 @@ function materialiIdro(c) {
   const add = (cat, fase, nome, q, p, perche, chiave) => { if (q > 0) voci.push({cat, fase, nome, q, min: p[0] * q, max: p[1] * q, perche, chiave}); };
   // struttura
   if (CL.tenda) {
-    const t = k.lato <= 0.7 ? ["60×60×160 cm", [40, 60]] : k.lato <= 0.9 ? ["80×80×180 cm", [55, 80]] : k.lato <= 1.1 ? ["100×100×200 cm", [70, 100]] : k.lato <= 1.3 ? ["120×120×200 cm", [90, 130]] : ["150×150×200 cm", [120, 170]];
+    const t = [k.tenda.nome, k.tenda.prezzo];
     add("Struttura", "4b", "Tenda da coltivazione " + t[0] + " (interno riflettente)", 1, t[1], "Tiene caldo, luce e umidità dove servono: in garage senza tenda si scalda tutto il garage.", "tenda");
   }
-  if (!S.verticale && k.piani > 1) add("Struttura", "4b", "Scaffale metallico " + k.piani + " ripiani", 1, [25, 50], "Un ripiano per livello, ognuno con la sua luce.", "scaffale");
+  if (!S.verticale && (k.piani > 1 || I.sistema === "nft" || I.sistema === "vassoi")) { const m = k.misure;
+    add("Struttura", "4b", "Scaffale metallico " + k.piani + (k.piani > 1 ? " ripiani " : " ripiano ") + Math.round(m.lung * 100) + "×" + Math.round(m.prof * 100) + " cm, alto " + Math.round(m.alt * 100) + " cm", 1, [12 + 8 * k.piani * m.lung * m.prof / 0.72, 25 + 15 * k.piani * m.lung * m.prof / 0.72], "Un ripiano ogni " + Math.round(m.hPiano * 100) + " cm, ognuno con la sua luce; sotto il primo il serbatoio.", "scaffale"); }
   if (I.sistema === "torre") add("Struttura", "4b", "Torre verticale da " + S.piante_torre + " vasetti", I.torri, S.struttura_torre, S.pro + " " + S.contro, "sistema");
   else if (I.sistema === "bucket") add("Struttura", "4b", "Secchio olandese con sifone + perlite", I.secchi, S.struttura_secchio, S.pro, "sistema");
   else add("Struttura", "4b", (I.sistema === "nft" ? "Staffe e supporti inclinabili per i canali" : S.nome) + " per " + (k.superficie).toFixed(2) + " m²", 1, [S.struttura_m2[0] * k.superficie, S.struttura_m2[1] * k.superficie], S.pro + " " + S.contro, "sistema");
@@ -590,7 +635,8 @@ function materialiIdro(c) {
   if (idr) add("Acqua", "4b", "Pompa sommersa da " + idr.qMax + " L/h, prevalenza massima " + idr.hMax + " m (circa " + Math.round(idr.wPompa) + " W)", 1, idr.qMax <= 1000 ? [12, 25] : idr.qMax <= 2000 ? [20, 40] : [35, 70], "Dimensionata per " + Math.round(idr.portata * 60) + " L/h a " + idr.prevalenza.toFixed(1) + " m (scheda Struttura).", "pompa");
   if (I.sistema === "nft") { const {lung} = dimensioniPiano(I);
     add("Acqua", "4b", "Canali NFT in PVC alimentare (" + lung.toFixed(1) + " m)", idr.canali, [6 * lung, 12 * lung], "Uno ogni " + Math.round(Math.max(15, ...k.colture.map(x => x.P.passo || 15))) + " cm; tappi alle estremità.", "sistema");
-    add("Acqua", "4b", "Tubo di mandata 16 mm, raccordi a T, tubicini di ingresso e collettore di ritorno 40 mm", 1, [15, 30], "", "sistema"); }
+    const mandata = Math.ceil(idr.altezza + lung + 1), ritorno = Math.ceil(k.misure.prof * k.piani + idr.altezza + 0.5);
+    add("Acqua", "4b", "Tubo di mandata 16 mm (" + mandata + " m), " + idr.canali + " raccordi a T e tubicini, collettore di ritorno 40 mm (" + ritorno + " m)", 1, [5 + mandata * 0.8 + ritorno * 2.5 + idr.canali * 1, 10 + mandata * 1.5 + ritorno * 4 + idr.canali * 2], "Lunghezze calcolate dalle misure dello scaffale.", "sistema"); }
   if (I.sistema === "dwc" || I.sistema === "bucket") add("Acqua", "4b", "Pompa d'aria + pietre porose", 1, [15, 30], "Ossigeno alle radici: senza, marciscono.", "aria");
   // luci
   const L = k.L;
@@ -654,6 +700,10 @@ function compatibilitaIdro(c) {
   for (const x of k.colture) { const st = statoLuce(x.P, k.dli);
     if (st.stato === "poca") add("warn", x.P.nome + ": poca luce", "DLI " + n1(k.dli) + " contro " + x.P.dli.join("-") + " mol/m²/giorno: resa circa " + Math.round(st.fattore * 100) + "% di quella di riferimento.", "luce");
     if (st.stato === "troppa") add("warn", x.P.nome + ": luce oltre il necessario", "DLI " + n1(k.dli) + " sopra " + x.P.dli[1] + ": niente resa in più, solo corrente" + (x.coltura === "lattuga" ? " e rischio di bruciature ai bordi (tipburn)" : "") + ".", "luce"); }
+  if (CL.tenda && k.misure.alt > k.tenda.alt) add("crit", "Lo scaffale non entra nella tenda", "Scaffale alto " + Math.round(k.misure.alt * 100) + " cm, tenda " + Math.round(k.tenda.alt * 100) + " cm: meno piani o ripiani più bassi.", "struttura");
+  if (CL.tenda && !k.tenda.basta) add("crit", "Nessuna tenda standard abbastanza grande", "Servono più tende o una stanza dedicata.", "struttura");
+  const pos = posizionaImpianto(c);
+  if (pos && !pos.entra) add("crit", "Non entra nel locale", pos.motivo, "locale");
   const idr = idraulicaIdro(c);
   if (idr && idr.trabocca) add("crit", "Il serbatoio può traboccare", "A pompa ferma tornano giù circa " + Math.round(idr.volumeRitorno) + " L dai canali: serve più spazio libero nel serbatoio (o serbatoio più grande).", "serbatoio");
   if (k.L.eff < 2) add("warn", "Lampade poco efficienti", "Con LED bianchi buoni (2,7 µmol/J) la stessa luce costerebbe " + Math.round((1 - k.L.eff / 2.7) * 100) + "% di corrente in meno.", "luce");
@@ -701,4 +751,4 @@ function pinMappaIdro(c) {
   if (A.prese_smart) righe.push(["Luci, estrattore, stufetta, deumidificatore", "Wi-Fi", "prese smart comandate via rete"]);
   return righe;
 }
-if (typeof module !== "undefined") module.exports = {mappaLuce, idraulicaIdro, dimensioniPiano, FONTI, DATI_COLTURE, fTemp, coorte, calibraCrescita, vpd, simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};
+if (typeof module !== "undefined") module.exports = {misureImpianto, sceltaTenda, posizionaImpianto, TENDE, mappaLuce, idraulicaIdro, dimensioniPiano, FONTI, DATI_COLTURE, fTemp, coorte, calibraCrescita, vpd, simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};

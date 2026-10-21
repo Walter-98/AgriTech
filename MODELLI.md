@@ -117,6 +117,16 @@ Nessun modello è stato ancora confrontato con un raccolto vero: la calibrazione
   - 6 canali, 6 L/min, 1,87 m di prevalenza, pompa da almeno 1.000 L/h e 3 m, circa 12 W;
   - tornano al serbatoio 4 L, contro 30 L liberi.
 
+## 5b. Struttura, tenda e locale (A come geometria, C come margini)
+- **Ripiano**: lunghezza × profondità in cm, distanza tra i ripiani. Altezza dello scaffale = 50 cm (serbatoio sotto)
+  + piani × distanza + 10 cm.
+- **Tenda**: la più piccola tra quelle in commercio (60×60 fino a 300×150 cm) che contiene il ripiano con 5 cm di
+  margine ed è abbastanza alta. La sua superficie entra nel bilancio termico: UA = 4 W/K per m² di telo.
+- **Locale**: impianto nell'angolo in fondo, quadro accanto, 60 cm davanti per lavorare, 80 cm lungo un lato per
+  passare o per l'auto. Avvisa se non entra in lunghezza, larghezza o altezza.
+- **Distinta collegata**: numero e lunghezza dei canali, metri di tubo di mandata e di ritorno, scaffale con misure e
+  prezzo proporzionale alla superficie, tenda scelta, pompa dimensionata.
+
 ## 7b. Ricetta dei nutrienti (A per la stechiometria, C per EC e stime dell'acqua)
 - **Riferimento**: soluzione di Hoagland n. 2 (Hoagland e Arnon 1950): N 210, P 31, K 235, Ca 160, Mg 48, S 64 mg/L.
   Altre versioni hanno Ca 200.

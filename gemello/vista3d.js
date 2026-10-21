@@ -665,37 +665,39 @@ const Vista3D = (() => {
   // ---------- costruzione dell'idroponica in garage ----------
   function costruisciIdro(c, s, voci) {
     const I = c.idro, k = capacitaIdro(c), A = I.auto, S = k.S;
-    const L = k.lato, H = 2.0;
+    // tenda (o ingombro) rettangolare con le misure vere: LX lungo x, LZ lungo z
+    const T0 = I.clima.tenda ? k.tenda : {lung: Math.max(k.misure.lung + 0.3, 0.9), prof: Math.max(k.misure.prof + 0.3, 0.9), alt: 2.0};
+    const LX = T0.lung, LZ = T0.prof, L = Math.max(LX, LZ), H = I.clima.tenda ? T0.alt : 2.0;
     stato = {zone: [], led: null, rain: false, pioggia: null, campi: [], luci: [], centro: new T.Vector3(0, 0.9, 0)};
     // garage
     const pav = ombre(new T.Mesh(new T.PlaneGeometry(7, 6), new T.MeshStandardMaterial({map: TEX.cemento, roughness: 0.85, metalness: 0.05})), false, true);
     pav.rotation.x = -Math.PI / 2; pav.position.set(0.5, 0, 0.6); gruppo.add(pav);
     const bl = new T.MeshStandardMaterial({map: TEX.blocchi, roughness: 0.95});
-    const muro1 = blocco(7, 2.6, 0.2, bl, 0.5, 1.3, -L / 2 - 0.6, info("Garage", I.clima.garage === "isolato" ? "Garage isolato: d'inverno resta più caldo, d'estate più fresco." : "Garage non isolato: segue il clima di fuori (+3 °C).", null));
+    const muro1 = blocco(7, 2.6, 0.2, bl, 0.5, 1.3, -LZ / 2 - 0.6, info("Garage", I.clima.garage === "isolato" ? "Garage isolato: d'inverno resta più caldo, d'estate più fresco." : "Garage non isolato: segue il clima di fuori (+3 °C).", null));
     muro1.material.map.repeat.set(3.5, 1.3);
-    const m2 = blocco(0.2, 2.6, 6, bl.clone(), -L / 2 - 1.0, 1.3, 0.6); m2.material.map = TEX.blocchi.clone(); m2.material.map.needsUpdate = true; m2.material.map.repeat.set(3, 1.3);
+    const m2 = blocco(0.2, 2.6, 6, bl.clone(), -LX / 2 - 1.0, 1.3, 0.6); m2.material.map = TEX.blocchi.clone(); m2.material.map.needsUpdate = true; m2.material.map.repeat.set(3, 1.3);
     const porta = blocco(0.06, 2.1, 2.5, new T.MeshStandardMaterial({map: TEX.portone, roughness: 0.5, metalness: 0.3}), 3.9, 1.05, 0.9, info("Portone del garage", "", null));
     porta.material.map.repeat.set(1, 2);
     // mensola con attrezzi sul fondo
-    blocco(1.4, 0.03, 0.3, MAT.legno, 2.4, 1.6, -L / 2 - 0.45); blocco(1.4, 0.03, 0.3, MAT.legno, 2.4, 1.1, -L / 2 - 0.45);
-    for (let i = 0; i < 4; i++) blocco(0.18, 0.2, 0.22, mat([0xc0392b, 0x2e86c1, 0x7f8c8d, 0xd4ac0d][i]), 1.9 + i * 0.33, 1.72, -L / 2 - 0.45);
+    blocco(1.4, 0.03, 0.3, MAT.legno, 2.4, 1.6, -LZ / 2 - 0.45); blocco(1.4, 0.03, 0.3, MAT.legno, 2.4, 1.1, -LZ / 2 - 0.45);
+    for (let i = 0; i < 4; i++) blocco(0.18, 0.2, 0.22, mat([0xc0392b, 0x2e86c1, 0x7f8c8d, 0xd4ac0d][i]), 1.9 + i * 0.33, 1.72, -LZ / 2 - 0.45);
     // tenda
     const tx = 0, tz = 0;
     if (I.clima.tenda) {
       const telo = new T.MeshStandardMaterial({map: TEX.mylar, roughness: 0.35, metalness: 0.75, side: T.DoubleSide});
       const fuori = mat(0x161616, {roughness: 0.9, side: T.FrontSide});
       const inf = info("Tenda da coltivazione", "Interno riflettente: rimanda la luce sulle piante e tiene caldo e umidità dove servono.", "tenda", trovaVoce(voci, "tenda"));
-      blocco(L, H, 0.01, telo, tx, H / 2, tz - L / 2, inf).receiveShadow = true;
-      blocco(0.01, H, L, telo, tx - L / 2, H / 2, tz, inf);
-      blocco(0.01, H, L, telo, tx + L / 2, H / 2, tz, inf);
-      blocco(L, 0.01, L, telo, tx, H, tz, inf);
-      blocco(L + 0.02, H + 0.01, 0.005, fuori, tx, H / 2, tz - L / 2 - 0.008); blocco(0.005, H + 0.01, L + 0.02, fuori, tx - L / 2 - 0.008, H / 2, tz); blocco(0.005, H + 0.01, L + 0.02, fuori, tx + L / 2 + 0.008, H / 2, tz);
-      const rot = cilindro(0.06, L, fuori, tx, H - 0.06, tz + L / 2); rot.rotation.z = Math.PI / 2;
-      for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) tuboDritto([[tx + px * L / 2, 0, tz + pz * L / 2], [tx + px * L / 2, H, tz + pz * L / 2]], 0.01, mat(0xf0f0f0));
-      blocco(L, 0.06, 0.01, fuori, tx, 0.03, tz + L / 2);
+      blocco(LX, H, 0.01, telo, tx, H / 2, tz - LZ / 2, inf).receiveShadow = true;
+      blocco(0.01, H, LZ, telo, tx - LX / 2, H / 2, tz, inf);
+      blocco(0.01, H, LZ, telo, tx + LX / 2, H / 2, tz, inf);
+      blocco(LX, 0.01, LZ, telo, tx, H, tz, inf);
+      blocco(LX + 0.02, H + 0.01, 0.005, fuori, tx, H / 2, tz - LZ / 2 - 0.008); blocco(0.005, H + 0.01, LZ + 0.02, fuori, tx - LX / 2 - 0.008, H / 2, tz); blocco(0.005, H + 0.01, LZ + 0.02, fuori, tx + LX / 2 + 0.008, H / 2, tz);
+      const rot = cilindro(0.06, LX, fuori, tx, H - 0.06, tz + LZ / 2); rot.rotation.z = Math.PI / 2;
+      for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) tuboDritto([[tx + px * LX / 2, 0, tz + pz * LZ / 2], [tx + px * LX / 2, H, tz + pz * LZ / 2]], 0.01, mat(0xf0f0f0));
+      blocco(LX, 0.06, 0.01, fuori, tx, 0.03, tz + LZ / 2);
     }
     // sistema
-    const res = blocco(0.55, 0.38, 0.4, mat(0x1d1d1f, {roughness: 0.55}), tx + (S.verticale ? L / 2 - 0.33 : 0.05), 0.19, tz + (S.verticale ? L / 2 - 0.28 : -0.05), info("Serbatoio " + k.serbatoio + " L", "Scuro e chiuso: con la luce crescono le alghe. Cambio completo ogni " + I.acqua.cambio_giorni + " giorni.", "serbatoio", trovaVoce(voci, "serbatoio")));
+    const res = blocco(0.55, 0.38, 0.4, mat(0x1d1d1f, {roughness: 0.55}), tx + (S.verticale ? LX / 2 - 0.33 : 0.05), 0.19, tz + (S.verticale ? LZ / 2 - 0.28 : -0.05), info("Serbatoio " + k.serbatoio + " L", "Scuro e chiuso: con la luce crescono le alghe. Cambio completo ogni " + I.acqua.cambio_giorni + " giorni.", "serbatoio", trovaVoce(voci, "serbatoio")));
     if (S.verticale || I.sistema === "dwc" || I.sistema === "kratky") res.visible = I.sistema !== "kratky";
     const rx = res.position.x, rz = res.position.z;
     if (A.ph) { cilindro(0.006, 0.22, fisico(0xffffff, {transparent: true, opacity: 0.6}), rx - 0.15, 0.4, rz, info("Sonda pH", "Sempre immersa; si tara ogni " + A.taratura_giorni + " giorni con le soluzioni pH 4 e 7.", "sensori", trovaVoce(voci, "sensori", "ph"))); cilindro(0.009, 0.04, mat(0x2b2b2b), rx - 0.15, 0.52, rz); }
@@ -736,10 +738,9 @@ const Vista3D = (() => {
       k.colture.forEach((x, i) => aggiungiCampo(x.coltura, posPerColtura[i]));
     } else {
       const piani = I.sistema === "bucket" ? 1 : k.piani;
-      const prof = Math.min(L - 0.15, Math.max(0.45, I.superficie_piano / Math.max(0.6, L - 0.15)));
-      const largh = Math.min(L - 0.15, I.superficie_piano / prof);
+      const prof = k.misure.prof, largh = k.misure.lung;
       const y0 = I.sistema === "bucket" ? 0.12 : 0.5;                 // sotto il primo ripiano c'è il serbatoio
-      const hPiano = I.sistema === "bucket" ? 0 : Math.min(0.55, (H - y0 - 0.1) / piani);
+      const hPiano = I.sistema === "bucket" ? 0 : Math.min(k.misure.hPiano, (H - y0 - 0.1) / piani);
       // scaffale
       if (piani > 1 || I.sistema === "nft" || I.sistema === "vassoi") {
         for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) blocco(0.03, y0 + piani * hPiano + 0.1, 0.03, MAT.zincato, tx + px * largh / 2, (y0 + piani * hPiano + 0.1) / 2, tz + pz * prof / 2 - 0.05, info("Scaffale", k.piani + " ripiani, ognuno con la sua luce.", "scaffale", trovaVoce(voci, "scaffale")));
@@ -794,14 +795,14 @@ const Vista3D = (() => {
       k.colture.forEach((x, i) => aggiungiCampo(x.coltura, posPerColtura[i]));
     }
     // clima
-    if (I.clima.estrattore) { const e = cilindro(0.06, 0.2, mat(0x2f3134, {metalness: 0.5}), tx - L / 2 + 0.2, H - 0.15, tz - L / 2 + 0.2, info("Estrattore in linea", "Toglie caldo e umidità; termostato a " + (Math.min(...k.colture.map(x => x.P.t[1])) - 1) + " °C.", "clima", trovaVoce(voci, "clima", "estrattore"))); e.rotation.z = Math.PI / 2;
-      const pts = []; for (let i = 0; i <= 12; i++) pts.push([tx - L / 2 + 0.1 - i * 0.05, H - 0.15 + Math.sin(i / 12 * Math.PI) * 0.15, tz - L / 2 + 0.2 - i * 0.02]);
+    if (I.clima.estrattore) { const e = cilindro(0.06, 0.2, mat(0x2f3134, {metalness: 0.5}), tx - LX / 2 + 0.2, H - 0.15, tz - LZ / 2 + 0.2, info("Estrattore in linea", "Toglie caldo e umidità; termostato a " + (Math.min(...k.colture.map(x => x.P.t[1])) - 1) + " °C.", "clima", trovaVoce(voci, "clima", "estrattore"))); e.rotation.z = Math.PI / 2;
+      const pts = []; for (let i = 0; i <= 12; i++) pts.push([tx - LX / 2 + 0.1 - i * 0.05, H - 0.15 + Math.sin(i / 12 * Math.PI) * 0.15, tz - LZ / 2 + 0.2 - i * 0.02]);
       tubo(pts, 0.05, mat(0xc9ccd0, {metalness: 0.7, roughness: 0.35})); }
-    if (I.clima.circolazione) { cilindro(0.08, 0.02, mat(0x222222), tx + L / 2 - 0.12, 1.4, tz, info("Ventilatore a clip", "Aria che si muove: steli robusti, niente muffe; aiuta l'impollinazione.", "clima", trovaVoce(voci, "clima", "ventilatore"))).rotation.z = Math.PI / 2; }
-    if (I.clima.riscaldamento === "stufetta") blocco(0.3, 0.35, 0.18, mat(0xe9e9e4, {roughness: 0.5}), tx + L / 2 + 0.45, 0.175, tz + 0.2, info("Termoventilatore 1000 W", "Con termostato a " + I.clima.t_min + " °C: d'inverno è la seconda spesa di corrente.", "clima", trovaVoce(voci, "clima", "termoventilatore")));
-    if (I.clima.deumidificatore) blocco(0.32, 0.5, 0.22, mat(0xf2f2ee, {roughness: 0.5}), tx - L / 2 - 0.45, 0.25, tz + 0.6, info("Deumidificatore", "", "clima", trovaVoce(voci, "clima", "deumidificatore")));
+    if (I.clima.circolazione) { cilindro(0.08, 0.02, mat(0x222222), tx + LX / 2 - 0.12, 1.4, tz, info("Ventilatore a clip", "Aria che si muove: steli robusti, niente muffe; aiuta l'impollinazione.", "clima", trovaVoce(voci, "clima", "ventilatore"))).rotation.z = Math.PI / 2; }
+    if (I.clima.riscaldamento === "stufetta") blocco(0.3, 0.35, 0.18, mat(0xe9e9e4, {roughness: 0.5}), tx + LX / 2 + 0.45, 0.175, tz + 0.2, info("Termoventilatore 1000 W", "Con termostato a " + I.clima.t_min + " °C: d'inverno è la seconda spesa di corrente.", "clima", trovaVoce(voci, "clima", "termoventilatore")));
+    if (I.clima.deumidificatore) blocco(0.32, 0.5, 0.22, mat(0xf2f2ee, {roughness: 0.5}), tx - LX / 2 - 0.45, 0.25, tz + 0.6, info("Deumidificatore", "", "clima", trovaVoce(voci, "clima", "deumidificatore")));
     // stazione di controllo a parete
-    const wx = tx + L / 2 + 0.55, wz = -L / 2 - 0.48;
+    const wx = tx + LX / 2 + 0.55, wz = -LZ / 2 - 0.48;
     blocco(0.9, 0.7, 0.02, MAT.legno, wx + 0.1, 1.15, wz, null);
     const q = A.micro === "nessuno" ? null : quadro(c, wx - 0.12, 1.0, wz + 0.09, 0, voci, A.micro);
     stato.led = q ? q.led : null;
@@ -812,8 +813,8 @@ const Vista3D = (() => {
       tubo([[wx + 0.2 + i * 0.09, 1.0, wz + 0.1], [wx + 0.2 + i * 0.09, 1.3, wz + 0.06]], 0.003, fisico(0xffffff, {transparent: true, opacity: 0.6})); }
     blocco(0.06, 0.16, 0.6, mat(0xf4f4f0), wx + 0.25, 1.7, wz + 0.05, info("Ciabatta con magnetotermico e prese smart", "Sollevata da terra: mai prese sul pavimento vicino all'acqua.", "alimentazione", trovaVoce(voci, "alimentazione", "prese"))).rotation.y = Math.PI / 2;
     if (A.ups) blocco(0.14, 0.22, 0.32, mat(0x2a2a2a), wx + 0.55, 0.11, wz + 0.25, info("UPS", "Tiene accese pompa ed elettronica nei blackout brevi.", "ups", trovaVoce(voci, "ups")));
-    if (A.perdita) for (const [lx, lz] of [[rx, rz + 0.3], [tx - 0.2, tz + L / 2 + 0.1]]) cilindro(0.025, 0.012, mat(0xf2f2ee), lx, 0.006, lz, info("Sensore di perdita", "Se c'è acqua sul pavimento spegne pompe e prese.", "sensori", trovaVoce(voci, "sensori", "perdita")));
-    if (I.acqua.osmosi) for (let i = 0; i < 3; i++) cilindro(0.045, 0.3, fisico(0x9fc6e8, {transparent: true, opacity: 0.7}), -L / 2 - 0.85 + i * 0.12, 0.9, -L / 2 - 0.4, info("Osmosi inversa", "Acqua quasi pura; scarta 2-3 litri per ogni litro buono.", "acqua", trovaVoce(voci, "acqua", "osmosi")));
+    if (A.perdita) for (const [lx, lz] of [[rx, rz + 0.3], [tx - 0.2, tz + LZ / 2 + 0.1]]) cilindro(0.025, 0.012, mat(0xf2f2ee), lx, 0.006, lz, info("Sensore di perdita", "Se c'è acqua sul pavimento spegne pompe e prese.", "sensori", trovaVoce(voci, "sensori", "perdita")));
+    if (I.acqua.osmosi) for (let i = 0; i < 3; i++) cilindro(0.045, 0.3, fisico(0x9fc6e8, {transparent: true, opacity: 0.7}), -LX / 2 - 0.85 + i * 0.12, 0.9, -LZ / 2 - 0.4, info("Osmosi inversa", "Acqua quasi pura; scarta 2-3 litri per ogni litro buono.", "acqua", trovaVoce(voci, "acqua", "osmosi")));
     cavoGarage(rx, rz, wx, wz);
     stato.campi = campi;
     stato.inquadrature = {

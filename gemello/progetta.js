@@ -44,9 +44,8 @@ function valutazioni(c) {
 
 // ingombro a terra con 60 cm per passare e lavorare davanti
 function ingombro(c) {
-  const k = capacitaIdro(c);
-  const lato = c.idro.clima.tenda ? k.lato : Math.sqrt(k.footprint);
-  return {m2: (lato + 0.6) * Math.max(lato, 0.6), altezza: c.idro.clima.tenda ? 2.0 : Math.max(1.0, 0.45 * (k.piani || 1) + 0.5) + (c.idro.sistema === "bucket" ? 0.8 : 0)};
+  const k = capacitaIdro(c), t = c.idro.clima.tenda ? k.tenda : k.misure;
+  return {m2: (t.lung + 0.7) * (t.prof + 0.6), altezza: Math.max(t.alt || 0, k.misure.alt)};
 }
 
 function candidatiIdro(R) {
@@ -61,6 +60,7 @@ function candidatiIdro(R) {
       if (liv === "nessuna" && ["torre"].includes(sistema)) continue;          // torri senza sorveglianza: rischio troppo alto
       const idro = JSON.parse(JSON.stringify(IDRO_ESEMPIO));
       Object.assign(idro, {sistema, piani: 1, disposizione: "orizzontale"}, st);
+      delete idro.struttura;                                       // misure dalla superficie scelta qui sotto
       idro.colture = gruppo.map(x => ({coltura: x, quota: Math.round(100 / gruppo.length)}));
       idro.luce = {tipo: luce, ppfd: 0, ore: 0, notte: true, w_installati: 0};
       idro.auto = Object.assign({}, idro.auto, LIVELLI_AUTO[liv].auto);

@@ -59,7 +59,7 @@ function messaggio(tipo, titolo, testo, chiave) {
       chiave ? el("button", {class: "link", type: "button", text: "Cambia", onclick: () => vaiA(chiave)}) : null));
 }
 function vaiA(chiave) {
-  const sezioni = idro() ? {sistema: "progetto", colture: "progetto", luce: "progetto", economia: "progetto", clima: "progetto", tenda: "progetto", acqua: "progetto", nutrienti: "progetto", scaffale: "progetto", serbatoio: "progetto", substrato: "progetto", semi: "progetto", strumenti: "progetto"}
+  const sezioni = idro() ? {sistema: "progetto", colture: "progetto", luce: "progetto", economia: "progetto", locale: "progetto", struttura: "progetto", meteo: "progetto", clima: "progetto", tenda: "progetto", acqua: "progetto", nutrienti: "progetto", scaffale: "progetto", serbatoio: "progetto", substrato: "progetto", semi: "progetto", strumenti: "progetto"}
                         : {ambiente: "progetto", cisterna: "progetto", logica: "logica"};
   apri(sezioni[chiave] || "componenti");
   setTimeout(() => { const t = document.getElementById("ed-" + chiave); if (t) { t.scrollIntoView({behavior: "smooth", block: "center"}); t.classList.add("evidenzia"); setTimeout(() => t.classList.remove("evidenzia"), 1600); } }, 60);
@@ -213,8 +213,18 @@ function editorProgettoIdro(box) {
     I.sistema === "torre" ? griglia(campoNum("Torri", I.torri, 1, 6, 1, v => set(I, "torri", v), "36 piante ciascuna"))
       : griglia(...(I.sistema !== "bucket" ? [campoSel("Disposizione", I.disposizione, [["orizzontale", "Orizzontale (un piano)"], ["scaffale", "Scaffale a più piani"]], v => set(I, "disposizione", v))] : []),
         ...(I.disposizione === "scaffale" && I.sistema !== "bucket" ? [campoNum("Piani", I.piani, 1, 5, 1, v => set(I, "piani", v))] : []),
-        campoSel("Superficie per piano", I.superficie_piano, [[0.36, "60 × 60 cm (0,36 m²)"], [0.48, "80 × 60 cm (0,48 m²)"], [0.72, "120 × 60 cm (0,72 m²)"], [1.0, "100 × 100 cm (1 m²)"], [1.44, "120 × 120 cm (1,44 m²)"], [2.25, "150 × 150 cm (2,25 m²)"]], v => set(I, "superficie_piano", +v)),
+        ...(() => { const m = misureImpianto(I), st = I.struttura = Object.assign({lung_cm: Math.round(m.lung * 100), prof_cm: Math.round(m.prof * 100), h_piano_cm: 45}, I.struttura || {});
+          const aggiornaSup = () => { I.superficie_piano = st.lung_cm * st.prof_cm / 10000; aggiorna(true); };
+          return [campoNum("Lunghezza del ripiano", st.lung_cm, 30, 400, 5, v => { st.lung_cm = v; aggiornaSup(); }, "cm"),
+            campoNum("Profondità del ripiano", st.prof_cm, 30, 200, 5, v => { st.prof_cm = v; aggiornaSup(); }, "cm"),
+            ...(I.disposizione === "scaffale" ? [campoNum("Distanza tra i ripiani", st.h_piano_cm, 30, 100, 5, v => { st.h_piano_cm = v; aggiorna(true); }, "cm")] : [])]; })(),
         ...(I.sistema === "bucket" ? [campoNum("Secchi", I.secchi, 1, 16, 1, v => set(I, "secchi", v))] : []))));
+  const Lc = I.locale = Object.assign({lung: 5, larg: 3, alt: 2.4, auto: true}, I.locale || {}), pos = posizionaImpianto(cfg);
+  box.append(riquadro("Il locale", el("div", {id: "ed-locale"}), el("div", {id: "ed-struttura"}),
+    griglia(campoNum("Lunghezza", Lc.lung, 1, 30, 0.1, v => set(Lc, "lung", v, false), "m"), campoNum("Larghezza", Lc.larg, 1, 20, 0.1, v => set(Lc, "larg", v, false), "m"),
+      campoNum("Altezza", Lc.alt, 1.5, 6, 0.1, v => set(Lc, "alt", v, false), "m")),
+    spunta("Deve restare il passaggio (o l'auto) lungo un lato", Lc.auto, v => set(Lc, "auto", v, false), "80 cm liberi"),
+    el("p", {class: "piccolo", text: (pos.entra ? "Entra: " : "Non entra: ") + (pos.entra ? "occupa circa " + fmt(pos.m2, 1) + " m² con lo spazio per lavorare; altezza " + fmt(pos.altezza, 2) + " m." : pos.motivo) + " Tenda: " + (I.clima.tenda ? capacitaIdro(cfg).tenda.nome : "nessuna") + ". Pianta nella scheda Struttura."})));
   // colture
   const adatte = Object.entries(IDRO_PIANTE).filter(([kk, p]) => p.sistemi.includes(I.sistema));
   const tb = el("tbody");
@@ -541,7 +551,18 @@ function bilancioIdro(box) {
   box.append(riquadro(ECO.giudizio === "conviene" ? "Giudizio: conviene" : ECO.giudizio === "fragile" ? "Giudizio: si ripaga, ma fragile" : "Giudizio: sconsigliato",
     ...(ECO.motivi.length ? ECO.motivi : ["Nessun motivo per sconsigliarlo con queste ipotesi: verificale con un piccolo impianto di prova."]).map(t => el("p", {class: "piccolo", text: t}))));
 }
+function distintaCsv() {
+  const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const righe = [["Categoria", "Fase", "Descrizione", "Quantità", "Prezzo min €", "Prezzo max €", "Stato del prezzo", "Data", "Perché"].map(q).join(";")];
+  const oggi = new Date().toISOString().slice(0, 10);
+  for (const v of VOCI) righe.push([v.cat, v.fase, v.nome, v.q, v.min.toFixed(2).replace(".", ","), v.max.toFixed(2).replace(".", ","), "stima del gemello, da verificare", oggi, v.perche || ""].map(q).join(";"));
+  righe.push(["Totale", "", "", "", somma(VOCI, "min").toFixed(2).replace(".", ","), somma(VOCI, "max").toFixed(2).replace(".", ","), "", oggi, ""].map(q).join(";"));
+  return "\ufeff" + righe.join("\r\n");
+}
 function schedaMateriali(box) {
+  const csv = el("button", {class: "az sec", type: "button", text: "Scarica la lista (CSV per Excel)"});
+  csv.addEventListener("click", () => scarica("lista-materiali.csv", "text/csv;charset=utf-8", distintaCsv()));
+  box.append(el("p", {class: "piccolo"}, document.createTextNode("Ogni voce è collegata al progetto: cambi una misura o un componente e quantità e prezzi si aggiornano. I prezzi sono stime a forbice, da verificare dal fornitore. "), csv));
   const cats = [...new Set(VOCI.map(v => v.cat))];
   const due = el("div", {class: "due"});
   for (const cat of cats) { const v = VOCI.filter(x => x.cat === cat);
@@ -601,6 +622,7 @@ function schedaStruttura(box) {
   if (idro()) { const idr = idraulicaIdro(cfg);
     if (idr) box.append(riquadro("Idraulica: canali, portate e pompa", el("p", {class: "piccolo", text: "Calcolo: portata per canale ~1 L/min (da 0,5 a 2), pendenza 1:40, perdite nel tubo con Hazen-Williams, pompa con curva lineare e margine del 50% sulla prevalenza. Fonti e limiti in MODELLI.md."}),
       el("div", {class: "scorri"}, el("table", null, el("tbody", null, ...idr.righe.map(r => el("tr", null, el("th", {text: r[0]}), el("td", {text: r[1]})))))))); }
+  if (idro()) box.append(piantaUI());
   if (idro() && micro === "nessuno") return;
   box.append(riquadro("Collegamenti di " + CATALOGO.micro.opzioni[micro].nome, el("p", {class: "piccolo", text: "Software: " + CATALOGO.micro.opzioni[micro].firmware + "."}),
       el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, el("th", {text: "Cosa"}), el("th", {text: "Pin"}), el("th", {text: "Note"}))), el("tbody", null, ...pin.map(p => el("tr", null, el("td", {text: p[0]}), el("td", {class: "dati", text: p[1]}), el("td", {text: p[2]}))))))));
@@ -709,6 +731,33 @@ function schedaPercorso(box) {
   box.append(riquadro("La tua configurazione (JSON)", el("details", null, el("summary", {text: "Mostra"}), el("pre", {text: JSON.stringify(cfg, null, 2)}))));
 }
 function selezionaTesto(n) { const r = document.createRange(); r.selectNodeContents(n); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+// ---------- pianta del locale ----------
+function piantaSvg() {
+  const P = posizionaImpianto(cfg), Lc = P.locale, k = capacitaIdro(cfg), sc = 100, pad = 30;
+  const W = Lc.lung * sc + 2 * pad, H = Lc.larg * sc + 2 * pad + 20;
+  const svg = sv("svg", {xmlns: "http://www.w3.org/2000/svg", viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Pianta del locale", style: "width:100%;max-width:640px;display:block;font-family:sans-serif"});
+  const r = (o, fill, stroke, testo, tratteggio) => { svg.append(sv("rect", {x: pad + o.x * sc, y: pad + o.y * sc, width: o.lung * sc, height: o.prof * sc, fill, stroke, "stroke-width": 1.5, "stroke-dasharray": tratteggio ? "6 4" : ""}));
+    if (testo) svg.append(sv("text", {x: pad + (o.x + o.lung / 2) * sc, y: pad + (o.y + o.prof / 2) * sc + 4, "text-anchor": "middle", "font-size": 11, fill: "#16201a"}, testo)); };
+  r({x: 0, y: 0, lung: Lc.lung, prof: Lc.larg}, "#f6f6f2", "#4a554d", null);
+  if (P.passaggio) r(P.passaggio, "#eef0ec", "#9aa39c", "passaggio 80 cm", true);
+  r(P.lavoro, "#e3eee5", "#2f6b45", "spazio per lavorare 60 cm", true);
+  r(P.ingombro, "#cfe0f5", "#2a78d6", cfg.idro.clima.tenda ? "tenda " + k.tenda.nome.split("×").slice(0, 2).join("×") : "impianto");
+  r({x: P.ingombro.x + (P.ingombro.lung - k.misure.lung) / 2, y: P.ingombro.y + (P.ingombro.prof - k.misure.prof) / 2, lung: k.misure.lung, prof: k.misure.prof}, "none", "#16201a", null);
+  r(P.quadro, "#fbe3d6", "#eb6834", "quadro");
+  svg.append(sv("line", {x1: pad + Lc.lung * sc, y1: pad + Lc.larg * sc * 0.15, x2: pad + Lc.lung * sc, y2: pad + Lc.larg * sc * 0.85, stroke: "#eb6834", "stroke-width": 5}));
+  svg.append(sv("text", {x: pad + Lc.lung * sc - 6, y: pad + Lc.larg * sc / 2, "text-anchor": "end", "font-size": 11, fill: "#8a3a14"}, "porta"));
+  svg.append(sv("text", {x: pad, y: H - 8, "font-size": 11, fill: "#4a554d"}, "Locale " + Lc.lung + " × " + Lc.larg + " m, alto " + Lc.alt + " m · scala: 1 m = " + sc + " px · " + (P.entra ? "entra" : "NON entra: " + P.motivo)));
+  return svg;
+}
+function scarica(nome, tipo, testo) {
+  const a = el("a", {href: URL.createObjectURL(new Blob([testo], {type: tipo})), download: nome}); document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function piantaUI() {
+  const svg = piantaSvg(), b = el("button", {class: "az sec", type: "button", text: "Scarica la pianta (SVG)"});
+  b.addEventListener("click", () => scarica("pianta-impianto.svg", "image/svg+xml", new XMLSerializer().serializeToString(piantaSvg())));
+  return riquadro("Pianta del locale (vista dall'alto)", el("p", {class: "piccolo", text: "Disegno in scala per verificare ingombri, spazio per lavorare e passaggio. È una rappresentazione per decidere, non un disegno esecutivo: misura il locale vero prima di comprare."}), el("div", {class: "scorri"}, svg), el("div", null, b));
+}
 
 // ---------- meteo vero ----------
 function meteoVeroUI() {
