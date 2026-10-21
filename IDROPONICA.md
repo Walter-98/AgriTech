@@ -40,8 +40,6 @@ non vale niente se nessuno lo compra. Modelli e limiti in [MODELLI.md](MODELLI.m
 | DWC 120×120 (lattuga, basilico) | 35 | 190 W | 1756 kWh | 701–1215 € | 633 € | 38 kg | 21,8 € | 190 € | mai | **sconsigliato** |
 | Kratky 120×60, controllo a mano | 24 | 100 W | 1065 kWh | 384–681 € | 365 € | 19 kg | 25,3 € | 132 € | mai | **sconsigliato** |
 | Secchi: 6 tra pomodori e peperoncini | 9 | 700 W | 4438 kWh | 1185–2118 € | 1499 € | 35 kg | 51,9 € | 175 € | mai | **sconsigliato** |
-| Cetriolo (partenocarpico) | 1,7–2,5 | 5,5–6,0 | 400–600 | 20–30 | 16 | 21–28 | 60–75 | 50 cm | 21 + 70 | 3.000 g | 1,5 L | Secchi olandesi, Goccia su substrato |
-| Peperone dolce | 2,0–2,5 | 5,8–6,3 | 400–700 | 20–30 | 16 | 21–27 | 60–70 | 50 cm | 35 + 110 | 2.000 g | 1,0 L | Secchi olandesi, Goccia su substrato, Flusso e riflusso |
 | Microgreens, scaffale 4 piani, in casa | 23 | 220 W | 1614 kWh | 703–1235 € | 1224 € | 139 kg | 10,2 € | 140 € | mai | **sconsigliato** |
 | Microgreens, scaffale 4 piani, 90% venduto al 70% del prezzo | 23 | 220 W | 1614 kWh | 703–1235 € | 1224 € | 139 kg | 10,2 € | 2767 € | 0,6 anni | conviene |
 
@@ -70,6 +68,8 @@ pianta per raccolta, acqua per pianta grande al giorno.
 | Fragola (rifiorente) | 1,2–1,8 | 5,5–6,2 | 400–600 | 17–25 | 14 | 18–24 | 60–75 | 25 cm | 90 | 150 g | 0,25 L | NFT a canali, Torri verticali, Secchi olandesi |
 | Pomodoro ciliegino | 2–3 | 5,5–6,5 | 500–800 | 20–30 | 16 | 20–26 | 60–70 | 60 cm | 28 + 120 | 3 kg | 1,2 L | Secchi olandesi, DWC a zattera galleggiante |
 | Peperoncino | 1,8–2,4 | 5,8–6,3 | 400–600 | 18–25 | 16 | 22–28 | 50–70 | 50 cm | 28 + 120 | 400 g | 0,6 L | Secchi olandesi, DWC a zattera galleggiante |
+| Cetriolo (partenocarpico) | 1,7–2,5 | 5,5–6,0 | 400–600 | 20–30 | 16 | 21–28 | 60–75 | 50 cm | 21 + 70 | 3.000 g | 1,5 L | Secchi olandesi, Goccia su substrato |
+| Peperone dolce | 2,0–2,5 | 5,8–6,3 | 400–700 | 20–30 | 16 | 21–27 | 60–70 | 50 cm | 35 + 110 | 2.000 g | 1,0 L | Secchi olandesi, Goccia su substrato, Flusso e riflusso |
 | Microgreens (vassoi) | 0–0,6 | 5,5–6,5 | 100–250 | 6–12 | 16 | 18–22 | 40–60 | fitto | 10 | 250 g | 0,25 L | Vassoi per microgreens |
 
 Colture insieme nello stesso serbatoio solo se EC, pH e temperature si sovrappongono (lattuga, rucola, basilico, prezzemolo
