@@ -10,18 +10,20 @@
 const IDRO_PIANTE = {
   lattuga:    {crescita: {tb: 8, to: 26, tm: 36, k: 0.9, lar: 0.075, a: 0.7, dliRif: 17, d0: 0.004, sec: 0.047,
                           rif: {giorni: 35, dli: 17, t: 22.3, passo: 20, fresco: 150, fonte: "both1995"}},
-               nome: "Lattuga", ec: [0.8, 1.2], ph: [5.5, 6.5], ppfd: [200, 300], dli: [12, 17], ore: 16, t: [16, 22], ur: [50, 70], passo: 20, giorni: 40, vivaio: 14, resa: 180, acqua: 0.15, seme: 0.02, prezzo: 3, consumo: 0.3, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Sopra 24 °C va a seme (sale lo stelo) e diventa amara; sotto 5 °C si ferma. Bruciature ai bordi (tipburn) con poca ventilazione."},
+               nome: "Lattuga", ec: [0.8, 1.2], ph: [5.5, 6.5], ppfd: [200, 300], dli: [12, 17], ore: 16, t: [16, 22], ur: [50, 70], passo: 20, giorni: 40, vivaio: 14, resa: 180, acqua: 0.15, seme: 0.02, prezzo: 3, consumo: 0.3, sistemi: ["nft", "torre", "dwc", "kratky", "ebb"], note: "Sopra 24 °C va a seme (sale lo stelo) e diventa amara; sotto 5 °C si ferma. Bruciature ai bordi (tipburn) con poca ventilazione."},
   basilico:   {crescita: {tb: 8, to: 30, tm: 40, k: 0.8, lar: 0.06, a: 0.7, dliRif: 15, d0: 0.003, sec: 0.08,
                           rif: {giorni: 49, dli: 18.5, t: 25, passo: 20, fresco: 90, fonte: "tabella"}},
-               nome: "Basilico", ec: [1.0, 1.6], ph: [5.5, 6.5], ppfd: [300, 500], dli: [15, 22], ore: 16, t: [21, 27], ur: [50, 60], passo: 20, giorni: 35, vivaio: 14, resa: 90, acqua: 0.12, seme: 0.01, prezzo: 20, consumo: 0.03, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Soffre il freddo sotto 15 °C (foglie nere). Si raccoglie a tagli: cima sopra il secondo nodo, ricresce in 3 settimane."},
-  rucola:     {nome: "Rucola", ec: [0.8, 1.2], ph: [6.0, 6.5], ppfd: [200, 300], dli: [12, 16], ore: 14, t: [15, 21], ur: [50, 70], passo: 10, giorni: 25, vivaio: 7, resa: 40, acqua: 0.05, seme: 0.01, prezzo: 12, consumo: 0.05, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Ciuffi di 4-5 semi per vasetto. Con caldo e luce lunga fiorisce presto."},
-  spinacio:   {nome: "Spinacio", ec: [1.8, 2.3], ph: [6.0, 7.0], ppfd: [250, 350], dli: [12, 15], ore: 12, t: [15, 20], ur: [50, 70], passo: 15, giorni: 40, vivaio: 14, resa: 80, acqua: 0.08, seme: 0.01, prezzo: 6, consumo: 0.15, sistemi: ["nft", "torre", "dwc"], note: "Con più di 14 ore di luce o caldo va a seme: luce corta."},
-  cavolo_riccio: {nome: "Cavolo riccio (kale)", ec: [1.2, 1.8], ph: [5.5, 6.5], ppfd: [300, 400], dli: [14, 18], ore: 16, t: [15, 22], ur: [50, 70], passo: 25, giorni: 45, vivaio: 14, resa: 200, acqua: 0.15, seme: 0.02, prezzo: 8, consumo: 0.1, sistemi: ["nft", "torre", "dwc"], note: "Si raccolgono le foglie basse, la pianta produce per mesi."},
-  prezzemolo: {nome: "Prezzemolo", ec: [0.8, 1.8], ph: [5.5, 6.0], ppfd: [250, 400], dli: [12, 18], ore: 16, t: [16, 24], ur: [50, 70], passo: 20, giorni: 60, vivaio: 21, resa: 100, acqua: 0.08, seme: 0.01, prezzo: 12, consumo: 0.02, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Germina lentamente (2-3 settimane): seme in ammollo una notte."},
-  menta:      {nome: "Menta", ec: [2.0, 2.4], ph: [5.5, 6.5], ppfd: [300, 450], dli: [14, 20], ore: 16, t: [18, 24], ur: [50, 70], passo: 25, giorni: 45, vivaio: 14, resa: 120, acqua: 0.12, seme: 0.3, prezzo: 20, consumo: 0.02, sistemi: ["nft", "dwc", "torre"], note: "Da talea (radica in acqua in 10 giorni). Invadente: radici che tappano i canali."},
-  fragola:    {nome: "Fragola (rifiorente)", ec: [1.2, 1.8], ph: [5.5, 6.2], ppfd: [400, 600], dli: [17, 25], ore: 14, t: [18, 24], ur: [60, 75], passo: 25, giorni: 90, vivaio: 0, resa: 150, acqua: 0.25, seme: 0.8, prezzo: 8, consumo: 0.15, sistemi: ["nft", "torre", "bucket"], note: "Da piantina (stolone). Al chiuso va impollinata: pennellino o ventola sui fiori."},
-  pomodoro:   {nome: "Pomodoro ciliegino", ec: [2.0, 3.0], ph: [5.5, 6.5], ppfd: [500, 800], dli: [20, 30], ore: 16, t: [20, 26], ur: [60, 70], passo: 60, giorni: 120, vivaio: 28, resa: 3000, acqua: 1.2, seme: 0.05, prezzo: 5, consumo: 0.5, sistemi: ["bucket", "dwc"], note: "Pianta grande: secchi olandesi con perlite e spago al soffitto. Fiori da scuotere ogni giorno per l'impollinazione."},
-  peperoncino: {nome: "Peperoncino", ec: [1.8, 2.4], ph: [5.8, 6.3], ppfd: [400, 600], dli: [18, 25], ore: 16, t: [22, 28], ur: [50, 70], passo: 50, giorni: 120, vivaio: 28, resa: 400, acqua: 0.6, seme: 0.05, prezzo: 15, consumo: 0.01, sistemi: ["bucket", "dwc"], note: "Ama il caldo: ideale d'estate in garage. Germina a 25-30 °C."},
+               nome: "Basilico", ec: [1.0, 1.6], ph: [5.5, 6.5], ppfd: [300, 500], dli: [15, 22], ore: 16, t: [21, 27], ur: [50, 60], passo: 20, giorni: 35, vivaio: 14, resa: 90, acqua: 0.12, seme: 0.01, prezzo: 20, consumo: 0.03, sistemi: ["nft", "torre", "dwc", "kratky", "ebb"], note: "Soffre il freddo sotto 15 °C (foglie nere). Si raccoglie a tagli: cima sopra il secondo nodo, ricresce in 3 settimane."},
+  rucola:     {nome: "Rucola", ec: [0.8, 1.2], ph: [6.0, 6.5], ppfd: [200, 300], dli: [12, 16], ore: 14, t: [15, 21], ur: [50, 70], passo: 10, giorni: 25, vivaio: 7, resa: 40, acqua: 0.05, seme: 0.01, prezzo: 12, consumo: 0.05, sistemi: ["nft", "torre", "dwc", "kratky", "ebb"], note: "Ciuffi di 4-5 semi per vasetto. Con caldo e luce lunga fiorisce presto."},
+  spinacio:   {nome: "Spinacio", ec: [1.8, 2.3], ph: [6.0, 7.0], ppfd: [250, 350], dli: [12, 15], ore: 12, t: [15, 20], ur: [50, 70], passo: 15, giorni: 40, vivaio: 14, resa: 80, acqua: 0.08, seme: 0.01, prezzo: 6, consumo: 0.15, sistemi: ["nft", "torre", "dwc", "ebb"], note: "Con più di 14 ore di luce o caldo va a seme: luce corta."},
+  cavolo_riccio: {nome: "Cavolo riccio (kale)", ec: [1.2, 1.8], ph: [5.5, 6.5], ppfd: [300, 400], dli: [14, 18], ore: 16, t: [15, 22], ur: [50, 70], passo: 25, giorni: 45, vivaio: 14, resa: 200, acqua: 0.15, seme: 0.02, prezzo: 8, consumo: 0.1, sistemi: ["nft", "torre", "dwc", "ebb"], note: "Si raccolgono le foglie basse, la pianta produce per mesi."},
+  prezzemolo: {nome: "Prezzemolo", ec: [0.8, 1.8], ph: [5.5, 6.0], ppfd: [250, 400], dli: [12, 18], ore: 16, t: [16, 24], ur: [50, 70], passo: 20, giorni: 60, vivaio: 21, resa: 100, acqua: 0.08, seme: 0.01, prezzo: 12, consumo: 0.02, sistemi: ["nft", "torre", "dwc", "kratky", "ebb"], note: "Germina lentamente (2-3 settimane): seme in ammollo una notte."},
+  menta:      {nome: "Menta", ec: [2.0, 2.4], ph: [5.5, 6.5], ppfd: [300, 450], dli: [14, 20], ore: 16, t: [18, 24], ur: [50, 70], passo: 25, giorni: 45, vivaio: 14, resa: 120, acqua: 0.12, seme: 0.3, prezzo: 20, consumo: 0.02, sistemi: ["nft", "dwc", "torre", "ebb"], note: "Da talea (radica in acqua in 10 giorni). Invadente: radici che tappano i canali."},
+  fragola:    {nome: "Fragola (rifiorente)", ec: [1.2, 1.8], ph: [5.5, 6.2], ppfd: [400, 600], dli: [17, 25], ore: 14, t: [18, 24], ur: [60, 75], passo: 25, giorni: 90, vivaio: 0, resa: 150, acqua: 0.25, seme: 0.8, prezzo: 8, consumo: 0.15, sistemi: ["nft", "torre", "bucket", "ebb", "goccia"], note: "Da piantina (stolone). Al chiuso va impollinata: pennellino o ventola sui fiori."},
+  pomodoro:   {nome: "Pomodoro ciliegino", ec: [2.0, 3.0], ph: [5.5, 6.5], ppfd: [500, 800], dli: [20, 30], ore: 16, t: [20, 26], ur: [60, 70], passo: 60, giorni: 120, vivaio: 28, resa: 3000, acqua: 1.2, seme: 0.05, prezzo: 5, consumo: 0.5, sistemi: ["bucket", "dwc", "goccia"], note: "Pianta grande: secchi olandesi con perlite e spago al soffitto. Fiori da scuotere ogni giorno per l'impollinazione."},
+  peperoncino: {nome: "Peperoncino", ec: [1.8, 2.4], ph: [5.8, 6.3], ppfd: [400, 600], dli: [18, 25], ore: 16, t: [22, 28], ur: [50, 70], passo: 50, giorni: 120, vivaio: 28, resa: 400, acqua: 0.6, seme: 0.05, prezzo: 15, consumo: 0.01, sistemi: ["bucket", "dwc", "ebb", "goccia"], note: "Ama il caldo: ideale d'estate in garage. Germina a 25-30 °C."},
+  cetriolo:   {nome: "Cetriolo (partenocarpico)", ec: [1.7, 2.5], ph: [5.5, 6.0], ppfd: [400, 600], dli: [20, 30], ore: 16, t: [21, 28], ur: [60, 75], passo: 50, giorni: 70, vivaio: 21, resa: 3000, acqua: 1.5, seme: 0.4, prezzo: 2.5, consumo: 0.15, sistemi: ["bucket", "goccia"], note: "Varietà partenocarpiche: fanno frutti senza impollinazione. Pianta rampicante: spago al soffitto, si cimano i getti laterali. Teme l'oidio con umidità alta."},
+  peperone:   {nome: "Peperone dolce", ec: [2.0, 2.5], ph: [5.8, 6.3], ppfd: [400, 700], dli: [20, 30], ore: 16, t: [21, 27], ur: [60, 70], passo: 50, giorni: 110, vivaio: 35, resa: 2000, acqua: 1.0, seme: 0.1, prezzo: 3.5, consumo: 0.2, sistemi: ["bucket", "goccia", "ebb"], note: "Lento: 5 settimane di vivaio a 25 °C. Fiori da scuotere al chiuso. Sotto 15 °C di notte i frutti si deformano."},
   microgreens: {nome: "Microgreens (vassoi)", ec: [0, 0.6], ph: [5.5, 6.5], ppfd: [100, 250], dli: [6, 12], ore: 16, t: [18, 22], ur: [40, 60], passo: 0, giorni: 10, vivaio: 0, resa: 250, acqua: 0.25, seme: 0.75, prezzo: 30, consumo: 0.03, sistemi: ["vassoi"], note: "Per vassoio 25×50 cm: 15-30 g di seme (girasole e piselli 80-100 g), 3-4 giorni al buio, poi luce. Si vendono a ristoranti."},
 };
 
@@ -67,6 +69,10 @@ const DATI_COLTURE = [
   ["basilico", "Sostanza secca", "8", "%", "manuali", "", "C"],
   ["basilico", "Peso al primo taglio", "90", "g/pianta", "tabella", "da confermare con le pesate", "D"],
   ["basilico", "Carenze e problemi", "foglie nere sotto 10-12 °C; peronospora con umidità alta; foglie pallide = poco azoto o ferro (pH alto)", "", "manuali", "", "C"],
+  ["cetriolo", "Nome scientifico", "Cucumis sativus L.", "", "manuali", "", "A"],
+  ["cetriolo", "EC, pH, luce, temperature, resa", "vedi tabella", "", "manuali", "valori tipici di serra, da verificare", "C"],
+  ["peperone", "Nome scientifico", "Capsicum annuum L.", "", "manuali", "", "A"],
+  ["peperone", "EC, pH, luce, temperature, resa", "vedi tabella", "", "manuali", "valori tipici di serra, da verificare", "C"],
   ["rucola", "Temperatura base / ottimale", "6 / 23", "°C", "msu_cardinali", "rucola in coltura fuori suolo", "B"],
   ["cavolo_riccio", "Temperatura base / ottimale", "6 / 23", "°C", "msu_cardinali", "", "B"],
   ["tutte", "DLI = PPFD × ore × 0,0036", "", "mol/m²/giorno", "manuali", "definizione", "A"],
@@ -83,6 +89,8 @@ const SISTEMI_IDRO = {
   dwc:    {nome: "DWC a zattera galleggiante", verticale: false, descr: "Vasca profonda 20-30 cm, zattera di polistirolo con i vasetti, ossigeno da una pompa d'aria.", pro: "Molto stabile: tanta acqua, regge ore senza corrente.", contro: "Pesante (80 L per m²), l'acqua si scalda d'estate.", tolleranza_ore: 12, struttura_m2: [20, 40]},
   kratky: {nome: "Kratky (passivo, senza pompe)", verticale: false, descr: "Contenitore con coperchio forato: l'acqua cala e le radici trovano aria da sole.", pro: "Il più economico, nessun consumo, ottimo per iniziare.", contro: "Solo piante a ciclo breve; niente ricircolo, l'acqua calda d'estate fa marcire le radici.", tolleranza_ore: 999, struttura_m2: [8, 20]},
   bucket: {nome: "Secchi olandesi (dutch bucket) con perlite", verticale: false, descr: "Un secchio per pianta, gocciolatoio e ritorno: per piante grandi.", pro: "Pomodori, peperoncini, fragole fino a fine ciclo.", contro: "Serve altezza (1,8-2 m) e tanta luce.", tolleranza_ore: 12, struttura_secchio: [12, 25]},
+  ebb:    {nome: "Flusso e riflusso (ebb & flow)", verticale: false, descr: "Vassoio profondo 15 cm con vasetti di argilla o lana di roccia: la pompa lo allaga 15 minuti 3-4 volte al giorno, poi l'acqua torna nel serbatoio.", pro: "Semplice, va bene per quasi tutte le piante, le radici prendono aria tra un allagamento e l'altro.", contro: "Il serbatoio deve contenere tutta l'acqua di un vassoio; il substrato va lavato tra un ciclo e l'altro.", tolleranza_ore: 12, struttura_m2: [25, 45]},
+  goccia: {nome: "Goccia su substrato (lastre di cocco)", verticale: false, descr: "Lastre di fibra di cocco o lana di roccia da 100 cm con 3 piante: gocciolatoi a tempo, il 20-30% d'acqua drena via (a perdere).", pro: "Il sistema delle serre professionali per pomodori, cetrioli e peperoni: robusto, regge ore senza acqua.", contro: "Consuma più acqua e nutrienti (drenaggio a perdere); serve altezza e tanta luce.", tolleranza_ore: 6, struttura_secchio: [8, 15]},
   vassoi: {nome: "Vassoi per microgreens", verticale: false, descr: "Vassoi 25×50 cm su scaffale, irrigati dal basso o con lo spruzzino.", pro: "Raccolta in 10 giorni, prezzo di vendita alto.", contro: "Tanto seme per vassoio, lavoro quotidiano.", tolleranza_ore: 24, struttura_m2: [10, 20]},
 };
 
@@ -145,9 +153,10 @@ function misureImpianto(I) {
   const d = DIMENSIONI_PIANO[I.superficie_piano];
   let lung = st.lung_cm ? st.lung_cm / 100 : d ? d[0] / 100 : Math.sqrt(I.superficie_piano), prof = st.prof_cm ? st.prof_cm / 100 : d ? d[1] / 100 : Math.sqrt(I.superficie_piano);
   if (I.sistema === "bucket") { lung = Math.max(lung, Math.min(4, I.secchi) * 0.4); prof = Math.max(prof, Math.ceil(I.secchi / 4) * 0.45); }
-  const piani = I.disposizione === "scaffale" && !["bucket"].includes(I.sistema) ? Math.max(1, I.piani) : 1;
+  if (I.sistema === "goccia") { lung = Math.max(lung, Math.min(2, I.secchi) * 1.05); prof = Math.max(prof, Math.ceil(I.secchi / 2) * 0.5); }
+  const piani = I.disposizione === "scaffale" && !["bucket", "goccia"].includes(I.sistema) ? Math.max(1, I.piani) : 1;
   const hPiano = (st.h_piano_cm || 45) / 100;
-  const alt = I.sistema === "bucket" ? 1.9 : 0.5 + piani * hPiano + 0.1;       // sotto il primo ripiano il serbatoio
+  const alt = I.sistema === "bucket" || I.sistema === "goccia" ? 1.9 : 0.5 + piani * hPiano + 0.1;       // sotto il primo ripiano il serbatoio
   return {lung, prof, alt, piani, hPiano};
 }
 function sceltaTenda(m) {
@@ -186,9 +195,10 @@ function capacitaIdro(c) {
     let piante;
     if (I.sistema === "torre") piante = Math.floor(I.torri * S.piante_torre * q);
     else if (I.sistema === "bucket") piante = Math.max(1, Math.round(I.secchi * q * (x.coltura === "fragola" ? 4 : x.coltura === "peperoncino" ? 2 : 1)));
+    else if (I.sistema === "goccia") piante = Math.max(1, Math.round(I.secchi * q * (x.coltura === "fragola" ? 8 : x.coltura === "peperoncino" ? 4 : 3)));
     else if (I.sistema === "vassoi") piante = Math.floor(superficie * q / 0.125);
     else piante = Math.floor(superficie * q / Math.pow(P.passo / 100, 2));
-    const chioma = I.sistema === "torre" ? piante * 0.04 : I.sistema === "bucket" ? piante * Math.pow(P.passo / 100, 2) : superficie * q;
+    const chioma = I.sistema === "torre" ? piante * 0.04 : (I.sistema === "bucket" || I.sistema === "goccia") ? piante * Math.pow(P.passo / 100, 2) * (I.sistema === "goccia" ? 0.6 : 1) : superficie * q;
     return {coltura: x.coltura, P, quota: q, piante, chioma};
   });
   const chioma = colture.reduce((a, x) => a + x.chioma, 0);
@@ -207,7 +217,7 @@ function capacitaIdro(c) {
   const superficieTenda = 2 * (tenda.lung * tenda.prof + (tenda.lung + tenda.prof) * tenda.alt);
   const volume = (c.idro.clima.tenda ? tenda.lung * tenda.prof * tenda.alt : 30);
   const piante = colture.reduce((a, x) => a + x.piante, 0);
-  let serbatoio = {nft: Math.max(40, piante * 1.5), torre: I.torri * 60, dwc: superficie * 80, kratky: superficie * 60, bucket: Math.max(50, I.secchi * 8), vassoi: 10}[I.sistema];
+  let serbatoio = {nft: Math.max(40, piante * 1.5), torre: I.torri * 60, dwc: superficie * 80, kratky: superficie * 60, bucket: Math.max(50, I.secchi * 8), ebb: Math.max(60, supPiano * 50 + 40), goccia: Math.max(60, I.secchi * 20), vassoi: 10}[I.sistema];
   serbatoio = Math.ceil(serbatoio / 10) * 10;
   const ec = colture.reduce((a, x) => a + x.quota * (x.P.ec[0] + x.P.ec[1]) / 2, 0);
   const ph = colture.reduce((a, x) => a + x.quota * (x.P.ph[0] + x.P.ph[1]) / 2, 0);
@@ -287,7 +297,7 @@ function simulaIdro(c, opz = {}) {
   const elettronicaW = senzaElettronica ? (A.prese_smart ? 0.8 * 2 : 0) + (A.ups ? 4 : 0) : microW + sensW + (A.connessione === "g4" ? 0.8 : A.connessione === "nessuna" ? 0 : 0.15) + (A.ups ? 4 : 0) + (A.prese_smart ? 0.8 * 4 : 0) + 0.4;
   const idr = idraulicaIdro(cc);
   const pompaW = idr ? idr.wPompa : 0;
-  const pompaOre = {nft: 24, torre: 12, dwc: 0, kratky: 0, bucket: 1.5, vassoi: 0}[I.sistema];
+  const pompaOre = {nft: 24, torre: 12, dwc: 0, kratky: 0, bucket: 1.5, ebb: 1, goccia: 1.5, vassoi: 0}[I.sistema];
   const ariaW = I.sistema === "dwc" ? 3 + k.superficie * 3 : I.sistema === "bucket" ? 3 : 0;
   const guasti = (I.guasti || []).map(g => Object.assign({}, g));
   const reaz = A.connessione !== "nessuna" && A.centrale !== "nessuna" ? 0.2 : 2;     // giorni per accorgersi
@@ -388,7 +398,7 @@ function simulaIdro(c, opz = {}) {
     const umido = !CL.deumidificatore && ur > urMax + 10;
     if (umido) out.giorniUmido++;
     // acqua e nutrienti
-    let acqua = traspirazione * 1.05;
+    let acqua = traspirazione * (I.sistema === "goccia" ? 1.35 : 1.05);       // goccia a perdere: 25-30% di drenaggio
     if (d % I.acqua.cambio_giorni === 0) { acqua += k.serbatoio; out.acquaCambi += k.serbatoio; }
     if (I.acqua.osmosi) out.acquaScarto += acqua * 2.5;
     const nutr = acqua * ecNutr * NUTRIENTI[I.nutrienti].euro_l_ms;
@@ -455,7 +465,7 @@ function costiAnnuiIdro(c, s) {
   const k = s.k, L = k.L, oreLuci = k.ore * 365;
   const prezzoLuci = k.wLuci * (L.euro_w[0] + L.euro_w[1]) / 2;
   righe.push(["Ricambio lampade (vita " + fmtMigliaia(L.vita_h) + " ore)", Math.round(oreLuci) + " ore all'anno", prezzoLuci * L.quota_ricambio * oreLuci / L.vita_h]);
-  if (["nft", "torre", "bucket"].includes(c.idro.sistema)) righe.push(["Ricambio pompa (ogni 3 anni circa)", "", 20 * (c.idro.sistema === "torre" ? c.idro.torri : 1) / 3]);
+  if (["nft", "torre", "bucket", "ebb", "goccia"].includes(c.idro.sistema)) righe.push(["Ricambio pompa (ogni 3 anni circa)", "", 20 * (c.idro.sistema === "torre" ? c.idro.torri : 1) / 3]);
   if (A.ph) righe.push(["Sonda pH (da cambiare ogni 12-18 mesi) e soluzioni di taratura", "", 30]);
   if (A.connessione === "g4") righe.push(["SIM 4G", "", 12]);
   const E = Object.assign({ore_settimana: 0, euro_ora: 0}, c.idro.economia || {});
@@ -480,7 +490,7 @@ function dimensioniPiano(I) {
 function mappaLuce(c, opz = {}) {
   const I = c.idro, k = capacitaIdro(c), L = k.L;
   if (k.S.verticale) return null;
-  const {lung, prof} = I.sistema === "bucket" ? {lung: Math.sqrt(k.footprint), prof: Math.sqrt(k.footprint)} : dimensioniPiano(I);
+  const {lung, prof} = I.sistema === "bucket" || I.sistema === "goccia" ? {lung: k.misure.lung, prof: k.misure.prof} : dimensioniPiano(I);
   const h = (I.luce.distanza_cm || 35) / 100, rho = I.clima.tenda ? 0.9 : 0;
   const wPiano = k.wLuci / Math.max(1, k.piani), ppf = wPiano * L.eff;
   // lampada larga l'80% del piano, sorgenti a griglia 4×3
@@ -514,7 +524,7 @@ function mappaLuce(c, opz = {}) {
 const IDRAULICA = {portataCanale: 1.0, pendenza: 1 / 40, tuboMandata: 0.016, scabrezza: 150, efficienzaPompa: 0.15, filmLm: 0.25};
 function idraulicaIdro(c) {
   const I = c.idro, k = capacitaIdro(c), H = IDRAULICA;
-  if (!["nft", "torre", "bucket"].includes(I.sistema)) return null;
+  if (!["nft", "torre", "bucket", "ebb", "goccia"].includes(I.sistema)) return null;
   let canali = 0, lungCanale = 0, portata = 0, altezza = 0, volumeRitorno = 0, righe = [];
   if (I.sistema === "nft") {
     const {lung, prof} = dimensioniPiano(I);
@@ -530,6 +540,14 @@ function idraulicaIdro(c) {
   } else if (I.sistema === "torre") {
     canali = I.torri; portata = I.torri * 3; altezza = 1.7; volumeRitorno = I.torri * 2;
     righe.push(["Torri", I.torri + ", circa 3 L/min ciascuna in cima"]);
+  } else if (I.sistema === "ebb") {
+    // un vassoio alla volta: 5 cm d'acqua sul vassoio in 10 minuti, poi torna tutta nel serbatoio
+    const {lung, prof} = dimensioniPiano(I);
+    canali = k.piani; portata = lung * prof * 50 / 10; altezza = 0.45 * (k.piani - 1) + 0.6; volumeRitorno = lung * prof * 50;
+    righe.push(["Vassoi", k.piani + " da " + Math.round(lung * 100) + "×" + Math.round(prof * 100) + " cm, allagati uno alla volta 15 minuti 3-4 volte al giorno"]);
+  } else if (I.sistema === "goccia") {
+    canali = I.secchi; portata = k.piante * 2 / 60; altezza = 0.8; volumeRitorno = I.secchi * 0.3;
+    righe.push(["Lastre", I.secchi + " da 100 cm, un gocciolatoio da 2 L/h per pianta, 6-10 irrigazioni brevi al giorno"]);
   } else {
     canali = I.secchi; portata = I.secchi * 2 * 4 / 60; altezza = 1.0; volumeRitorno = I.secchi * 0.5;    // 2 gocciolatori autocompensanti da 4 L/h per secchio
     righe.push(["Secchi", I.secchi + ", 2 gocciolatori autocompensanti da 4 L/h ciascuno"]);
@@ -543,7 +561,7 @@ function idraulicaIdro(c) {
   // scelta della pompa: curva lineare Q = Qmax·(1 − H/Hmax), con Hmax ≥ 1,5 × prevalenza
   const hMax = Math.ceil(prevalenza * 1.5 * 2) / 2, qMax = Math.ceil(portata * 60 / (1 - prevalenza / hMax) / 100) * 100;
   const autonomia = k.serbatoio / Math.max(0.1, (k.colture.reduce((a, x) => a + x.piante * x.P.acqua, 0)));
-  const liberoSerbatoio = k.serbatoio * 0.25;                               // spazio tra livello di lavoro e bordo
+  const liberoSerbatoio = k.serbatoio * (I.sistema === "ebb" ? 0.6 : 0.25);   // spazio tra livello di lavoro e bordo (ebb: si riempie a metà)
   righe.push(["Portata totale", portata.toFixed(1).replace(".", ",") + " L/min (" + Math.round(portata * 60) + " L/h)"],
              ["Prevalenza richiesta", prevalenza.toFixed(2).replace(".", ",") + " m (" + altezza.toFixed(2).replace(".", ",") + " di dislivello + " + perdite.toFixed(2).replace(".", ",") + " di perdite nel tubo da 16 mm + 0,3 raccordi)"],
              ["Pompa consigliata", "almeno " + qMax + " L/h di portata massima e " + hMax.toString().replace(".", ",") + " m di prevalenza massima (alla prevalenza richiesta dà ancora la portata)"],
@@ -558,7 +576,7 @@ function idraulicaIdro(c) {
 // mano di pH ed EC se non ci sono le sonde. Va confrontata con il registro del tuo lavoro vero.
 function oreSettimanaIdro(c) {
   const I = c.idro, A = I.auto, k = capacitaIdro(c);
-  const base = {kratky: 0.5, dwc: 0.75, nft: 1, torre: 1.25, bucket: 1, vassoi: 1.5}[I.sistema];
+  const base = {kratky: 0.5, dwc: 0.75, nft: 1, torre: 1.25, bucket: 1, ebb: 1, goccia: 1.25, vassoi: 1.5}[I.sistema];
   const perPianta = I.sistema === "vassoi" ? 0.15 : 0.02;
   const misure = A.ph && A.ec ? 0.25 : 0.75;
   const dosaggio = A.dosaggio ? 0 : 0.25;
@@ -632,6 +650,9 @@ function materialiIdro(c) {
     add("Struttura", "4b", "Scaffale metallico " + k.piani + (k.piani > 1 ? " ripiani " : " ripiano ") + Math.round(m.lung * 100) + "×" + Math.round(m.prof * 100) + " cm, alto " + Math.round(m.alt * 100) + " cm", 1, [12 + 8 * k.piani * m.lung * m.prof / 0.72, 25 + 15 * k.piani * m.lung * m.prof / 0.72], "Un ripiano ogni " + Math.round(m.hPiano * 100) + " cm, ognuno con la sua luce; sotto il primo il serbatoio.", "scaffale"); }
   if (I.sistema === "torre") add("Struttura", "4b", "Torre verticale da " + S.piante_torre + " vasetti", I.torri, S.struttura_torre, S.pro + " " + S.contro, "sistema");
   else if (I.sistema === "bucket") add("Struttura", "4b", "Secchio olandese con sifone + perlite", I.secchi, S.struttura_secchio, S.pro, "sistema");
+  else if (I.sistema === "goccia") { add("Struttura", "4b", "Lastra di fibra di cocco 100×15 cm con vaschetta di raccolta", I.secchi, S.struttura_secchio, S.pro, "sistema");
+    add("Acqua", "4b", "Gocciolatoi autocompensanti 2 L/h con picchetto, tubo 16 mm e drenaggio", 1, [10 + k.piante * 0.6, 20 + k.piante * 1.2], "Il 20-30% d'acqua drena via: si misura l'EC del drenaggio per capire se il substrato accumula sali.", "sistema"); }
+  else if (I.sistema === "ebb") add("Struttura", "4b", "Vassoio per flusso e riflusso con raccordi di riempimento e troppo pieno", k.piani, [25 * k.superficie / k.piani + 15, 45 * k.superficie / k.piani + 25], S.pro, "sistema");
   else add("Struttura", "4b", (I.sistema === "nft" ? "Staffe e supporti inclinabili per i canali" : S.nome) + " per " + (k.superficie).toFixed(2) + " m²", 1, [S.struttura_m2[0] * k.superficie, S.struttura_m2[1] * k.superficie], S.pro + " " + S.contro, "sistema");
   add("Acqua", "4b", "Serbatoio " + k.serbatoio + " L scuro con coperchio", 1, k.serbatoio <= 60 ? [10, 20] : k.serbatoio <= 120 ? [20, 35] : [40, 70], "Scuro e chiuso: con la luce crescono le alghe.", "serbatoio");
   const idr = idraulicaIdro(c);
@@ -659,12 +680,12 @@ function materialiIdro(c) {
   add("Consumabili", "4a", "Correttore pH- (acido fosforico)", 1, [8, 10], "L'acqua di rete è quasi sempre troppo alta di pH.", "nutrienti");
   add("Consumabili", "4a", "Penne pH ed EC/TDS + soluzioni di taratura pH 4 / 7 e 1413 µS", 1, [30, 55], "Servono sempre, anche con le sonde automatiche: sono il controllo incrociato.", "strumenti");
   add("Consumabili", "4a", "Cubetti di lana di roccia o spugne (100) + vasetti a rete", 1, [12, 20], "Per far nascere e reggere le piantine.", "substrato");
-  if (I.sistema === "bucket") add("Consumabili", "4a", "Perlite o argilla espansa 50 L", 1, [15, 25], "Riempie i secchi.", "substrato");
+  if (I.sistema === "bucket" || I.sistema === "ebb") add("Consumabili", "4a", "Perlite o argilla espansa 50 L", 1, [15, 25], I.sistema === "ebb" ? "Riempie i vasetti nel vassoio." : "Riempie i secchi.", "substrato");
   add("Consumabili", "4a", "Semi (" + I.colture.map(x => IDRO_PIANTE[x.coltura].nome.toLowerCase()).join(", ") + ")", I.colture.length, [2, 4], "Bustine da 2-4 €: centinaia di semi. Per microgreens e fragole il costo vero è nel consumo annuo.", "semi");
   // automazione
   const senzaElettronica = A.micro === "nessuno";
   if (senzaElettronica) {
-    if (!A.prese_smart) add("Automazione", "4a", "Timer da presa (luci" + (["nft", "torre", "bucket"].includes(I.sistema) ? " e pompa" : "") + ")", ["nft", "torre", "bucket"].includes(I.sistema) ? 2 : 1, [8, 15], "Accende e spegne a orario: niente elettronica fai da te a 230 V.", "alimentazione");
+    if (!A.prese_smart) add("Automazione", "4a", "Timer da presa (luci" + (["nft", "torre", "bucket", "ebb", "goccia"].includes(I.sistema) ? " e pompa" : "") + ")", ["nft", "torre", "bucket", "ebb", "goccia"].includes(I.sistema) ? 2 : 1, [8, 15], "Accende e spegne a orario: niente elettronica fai da te a 230 V.", "alimentazione");
     add("Automazione", "4a", "Termometro minima/massima con sonda (aria e acqua)", 1, [10, 18], "Senza sensori, è l'unico modo di sapere quanto caldo e freddo fa davvero in tenda.", "sensori");
   } else {
   const micro = CATALOGO.micro.opzioni[A.micro];

@@ -26,6 +26,8 @@ function strutture(sistema) {
     nft: [{disposizione: "orizzontale", superficie_piano: 0.72}, {disposizione: "scaffale", piani: 2, superficie_piano: 0.72}, {disposizione: "scaffale", piani: 3, superficie_piano: 0.72}],
     torre: [{torri: 1}, {torri: 2}],
     bucket: [{secchi: 2, superficie_piano: 0.72}, {secchi: 4, superficie_piano: 1.44}, {secchi: 6, superficie_piano: 1.44}],
+    ebb: [{disposizione: "orizzontale", superficie_piano: 0.72}, {disposizione: "scaffale", piani: 2, superficie_piano: 0.72}],
+    goccia: [{secchi: 2, superficie_piano: 1.44}, {secchi: 4, superficie_piano: 1.44}],
     vassoi: [{disposizione: "orizzontale", superficie_piano: 0.72}, {disposizione: "scaffale", piani: 2, superficie_piano: 0.72}, {disposizione: "scaffale", piani: 3, superficie_piano: 0.72}],
   }[sistema];
 }
@@ -33,12 +35,12 @@ function strutture(sistema) {
 // difficoltà, rischio e ampliabilità (scala 1-5, giudizio da tecnico dichiarato, non misurato)
 function valutazioni(c) {
   const I = c.idro, A = I.auto, S = SISTEMI_IDRO[I.sistema];
-  const difficolta = Math.min(5, {kratky: 1, vassoi: 2, dwc: 2, nft: 3, bucket: 3, torre: 4}[I.sistema] + (A.dosaggio ? 1 : 0) + (A.micro !== "nessuno" ? 0.5 : 0));
+  const difficolta = Math.min(5, {kratky: 1, vassoi: 2, dwc: 2, ebb: 2, nft: 3, bucket: 3, goccia: 3, torre: 4}[I.sistema] + (A.dosaggio ? 1 : 0) + (A.micro !== "nessuno" ? 0.5 : 0));
   let rischio = S.tolleranza_ore <= 2 && !A.ups ? 4 : S.tolleranza_ore <= 2 ? 2.5 : 1.5;
   if (A.dosaggio) rischio += 0.5;                                  // sonda che deriva
   if (A.micro === "nessuno" && !["kratky", "vassoi"].includes(I.sistema)) rischio += 1;
   const gestione = Math.min(5, (A.ph && A.ec ? 1.5 : 2.5) + (I.sistema === "vassoi" ? 1.5 : 0) + (I.colture.length > 1 ? 0.5 : 0));
-  const ampliabile = {kratky: 1, dwc: 3, nft: 5, torre: 4, bucket: 3, vassoi: 4}[I.sistema];
+  const ampliabile = {kratky: 1, dwc: 3, ebb: 4, nft: 5, torre: 4, bucket: 3, goccia: 4, vassoi: 4}[I.sistema];
   return {difficolta: Math.round(difficolta), rischio: Math.min(5, Math.round(rischio)), gestione: Math.round(gestione), ampliabile};
 }
 
@@ -94,7 +96,7 @@ function valutaIdro(R, x) {
 
 function nomeProposta(x) {
   const I = x.c.idro, S = SISTEMI_IDRO[I.sistema];
-  const dim = I.sistema === "torre" ? I.torri + (I.torri > 1 ? " torri" : " torre") : I.sistema === "bucket" ? I.secchi + " secchi"
+  const dim = I.sistema === "torre" ? I.torri + (I.torri > 1 ? " torri" : " torre") : I.sistema === "bucket" ? I.secchi + " secchi" : I.sistema === "goccia" ? I.secchi + (I.secchi > 1 ? " lastre" : " lastra")
     : (I.disposizione === "scaffale" ? I.piani + " piani da " : "") + ({0.36: "60×60", 0.72: "120×60", 1.44: "120×120"}[I.superficie_piano] || I.superficie_piano + " m²") + " cm";
   return S.nome.split(" (")[0] + ", " + dim + " · " + I.colture.map(c => IDRO_PIANTE[c.coltura].nome.toLowerCase()).join(" e ") + " · " + LUCI_IDRO[I.luce.tipo].nome.split(" (")[0].toLowerCase() + (x.clima === "tenda" ? " · tenda e stufetta" : " · senza tenda (stagione mite)");
 }

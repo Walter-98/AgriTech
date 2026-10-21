@@ -211,14 +211,14 @@ function editorProgettoIdro(box) {
       I.sistema = v; const adatte = Object.keys(IDRO_PIANTE).filter(p => IDRO_PIANTE[p].sistemi.includes(v));
       I.colture = I.colture.filter(x => adatte.includes(x.coltura)); if (!I.colture.length) I.colture = [{coltura: adatte[0], quota: 100}]; aggiorna(true); }),
     I.sistema === "torre" ? griglia(campoNum("Torri", I.torri, 1, 6, 1, v => set(I, "torri", v), "36 piante ciascuna"))
-      : griglia(...(I.sistema !== "bucket" ? [campoSel("Disposizione", I.disposizione, [["orizzontale", "Orizzontale (un piano)"], ["scaffale", "Scaffale a più piani"]], v => set(I, "disposizione", v))] : []),
-        ...(I.disposizione === "scaffale" && I.sistema !== "bucket" ? [campoNum("Piani", I.piani, 1, 5, 1, v => set(I, "piani", v))] : []),
+      : griglia(...(!["bucket", "goccia"].includes(I.sistema) ? [campoSel("Disposizione", I.disposizione, [["orizzontale", "Orizzontale (un piano)"], ["scaffale", "Scaffale a più piani"]], v => set(I, "disposizione", v))] : []),
+        ...(I.disposizione === "scaffale" && !["bucket", "goccia"].includes(I.sistema) ? [campoNum("Piani", I.piani, 1, 5, 1, v => set(I, "piani", v))] : []),
         ...(() => { const m = misureImpianto(I), st = I.struttura = Object.assign({lung_cm: Math.round(m.lung * 100), prof_cm: Math.round(m.prof * 100), h_piano_cm: 45}, I.struttura || {});
           const aggiornaSup = () => { I.superficie_piano = st.lung_cm * st.prof_cm / 10000; aggiorna(true); };
           return [campoNum("Lunghezza del ripiano", st.lung_cm, 30, 400, 5, v => { st.lung_cm = v; aggiornaSup(); }, "cm"),
             campoNum("Profondità del ripiano", st.prof_cm, 30, 200, 5, v => { st.prof_cm = v; aggiornaSup(); }, "cm"),
             ...(I.disposizione === "scaffale" ? [campoNum("Distanza tra i ripiani", st.h_piano_cm, 30, 100, 5, v => { st.h_piano_cm = v; aggiorna(true); }, "cm")] : [])]; })(),
-        ...(I.sistema === "bucket" ? [campoNum("Secchi", I.secchi, 1, 16, 1, v => set(I, "secchi", v))] : []))));
+        ...(I.sistema === "bucket" ? [campoNum("Secchi", I.secchi, 1, 16, 1, v => set(I, "secchi", v))] : I.sistema === "goccia" ? [campoNum("Lastre da 100 cm", I.secchi, 1, 12, 1, v => set(I, "secchi", v), "3 piante ciascuna")] : []))));
   const Lc = I.locale = Object.assign({lung: 5, larg: 3, alt: 2.4, auto: true}, I.locale || {}), pos = posizionaImpianto(cfg);
   box.append(riquadro("Il locale", el("div", {id: "ed-locale"}), el("div", {id: "ed-struttura"}),
     griglia(campoNum("Lunghezza", Lc.lung, 1, 30, 0.1, v => set(Lc, "lung", v, false), "m"), campoNum("Larghezza", Lc.larg, 1, 20, 0.1, v => set(Lc, "larg", v, false), "m"),
@@ -308,7 +308,7 @@ function editorLogicaIdro(box) {
   const k = capacitaIdro(cfg), I = cfg.idro, S = k.S;
   const regole = [
     ["Luci", k.ore + " ore al giorno" + (I.luce.notte ? " dalle 20:00 (di notte)" : " dalle 6:00") + "; spente se il sensore di perdita scatta."],
-    ["Pompa", {nft: "sempre accesa (o 15 min sì / 15 no di notte)", torre: "15 minuti sì e 15 no", dwc: "pompa d'aria sempre accesa", kratky: "nessuna pompa", bucket: "4-6 cicli da 15 minuti durante la luce", vassoi: "irrigazione dal basso 1-2 volte al giorno"}[I.sistema]],
+    ["Pompa", {nft: "sempre accesa (o 15 min sì / 15 no di notte)", torre: "15 minuti sì e 15 no", dwc: "pompa d'aria sempre accesa", kratky: "nessuna pompa", bucket: "4-6 cicli da 15 minuti durante la luce", ebb: "3-4 allagamenti al giorno da 15 minuti durante la luce, un vassoio alla volta", goccia: "6-10 irrigazioni brevi durante la luce; 20-30% di drenaggio, EC del drenaggio da controllare", vassoi: "irrigazione dal basso 1-2 volte al giorno"}[I.sistema]],
     ["EC", "obiettivo " + k.ec.toFixed(1) + " mS/cm (acqua di partenza " + DUREZZE[I.acqua.durezza].ec + "): se scende di 0,1 dosa A e B in parti uguali, aspetta 15 minuti e rimisura."],
     ["pH", "obiettivo " + k.ph.toFixed(1) + ": sopra +0,3 dosa pH- a piccole dosi; sempre dopo i nutrienti."],
     ["Temperatura aria", "estrattore sopra " + (Math.min(...k.colture.map(x => x.P.t[1])) - 1) + " °C, stufetta sotto " + I.clima.t_min + " °C."],

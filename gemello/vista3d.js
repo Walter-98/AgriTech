@@ -705,7 +705,7 @@ const Vista3D = (() => {
     if (A.temp_acqua) cilindro(0.004, 0.1, MAT.acciaio, rx, 0.4, rz - 0.1, info("Sonda temperatura acqua", "Sopra 24 °C le radici soffrono.", "sensori", trovaVoce(voci, "sensori", "ds18b20")));
     const campi = [];
     const aggiungiCampo = (coltura, pos, quota) => { const P = IDRO_PIANTE[coltura];
-      const cp = campo(coltura === "microgreens" ? "microgreens" : coltura === "cavolo_riccio" ? "cavolo" : coltura, pos, {senzaOmbre: pos.length > 120, info: info(P.nome, "EC " + P.ec.join("-") + " · pH " + P.ph.join("-") + " · " + P.ppfd.join("-") + " µmol/m²/s per " + P.ore + " h · " + P.t.join("-") + " °C · UR " + P.ur.join("-") + "% · raccolta in " + P.giorni + " giorni · " + P.resa + " g per pianta. " + P.note, "colture")});
+      const cp = campo(coltura === "microgreens" ? "microgreens" : coltura === "cavolo_riccio" ? "cavolo" : coltura === "cetriolo" ? "zucchina" : coltura, pos, {senzaOmbre: pos.length > 120, info: info(P.nome, "EC " + P.ec.join("-") + " · pH " + P.ph.join("-") + " · " + P.ppfd.join("-") + " µmol/m²/s per " + P.ore + " h · " + P.t.join("-") + " °C · UR " + P.ur.join("-") + "% · raccolta in " + P.giorni + " giorni · " + P.resa + " g per pianta. " + P.note, "colture")});
       gruppo.add(cp.g); campi.push(cp); };
     const ripartisci = (n) => { const out = []; let resto = n; k.colture.forEach((x, i) => { const q = i === k.colture.length - 1 ? resto : Math.round(n * x.quota); out.push(q); resto -= q; }); return out; };
     const lampada = (x, y, z, w, d, info0) => { blocco(w, 0.035, d, mat(0x2e2e2e, {metalness: 0.6, roughness: 0.4}), x, y, z, info0);
@@ -737,10 +737,11 @@ const Vista3D = (() => {
       }
       k.colture.forEach((x, i) => aggiungiCampo(x.coltura, posPerColtura[i]));
     } else {
-      const piani = I.sistema === "bucket" ? 1 : k.piani;
+      const grandi = I.sistema === "bucket" || I.sistema === "goccia";
+      const piani = grandi ? 1 : k.piani;
       const prof = k.misure.prof, largh = k.misure.lung;
-      const y0 = I.sistema === "bucket" ? 0.12 : 0.5;                 // sotto il primo ripiano c'è il serbatoio
-      const hPiano = I.sistema === "bucket" ? 0 : Math.min(k.misure.hPiano, (H - y0 - 0.1) / piani);
+      const y0 = grandi ? 0.12 : 0.5;                 // sotto il primo ripiano c'è il serbatoio
+      const hPiano = grandi ? 0 : Math.min(k.misure.hPiano, (H - y0 - 0.1) / piani);
       // scaffale
       if (piani > 1 || I.sistema === "nft" || I.sistema === "vassoi") {
         for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) blocco(0.03, y0 + piani * hPiano + 0.1, 0.03, MAT.zincato, tx + px * largh / 2, (y0 + piani * hPiano + 0.1) / 2, tz + pz * prof / 2 - 0.05, info("Scaffale", k.piani + " ripiani, ognuno con la sua luce.", "scaffale", trovaVoce(voci, "scaffale")));
@@ -751,7 +752,7 @@ const Vista3D = (() => {
       const prossima = () => { while (rimasti <= 0 && coltIdx < k.colture.length - 1) { coltIdx++; rimasti = quoteP[coltIdx]; } rimasti--; return coltIdx; };
       for (let p = 0; p < piani; p++) {
         const y = y0 + p * hPiano, zc0 = tz - 0.05;
-        if (I.sistema !== "bucket") blocco(largh, 0.02, prof, MAT.zincato, tx, y - 0.02, zc0);
+        if (!grandi) blocco(largh, 0.02, prof, MAT.zincato, tx, y - 0.02, zc0);
         const infSist = info(S.nome, S.descr + " " + S.pro + " " + S.contro, "sistema", trovaVoce(voci, "sistema"));
         if (I.sistema === "nft") {
           const canali = Math.max(2, Math.floor(prof / 0.2));
@@ -760,10 +761,11 @@ const Vista3D = (() => {
             for (let xx = -largh / 2 + 0.12; xx < largh / 2 - 0.05; xx += 0.2) { cilindro(0.025, 0.02, MAT.plastNera, tx + xx, y + 0.065, cz); if (posPerColtura.reduce((a, l) => a + l.length, 0) < k.piante) { const ci = prossima(); posPerColtura[ci].push([tx + xx, y + 0.075, cz, (j * 3 + xx * 10) % 6, 0, ((p * 31 + j * 7 + Math.round(xx * 10)) % 10) / 10]); } } }
           tubo([[rx, 0.38, rz], [rx - 0.25, y + 0.1, zc0 - prof / 2 + 0.05], [tx - largh / 2 + 0.05, y + 0.08, zc0 - prof / 2 + 0.1]], 0.007, MAT.pe);
           tuboDritto([[tx + largh / 2 - 0.02, y + 0.03, zc0 - prof / 2], [tx + largh / 2 - 0.02, y + 0.03, zc0 + prof / 2]], 0.02, MAT.pvc);
-        } else if (I.sistema === "dwc" || I.sistema === "kratky") {
+        } else if (I.sistema === "dwc" || I.sistema === "kratky" || I.sistema === "ebb") {
           blocco(largh - 0.04, 0.22, prof - 0.04, mat(0x1c1c1e, {roughness: 0.5}), tx, y + 0.11, zc0, infSist);
           const acqua = blocco(largh - 0.08, 0.005, prof - 0.08, MAT.acqua, tx, y + 0.2, zc0);
           if (I.sistema === "dwc") blocco(largh - 0.1, 0.03, prof - 0.1, mat(0xf3f3ee, {roughness: 0.8}), tx, y + 0.215, zc0, infSist);
+          else if (I.sistema === "ebb") acqua.visible = false;          // tra un allagamento e l'altro il vassoio è asciutto
           else blocco(largh - 0.04, 0.012, prof - 0.04, mat(0x2a2a2c), tx, y + 0.226, zc0, infSist);
           const passo = Math.max(0.15, Math.sqrt(largh * prof / Math.max(1, quoteP.reduce((a, b) => a + b, 0) / piani)));
           for (let xx = -largh / 2 + passo / 2; xx < largh / 2 - 0.04; xx += passo) for (let zz = -prof / 2 + passo / 2; zz < prof / 2 - 0.04; zz += passo) {
@@ -779,6 +781,16 @@ const Vista3D = (() => {
             tuboDritto([[bx, 0.43, zc0], [bx, H - 0.05, zc0]], 0.0012, mat(0xe8e2cf));
             const ci = prossima(); posPerColtura[ci].push([bx, 0.42, zc0, b, 0, (b * 3 % 10) / 10]); }
           tuboDritto([[tx - largh / 2, 0.5, zc0 - 0.12], [tx + largh / 2, 0.5, zc0 - 0.12]], 0.006, MAT.pe);
+        } else if (I.sistema === "goccia") {
+          const nL = Math.max(1, I.secchi), file = Math.ceil(nL / 2), perPiantaL = Math.max(1, Math.round(k.piante / nL));
+          for (let b = 0; b < nL; b++) { const lx = tx + (b % 2 ? 0.27 : -0.27) * (nL > 1 ? 2 : 0), lz = zc0 - (file - 1) * 0.25 + Math.floor(b / 2) * 0.5;
+            blocco(1.0, 0.03, 0.2, mat(0xd8d4cc), lx, 0.1, lz, infSist);
+            blocco(1.0, 0.08, 0.15, mat(0xf1f1ec, {roughness: 0.8}), lx, 0.16, lz, infSist);
+            for (let q = 0; q < perPiantaL; q++) { const px = lx - 0.5 + (q + 0.5) / perPiantaL;
+              blocco(0.1, 0.07, 0.1, mat(0x7a5a3a, {roughness: 1}), px, 0.235, lz);
+              tuboDritto([[px, 0.27, lz], [px, H - 0.05, lz]], 0.0012, mat(0xe8e2cf));
+              if (posPerColtura.reduce((a, l) => a + l.length, 0) < k.piante) { const ci = prossima(); posPerColtura[ci].push([px, 0.27, lz, b * 3 + q, 0, ((b * 3 + q) % 10) / 10]); } } }
+          tuboDritto([[tx - largh / 2, 0.32, zc0 - 0.15], [tx + largh / 2, 0.32, zc0 - 0.15]], 0.006, MAT.pe);
         } else if (I.sistema === "vassoi") {
           const vx = Math.max(1, Math.floor(largh / 0.52)), vz = Math.max(1, Math.floor(prof / 0.27));
           for (let a = 0; a < vx; a++) for (let b = 0; b < vz; b++) { const px = tx - (vx - 1) * 0.26 + a * 0.52, pz = zc0 - (vz - 1) * 0.135 + b * 0.27;
@@ -787,7 +799,7 @@ const Vista3D = (() => {
             for (let q = 0; q < 70; q++) posPerColtura[ci].push([px - 0.23 + (q % 10) * 0.051, y + 0.05, pz - 0.105 + Math.floor(q / 10) * 0.035, q, 0, fase]); }
         }
         // luce del ripiano
-        const yl = I.sistema === "bucket" ? H - 0.25 : y + hPiano - 0.06;
+        const yl = grandi ? H - 0.25 : y + hPiano - 0.06;
         lampada(tx, yl, tz - 0.05, largh * 0.9, prof * 0.85, infLuce);
         tuboDritto([[tx - largh * 0.4, yl, tz - 0.05], [tx - largh * 0.4, Math.min(H, yl + 0.2), tz - 0.05]], 0.0015, mat(0x111111));
         tuboDritto([[tx + largh * 0.4, yl, tz - 0.05], [tx + largh * 0.4, Math.min(H, yl + 0.2), tz - 0.05]], 0.0015, mat(0x111111));

@@ -141,7 +141,7 @@ Ordine per importanza, ognuna con test di accettazione.
 7. ✅ **Hardware e monitoraggio** (configurazioni pronte e validate; prova su hardware vero a carico tuo): ESPHome + Home Assistant, storico, allarmi.
 8. ✅ **Dati reali e calibrazione** (pronto: servono i tuoi raccolti): registro colture, confronto previsto/misurato, ricalibrazione con versioni e
    ritorno indietro.
-9. Altre colture e tecnologie (ebb & flow, goccia su substrato).
+9. ✅ Altre colture e tecnologie: flusso e riflusso, goccia su substrato, cetriolo, peperone (valori C, da verificare).
 10. Documenti in PDF/XLSX, normativa per la vendita (D.Lgs. 228/2001, Reg. CE 852/2004, SUAP e AST delle Marche),
     funzioni commerciali.
 
