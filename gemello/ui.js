@@ -671,8 +671,61 @@ function schedaPercorso(box) {
 }
 function selezionaTesto(n) { const r = document.createRange(); r.selectNodeContents(n); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
 
+// ---------- percorso guidato ----------
+let PROPOSTE = null;
+function schedaInizia(box) {
+  const R = cfg.risposte = Object.assign({}, RISPOSTE_ESEMPIO, cfg.risposte || {});
+  const set = (kk, v) => { R[kk] = v; PROPOSTE = null; salva(); disegnaScheda(); };
+  const elenco = R.luogo === "esterno" ? PIANTE : IDRO_PIANTE;
+  R.colture = R.colture.filter(k => elenco[k]);
+  const colture = el("div", {class: "campi"}, ...Object.entries(elenco).map(([kk, p]) => spunta(p.nome, R.colture.includes(kk), v => set("colture", v ? [...R.colture, kk] : R.colture.filter(x => x !== kk)))));
+  box.append(el("p", {class: "piccolo", text: "Rispondi a poche domande: il gemello prova tutte le combinazioni sensate (sistema, dimensione, lampade, automazione, tenda), scarta quelle che non rispettano spazio, budget e tempo, e ti propone tre soluzioni. Se non conviene, te lo dice."}),
+    riquadro("Le tue risposte",
+      griglia(campoSel("Dove", R.luogo, [["garage", "Garage, cantina o stanza (idroponica)"], ["esterno", "All'aperto (orto in terra)"]], v => { R.colture = []; set("luogo", v); }),
+        campoSel("Zona d'Italia", R.regione, Object.entries(REGIONI).map(([kk, r]) => [kk, r.nome]), v => set("regione", v)),
+        campoNum("Spazio utilizzabile", R.superficie, 1, 500, 1, v => set("superficie", v), "m²"),
+        campoNum("Altezza utile", R.altezza, 1, 5, 0.1, v => set("altezza", v), "m"),
+        campoNum("Budget per partire", R.budget, 0, 20000, 10, v => set("budget", v), "€"),
+        campoNum("Spesa massima al mese", R.budget_mese, 0, 2000, 5, v => set("budget_mese", v), "€"),
+        campoNum("Tempo disponibile", R.ore_settimana, 0, 40, 0.5, v => set("ore_settimana", v), "ore a settimana"),
+        campoNum("Persone in famiglia", R.persone, 1, 10, 1, v => set("persone", v)),
+        campoNum("Prezzo della corrente", R.kwh, 0, 1, 0.01, v => set("kwh", v), "€/kWh")),
+      schede("Obiettivo", R.obiettivo, Object.entries(OBIETTIVI).map(([kk, o]) => [kk, o.nome, o.descr]), v => set("obiettivo", v)),
+      el("div", {class: "blocco"}, el("span", {class: "etichetta", text: "Colture che ti interessano"}), colture)));
+  const esito = el("div", {"aria-live": "polite"});
+  const calcola = el("button", {class: "az", type: "button", text: PROPOSTE ? "Ricalcola" : "Calcola le proposte"});
+  calcola.disabled = !R.colture.length && R.luogo !== "esterno";
+  calcola.addEventListener("click", () => { esito.replaceChildren(el("p", {class: "piccolo", text: "Sto provando tutte le combinazioni…"})); setTimeout(() => { PROPOSTE = progetta(R); disegnaScheda(); }, 30); });
+  box.append(el("div", {class: "blocco"}, calcola), esito);
+  if (!PROPOSTE) return;
+  const P = PROPOSTE;
+  esito.append(riquadro("Giudizio", el("p", {class: "piccolo", text: "Configurazioni provate: " + P.tutti.length + ", possibili con i tuoi vincoli: " + P.ok.length + "."}),
+    ...P.giudizio.righe.map(r => el("div", {class: "msg"}, chip(r.tipo, r.tipo === "ok" ? "ok" : r.tipo === "warn" ? "attenzione" : "no"), el("p", {class: "piccolo", text: r.testo})))));
+  const riga = (n, v) => el("tr", null, el("td", {text: n}), el("td", {class: "n", text: v}));
+  const scala = n => "●".repeat(n) + "○".repeat(5 - n);
+  const carte = P.proposte.map(p => {
+    if (!p.x) return riquadro(p.lettera + " · " + p.titolo, el("p", {class: "piccolo", text: p.nota}));
+    const r = p.x.riassunto, v = p.x.v;
+    const usa = el("button", {class: "az", type: "button", text: "Apri nel gemello"});
+    usa.addEventListener("click", () => {
+      if (P.tipo === "idro") { cfg.modalita = "idro"; cfg.idro = JSON.parse(JSON.stringify(p.x.c.idro)); }
+      else { cfg.modalita = "orto"; for (const kk of ["zone", "componenti", "extra", "acqua", "preset"]) cfg[kk] = JSON.parse(JSON.stringify(p.x.c[kk])); }
+      cfg.regione = R.regione; cfg.prezzi.kwh = R.kwh; aggiorna(true); apri("progetto"); });
+    return riquadro(p.lettera + " · " + p.titolo, el("p", null, el("strong", {text: p.nome})),
+      el("div", {class: "scorri"}, el("table", null, el("tbody", null,
+        riga("Per iniziare", forbice(r.capexMin, r.capexMax)), riga("Spese all'anno", euro(r.opex)), riga("Raccolto utile", fmt(r.kg) + " kg all'anno"),
+        riga("Costo al kg (con ammortamento)", isFinite(r.costoKg) ? euro(r.costoKg) : "-"), riga("Si ripaga in", isFinite(r.pareggio) ? fmt(r.pareggio, 1) + " anni" : "mai"),
+        riga("Corrente", fmt(r.kwh) + " kWh all'anno"), riga("Acqua", fmt(r.acqua, 1) + " m³ all'anno"), riga("Lavoro", fmt(r.ore, 1) + " ore a settimana"),
+        ...(v ? [riga("Difficoltà", scala(v.difficolta)), riga("Rischio tecnico", scala(v.rischio)), riga("Gestione", scala(v.gestione)), riga("Si può ingrandire", scala(v.ampliabile))] : [])))),
+      el("p", null, chip(r.giudizio === "conviene" ? "ok" : "warn", r.giudizio === "conviene" ? "si ripaga" : "non si ripaga")), usa);
+  });
+  esito.append(el("div", {class: "tre"}, ...carte));
+  if (P.motiviScarto && Object.keys(P.motiviScarto).length) esito.append(riquadro("Perché altre configurazioni sono state scartate",
+    el("p", {class: "piccolo", text: Object.entries(P.motiviScarto).sort((a, b) => b[1] - a[1]).map(([k, n]) => n + " per " + k).join(", ") + ". Difficoltà, rischio e gestione sono giudizi da tecnico (scala 1-5), non misure."})));
+}
+
 // ---------- schede e aggiornamento ----------
-const SCHEDE = [["progetto", "Progetto"], ["componenti", "Componenti"], ["logica", "Logica"], ["guasti", "Guasti"], ["simulazione", "Simulazione"], ["costi", "Costi"], ["materiali", "Materiali"], ["struttura", "Struttura"], ["gestione", "Gestione"], ["guida", "Guida"], ["percorso", "Percorso"]];
+const SCHEDE = [["inizia", "Inizia"], ["progetto", "Progetto"], ["componenti", "Componenti"], ["logica", "Logica"], ["guasti", "Guasti"], ["simulazione", "Simulazione"], ["costi", "Costi"], ["materiali", "Materiali"], ["struttura", "Struttura"], ["gestione", "Gestione"], ["guida", "Guida"], ["percorso", "Percorso"]];
 let schedaAperta = "progetto";
 function apri(nome) {
   if (!SCHEDE.some(s => s[0] === nome)) nome = "progetto";
@@ -683,10 +736,10 @@ function apri(nome) {
 }
 function disegnaScheda() {
   const box = $("contenuto"); box.replaceChildren();
-  const titoli = {progetto: idro() ? "Il tuo impianto idroponico" : "Il tuo orto", componenti: "Componenti", logica: "Logica di controllo", guasti: "Guasti e scenari", simulazione: "Un anno nel gemello",
+  const titoli = {inizia: "Progetta il tuo primo impianto", progetto: idro() ? "Il tuo impianto idroponico" : "Il tuo orto", componenti: "Componenti", logica: "Logica di controllo", guasti: "Guasti e scenari", simulazione: "Un anno nel gemello",
     costi: "Quanto costa, davvero", materiali: "Lista della spesa", struttura: "Come è fatto", gestione: "Gestirlo ogni giorno", guida: idro() ? "Guida da tecnico dell'idroponica" : "Guida", percorso: "Dal gemello alla realtà"};
   box.append(el("h2", {text: titoli[schedaAperta]}));
-  const f = {progetto: () => idro() ? editorProgettoIdro(box) : editorProgettoOrto(box), componenti: () => idro() ? editorComponentiIdro(box) : editorComponentiOrto(box),
+  const f = {inizia: () => schedaInizia(box), progetto: () => idro() ? editorProgettoIdro(box) : editorProgettoOrto(box), componenti: () => idro() ? editorComponentiIdro(box) : editorComponentiOrto(box),
     logica: () => idro() ? editorLogicaIdro(box) : editorLogicaOrto(box), guasti: () => editorGuasti(box, idro() ? GUASTI_IDRO : GUASTI, !idro()),
     simulazione: () => schedaSimulazione(box), costi: () => schedaCosti(box), materiali: () => schedaMateriali(box), struttura: () => schedaStruttura(box),
     gestione: () => schedaGestione(box), guida: () => schedaGuida(box), percorso: () => schedaPercorso(box)}[schedaAperta];

@@ -141,9 +141,10 @@ function simulaIdro(c, opz = {}) {
   const UA = CL.tenda ? 4 * k.superficieTenda : 20 * k.footprint + 40;   // W/K verso il garage
   const UAvent = CL.estrattore ? 55 : 8;                                  // ricambio d'aria quando fa caldo
   const stufaW = {nessuno: 0, tappetino: 0, stufetta: 1000}[CL.riscaldamento];
-  const microW = (CATALOGO.micro.opzioni[A.micro] || CATALOGO.micro.opzioni.esp32).w;
+  const senzaElettronica = A.micro === "nessuno";
+  const microW = senzaElettronica ? 0 : (CATALOGO.micro.opzioni[A.micro] || CATALOGO.micro.opzioni.esp32).w;
   const sensW = 0.2 * [A.ph, A.ec, A.temp_acqua, A.aria, A.co2, A.livello, A.perdita, A.flusso, A.luce_sens].filter(Boolean).length;
-  const elettronicaW = microW + sensW + (A.connessione === "g4" ? 0.8 : A.connessione === "nessuna" ? 0 : 0.15) + (A.ups ? 4 : 0) + (A.prese_smart ? 0.8 * 4 : 0) + 0.4;
+  const elettronicaW = senzaElettronica ? (A.prese_smart ? 0.8 * 2 : 0) + (A.ups ? 4 : 0) : microW + sensW + (A.connessione === "g4" ? 0.8 : A.connessione === "nessuna" ? 0 : 0.15) + (A.ups ? 4 : 0) + (A.prese_smart ? 0.8 * 4 : 0) + 0.4;
   const pompaW = {nft: 10 + k.piante * 0.04, torre: I.torri * 12, dwc: 0, kratky: 0, bucket: 20, vassoi: 0}[I.sistema];
   const pompaOre = {nft: 24, torre: 12, dwc: 0, kratky: 0, bucket: 1.5, vassoi: 0}[I.sistema];
   const ariaW = I.sistema === "dwc" ? 3 + k.superficie * 3 : I.sistema === "bucket" ? 3 : 0;
@@ -296,6 +297,18 @@ function costiAnnuiIdro(c, s) {
 const n1 = x => x.toFixed(1).replace(".", ",");
 const fmtMigliaia = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
+// ---------- lavoro ----------
+// Ore a settimana stimate (euristica dichiarata): base per sistema + semina/trapianto/raccolta per pianta + misure a
+// mano di pH ed EC se non ci sono le sonde. Va confrontata con il registro del tuo lavoro vero.
+function oreSettimanaIdro(c) {
+  const I = c.idro, A = I.auto, k = capacitaIdro(c);
+  const base = {kratky: 0.5, dwc: 0.75, nft: 1, torre: 1.25, bucket: 1, vassoi: 1.5}[I.sistema];
+  const perPianta = I.sistema === "vassoi" ? 0.15 : 0.02;
+  const misure = A.ph && A.ec ? 0.25 : 0.75;
+  const dosaggio = A.dosaggio ? 0 : 0.25;
+  return Math.round((base + k.piante * perPianta + misure + dosaggio) * 4) / 4;
+}
+
 // ---------- bilancio economico ----------
 // CAPEX = materiale per partire (forbice min-max dei prezzi), OPEX = spese di ogni anno, ammortamento = CAPEX medio diviso
 // per gli anni di vita. Il raccolto mangiato in casa vale quanto costerebbe al negozio (valore di sostituzione), quello
@@ -387,25 +400,31 @@ function materialiIdro(c) {
   if (I.sistema === "bucket") add("Consumabili", "4a", "Perlite o argilla espansa 50 L", 1, [15, 25], "Riempie i secchi.", "substrato");
   add("Consumabili", "4a", "Semi (" + I.colture.map(x => IDRO_PIANTE[x.coltura].nome.toLowerCase()).join(", ") + ")", I.colture.length, [2, 4], "Bustine da 2-4 €: centinaia di semi. Per microgreens e fragole il costo vero è nel consumo annuo.", "semi");
   // automazione
+  const senzaElettronica = A.micro === "nessuno";
+  if (senzaElettronica) {
+    if (!A.prese_smart) add("Automazione", "4a", "Timer da presa (luci" + (["nft", "torre", "bucket"].includes(I.sistema) ? " e pompa" : "") + ")", ["nft", "torre", "bucket"].includes(I.sistema) ? 2 : 1, [8, 15], "Accende e spegne a orario: niente elettronica fai da te a 230 V.", "alimentazione");
+    add("Automazione", "4a", "Termometro minima/massima con sonda (aria e acqua)", 1, [10, 18], "Senza sensori, è l'unico modo di sapere quanto caldo e freddo fa davvero in tenda.", "sensori");
+  } else {
   const micro = CATALOGO.micro.opzioni[A.micro];
   add("Automazione", "4a", micro.nome, 1, micro.p, micro.pro + " Software: " + micro.firmware + ".", "micro");
-  if (A.ph) add("Automazione", "4a", "Sonda pH industriale + scheda di interfaccia", 1, [35, 60], "Sonda da tenere sempre in acqua; si tara ogni mese, si cambia ogni 12-18 mesi.", "sensori");
-  if (A.ec) add("Automazione", "4a", "Sonda EC K=1 + scheda di interfaccia", 1, [45, 70], "Misura i nutrienti disciolti.", "sensori");
-  if (A.temp_acqua) add("Automazione", "4a", "Sonda temperatura acqua DS18B20 impermeabile", 1, [2, 4], "Sopra 24 °C le radici soffrono.", "sensori");
-  if (A.aria) add("Automazione", "4b", "Sensore aria SHT31 (temperatura e umidità)", 1, [8, 14], "Comanda estrattore, stufetta e deumidificatore.", "sensori");
-  if (A.co2) add("Automazione", "4b", "Sensore CO₂ SCD40", 1, [30, 45], "Utile solo con tanta luce e tenda chiusa.", "sensori");
-  if (A.livello) add("Automazione", "4b", "Due galleggianti (minimo e massimo)", 1, [4, 6], "Pompa ferma col serbatoio vuoto, rabbocco fino al massimo.", "sensori");
-  if (A.perdita) add("Automazione", "4b", "Sensore di perdita a pavimento", 2, [2, 5], "In garage l'acqua sul pavimento vicino alle prese è pericolosa.", "sensori");
-  if (A.flusso) add("Automazione", "4b", "Flussimetro sul ritorno", 1, [3, 6], "Sa se l'acqua scorre davvero nei canali.", "sensori");
-  if (A.luce_sens) add("Automazione", "4b", "Sensore di luce BH1750", 1, [2, 4], "Controlla che le lampade si accendano.", "sensori");
-  if (A.dosaggio) add("Automazione", "4b", "Pompe peristaltiche 12 V (A, B, pH-) + driver", 3, [8, 13], "Dosano da sole nutrienti e acido a piccole dosi.", "dosaggio");
-  if (A.rabbocco) add("Automazione", "4b", "Elettrovalvola o pompa di rabbocco", 1, [6, 12], "Rabbocca l'acqua che le piante bevono.", "dosaggio");
+  if (A.ph && !senzaElettronica) add("Automazione", "4a", "Sonda pH industriale + scheda di interfaccia", 1, [35, 60], "Sonda da tenere sempre in acqua; si tara ogni mese, si cambia ogni 12-18 mesi.", "sensori");
+  if (A.ec && !senzaElettronica) add("Automazione", "4a", "Sonda EC K=1 + scheda di interfaccia", 1, [45, 70], "Misura i nutrienti disciolti.", "sensori");
+  if (A.temp_acqua && !senzaElettronica) add("Automazione", "4a", "Sonda temperatura acqua DS18B20 impermeabile", 1, [2, 4], "Sopra 24 °C le radici soffrono.", "sensori");
+  if (A.aria && !senzaElettronica) add("Automazione", "4b", "Sensore aria SHT31 (temperatura e umidità)", 1, [8, 14], "Comanda estrattore, stufetta e deumidificatore.", "sensori");
+  if (A.co2 && !senzaElettronica) add("Automazione", "4b", "Sensore CO₂ SCD40", 1, [30, 45], "Utile solo con tanta luce e tenda chiusa.", "sensori");
+  if (A.livello && !senzaElettronica) add("Automazione", "4b", "Due galleggianti (minimo e massimo)", 1, [4, 6], "Pompa ferma col serbatoio vuoto, rabbocco fino al massimo.", "sensori");
+  if (A.perdita && !senzaElettronica) add("Automazione", "4b", "Sensore di perdita a pavimento", 2, [2, 5], "In garage l'acqua sul pavimento vicino alle prese è pericolosa.", "sensori");
+  if (A.flusso && !senzaElettronica) add("Automazione", "4b", "Flussimetro sul ritorno", 1, [3, 6], "Sa se l'acqua scorre davvero nei canali.", "sensori");
+  if (A.luce_sens && !senzaElettronica) add("Automazione", "4b", "Sensore di luce BH1750", 1, [2, 4], "Controlla che le lampade si accendano.", "sensori");
+  if (A.dosaggio && !senzaElettronica) add("Automazione", "4b", "Pompe peristaltiche 12 V (A, B, pH-) + driver", 3, [8, 13], "Dosano da sole nutrienti e acido a piccole dosi.", "dosaggio");
+  if (A.rabbocco && !senzaElettronica) add("Automazione", "4b", "Elettrovalvola o pompa di rabbocco", 1, [6, 12], "Rabbocca l'acqua che le piante bevono.", "dosaggio");
   add("Automazione", "4b", "Alimentatore 12 V 3 A + step-down + modulo relè per pompe 12 V", 1, [15, 25], "Bassa tensione per pompe e dosatori.", "alimentazione");
+  }
   if (A.prese_smart) add("Automazione", "4b", "Prese smart certificate 16 A (luci, stufetta, estrattore, deumidificatore)", 4, [10, 18], "I carichi a 230 V solo con prese certificate, mai con relè fai da te.", "alimentazione");
   if (A.ups) add("Automazione", "4b", "UPS 600-800 VA", 1, [60, 95], "Tiene accese pompa ed elettronica nei blackout brevi.", "ups");
   if (A.connessione === "lora") add("Automazione", "6", "Modulo LoRa", 1, [15, 25], "", "connessione");
   if (A.connessione === "g4") add("Automazione", "6", "Modulo 4G", 1, [25, 40], "", "connessione");
-  if (A.centrale === "rpi") add("Automazione", "6", "Raspberry Pi 4 come centrale", 1, [45, 65], "Dati, pannello e avvisi.", "centrale");
+  if (A.centrale === "rpi" && !senzaElettronica) add("Automazione", "6", "Raspberry Pi 4 come centrale", 1, [45, 65], "Dati, pannello e avvisi.", "centrale");
   add("Sicurezza", "4b", "Ciabatta con interruttore e magnetotermico, sollevata da terra", 1, [15, 30], "Mai prese e ciabatte sul pavimento vicino all'acqua; l'impianto di casa deve avere il salvavita.", "sicurezza");
   return voci;
 }
@@ -425,14 +444,15 @@ function compatibilitaIdro(c) {
   if (k.L.eff < 2) add("warn", "Lampade poco efficienti", "Con LED bianchi buoni (2,7 µmol/J) la stessa luce costerebbe " + Math.round((1 - k.L.eff / 2.7) * 100) + "% di corrente in meno.", "luce");
   if (k.S.verticale) add("warn", "Verticale: si risparmia spazio, non luce", "Ogni pianta ha bisogno della stessa luce: le torri richiedono lampade intorno e più watt per pianta (luce persa nella geometria).", "sistema");
   if (k.S.tolleranza_ore <= 2 && !A.ups) add("crit", "Nessun UPS su un sistema a ricircolo", k.S.nome + ": senza pompa le radici seccano in " + k.S.tolleranza_ore + " ore. Prova il guasto 'Blackout'.", "ups");
-  if (!A.perdita) add("crit", "Nessun sensore di perdita", "In garage una perdita bagna pavimento e prese: sensore a pavimento e ciabatta sollevata.", "sicurezza");
+  if (A.micro === "nessuno") add("warn", "Senza elettronica", "Nessun allarme: controlli tu ogni giorno livello, temperatura e perdite. Va bene per imparare con un impianto piccolo; con pompe e più di 50 L d'acqua in garage conviene il sensore di perdita.", "micro");
+  if (!A.perdita && A.micro !== "nessuno") add(["kratky", "vassoi"].includes(I.sistema) ? "warn" : "crit", "Nessun sensore di perdita", "In garage una perdita bagna pavimento e prese: sensore a pavimento e ciabatta sollevata.", "sicurezza");
   if (!CL.tenda) add("warn", "Senza tenda", "Si scalda e si illumina tutto il garage: riscaldamento e umidità costano molto di più.", "tenda");
   if (I.acqua.durezza === "dura" && !I.acqua.osmosi) add("warn", "Acqua dura", "Parte da EC " + DUREZZE.dura.ec + ": per la lattuga resta poco spazio ai nutrienti e serve tanto pH-. Mescola acqua piovana o usa l'osmosi.", "acqua");
   if (I.acqua.osmosi) add("warn", "Osmosi: aggiungi calcio e magnesio", "L'acqua di osmosi è quasi pura: serve un cal-mag e la soluzione è meno tamponata (pH che si muove di più).", "acqua");
   if (!A.ph && !A.ec) add("warn", "Controllo manuale", "Misura pH ed EC con le penne 2-3 volte a settimana e correggi a mano: funziona, costa meno, rende un po' meno.", "sensori");
   if (A.dosaggio && (!A.ph || !A.ec)) add("crit", "Dosaggio automatico senza sonde", "I dosatori hanno bisogno delle sonde pH ed EC.", "dosaggio");
   if (A.dosaggio) add("warn", "Dosaggio automatico: taratura", "Tara la sonda pH ogni " + A.taratura_giorni + " giorni e controlla con la penna ogni settimana: una sonda sbagliata manda il pH a picco (prova il guasto 'Sonda pH che deriva').", "dosaggio");
-  if (!A.prese_smart) add("crit", "Carichi a 230 V", "Luci, stufetta e deumidificatore vanno comandati da prese smart certificate, non da relè fai da te.", "alimentazione");
+  if (!A.prese_smart && A.micro !== "nessuno") add("crit", "Carichi a 230 V", "Luci, stufetta e deumidificatore vanno comandati da prese smart certificate, non da relè fai da te.", "alimentazione");
   if (k.colture.some(x => x.coltura === "fragola" || x.coltura === "pomodoro" || x.coltura === "peperoncino")) add("warn", "Impollinazione", "Al chiuso non ci sono insetti: scuoti i fiori o usa un pennellino ogni giorno.", "colture");
   if (k.colture.some(x => x.coltura === "spinacio") && k.ore > 14) add("warn", "Spinacio e luce lunga", "Con più di 14 ore di luce lo spinacio va a seme.", "luce");
   if (I.sistema === "vassoi") add("warn", "Microgreens", "Niente nutrienti (o EC 0,5): il costo vero è il seme. Si vendono freschi a ristoranti: trova i clienti prima.", "colture");
@@ -442,6 +462,7 @@ function compatibilitaIdro(c) {
 
 function pinMappaIdro(c) {
   const A = c.idro.auto, righe = [];
+  if (A.micro === "nessuno") return righe;
   const mappe = {esp32: {adc: ["34", "35", "32"], dig: ["26", "25", "27", "16", "17", "14", "13", "4", "5", "18", "19", "23"], i2c: "21 / 22"},
                  esp32s3: {adc: ["1", "2", "3"], dig: ["11", "12", "13", "14", "15", "16", "17", "18", "38", "39", "40", "41"], i2c: "8 / 9"},
                  picow: {adc: ["GP26", "GP27", "GP28"], dig: ["GP2", "GP3", "GP6", "GP7", "GP8", "GP9", "GP10", "GP11", "GP12", "GP13", "GP14", "GP15"], i2c: "GP4 / GP5"},
@@ -465,4 +486,4 @@ function pinMappaIdro(c) {
   if (A.prese_smart) righe.push(["Luci, estrattore, stufetta, deumidificatore", "Wi-Fi", "prese smart comandate via rete"]);
   return righe;
 }
-if (typeof module !== "undefined") module.exports = {simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce};
+if (typeof module !== "undefined") module.exports = {simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};

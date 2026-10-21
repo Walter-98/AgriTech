@@ -40,7 +40,7 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 | Distinta base | Prototipo: prezzi stimati a forbice, senza fornitori, link o date |
 | Database colture con fonti | Prototipo: valori da manuali, fonti solo per luce ed efficienza |
 | Confronto tra alternative | Prototipo: "confronti rapidi" a una variabile; ottimizzazione da sviluppare |
-| Percorso guidato per principianti | Da sviluppare (fase 2) |
+| Percorso guidato per principianti (scheda Inizia) | Implementata e testata (fase 2): prova circa 400 configurazioni, rispetta i vincoli, propone A/B/C, sa dire di no |
 | 3D | Dimostrazione: coerente con i numeri (piante, lampade, serbatoio) ma non è un CAD; non prova niente |
 | Firmware idroponica (pH, EC, dosaggio) | Da sviluppare |
 | Monitoraggio remoto | Da sviluppare (previsti ESPHome + Home Assistant) |
@@ -74,8 +74,7 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 1. Due motori per l'orto (Python e JavaScript) con formule diverse: possono dare numeri diversi per lo stesso orto.
 2. Clima su medie mensili per 4 macro-zone: niente ondate di calore né dati del comune (lo script Open-Meteo esiste
    solo in Python).
-3. Il microcontrollore è sempre nella distinta: manca la versione "zero elettronica" (timer, penne, termometro), che è
-   la vera minima spesa (circa 80-180 €).
+3. ~~Manca la versione "zero elettronica"~~: aggiunta nella fase 2 (timer, penne, termometro min/max).
 4. Moltiplicatori di stress a soglia (caldo × 0,5 ecc.), senza fonte.
 5. Tolleranze ai blackout per sistema dalla pratica, non misurate.
 6. Prezzi dei componenti stimati, senza data né fornitore.
@@ -128,7 +127,7 @@ Scelta: **evolvere quello che c'è, senza un server finché non serve**.
 
 Ordine per importanza, ognuna con test di accettazione.
 1. **Audit e calcoli** ✅ fatta. Accettazione: 14 test numerici verdi, luce → resa, bilancio con ammortamento e giudizio.
-2. **Percorso guidato e confronto delle tecnologie.** Domande essenziali (luogo, spazio, budget, tempo, colture,
+2. ✅ **Percorso guidato e confronto delle tecnologie.** Domande essenziali (luogo, spazio, budget, tempo, colture,
    obiettivo) → tre proposte A/B/C, compresa la versione senza elettronica, e un giudizio. Accettazione: per 10 casi
    di prova le proposte rispettano budget e spazio, e almeno un caso viene sconsigliato con motivo.
 3. **Database colture con fonti e modello di crescita** per lattuga e basilico: biomassa giornaliera da luce e

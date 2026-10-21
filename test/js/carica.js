@@ -4,8 +4,8 @@ const fs = require("fs"), path = require("path"), vm = require("vm");
 const DIR = path.join(__dirname, "..", "..", "gemello");
 function carica() {
   const ctx = vm.createContext({console, Math, Object, JSON, Array, Number, Set, String, Infinity, isFinite});
-  for (const f of ["dati.js", "sim.js", "idro.js"]) vm.runInContext(fs.readFileSync(path.join(DIR, f), "utf8"), ctx, {filename: f});
-  vm.runInContext("globalThis.G = {ESEMPIO, IDRO_ESEMPIO, IDRO_PIANTE, LUCI_IDRO, SISTEMI_IDRO, capacitaIdro, simulaIdro, costiAnnuiIdro, materialiIdro, economiaIdro, rispostaLuce, statoLuce, somma};", ctx);
+  for (const f of ["dati.js", "sim.js", "idro.js", "progetta.js"]) vm.runInContext(fs.readFileSync(path.join(DIR, f), "utf8"), ctx, {filename: f});
+  vm.runInContext("globalThis.G = {ESEMPIO, IDRO_ESEMPIO, IDRO_PIANTE, LUCI_IDRO, SISTEMI_IDRO, capacitaIdro, simulaIdro, costiAnnuiIdro, materialiIdro, economiaIdro, rispostaLuce, statoLuce, somma, oreSettimanaIdro, progetta, RISPOSTE_ESEMPIO, LIVELLI_AUTO, compatibilitaIdro, PIANTE};", ctx);
   return ctx.G;
 }
 // configurazione di riferimento (copia profonda) con modifiche al ramo idro
