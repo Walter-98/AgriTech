@@ -9,7 +9,39 @@ const meseDi = d => { for (let m = 11; m >= 0; m--) if (d >= INIZIO_MESE[m]) ret
 const gaussDa = rnd => Math.sqrt(-2 * Math.log(rnd() + 1e-9)) * Math.cos(2 * Math.PI * rnd());
 const opzione = (fam, k) => CATALOGO[fam].opzioni[k];
 
+// Meteo vero di un anno (Open-Meteo o CSV di strumenti/scarica_meteo.py): 365 giorni {et0, pioggia, tmin, tmax}
+function meteoDaCsv(testo) {
+  const righe = testo.trim().split(/\r?\n/), testa = righe.shift().split(/[,;]/).map(x => x.trim().toLowerCase());
+  const col = n => testa.findIndex(t => t.startsWith(n));
+  const iE = col("et0"), iP = col("pioggia"), iMin = col("t_min"), iMax = col("t_max"), iD = col("data");
+  if (iMin < 0 || iMax < 0) throw new Error("Servono le colonne t_min e t_max (e possibilmente et0_mm, pioggia_mm)");
+  const giorni = righe.map(r => r.split(/[,;]/)).filter(v => v.length >= testa.length && !isNaN(parseFloat(v[iMin])))
+    .map(v => ({data: iD >= 0 ? v[iD] : "", et0: iE >= 0 ? +v[iE] : null, pioggia: iP >= 0 ? +v[iP] : 0, tmin: +v[iMin], tmax: +v[iMax]}));
+  return completaAnno(giorni, "file CSV");
+}
+function meteoDaOpenMeteo(json, luogo) {
+  const d = json.daily, giorni = d.time.map((t, i) => ({data: t, et0: d.et0_fao_evapotranspiration ? d.et0_fao_evapotranspiration[i] : null,
+    pioggia: d.precipitation_sum ? d.precipitation_sum[i] || 0 : 0, tmin: d.temperature_2m_min[i], tmax: d.temperature_2m_max[i]})).filter(g => g.tmin != null && g.tmax != null);
+  return completaAnno(giorni, "Open-Meteo, " + luogo);
+}
+function completaAnno(giorni, fonte) {
+  if (giorni.length < 300) throw new Error("Servono almeno 300 giorni (meglio un anno intero), trovati " + giorni.length);
+  const anno = [];
+  for (let d = 0; d < 365; d++) {
+    const g = giorni[d % giorni.length], t = (g.tmin + g.tmax) / 2;
+    // ET0 mancante: Hargreaves semplificata con la radiazione media del mese di REGIONI non disponibile → stima da temperatura
+    const et0 = g.et0 != null && !isNaN(g.et0) ? g.et0 : Math.max(0.2, 0.0023 * 0.408 * 25 * (t + 17.8) * Math.sqrt(Math.max(0, g.tmax - g.tmin)) * (0.5 + 0.5 * Math.sin((d - 80) / 365 * 2 * Math.PI)));
+    anno.push({et0, pioggia: g.pioggia || 0, tmin: g.tmin, tmax: g.tmax, data: g.data});
+  }
+  return {fonte, dal: giorni[0].data, al: giorni[giorni.length - 1].data, giorni: anno};
+}
+
 function meteo(c) {
+  if (c.meteoReale && c.meteoReale.giorni && c.meteoReale.giorni.length >= 365) {
+    const giorni = c.meteoReale.giorni.slice(0, 365).map((g, d) => ({m: meseDi(d), et0: g.et0, pioggia: g.pioggia, nuvoloso: g.pioggia > 1, t: (g.tmin + g.tmax) / 2, tmin: g.tmin, tmax: g.tmax}));
+    for (const g of (c.guasti || [])) if (g.tipo === "nubifragio" && giorni[g.giorno]) Object.assign(giorni[g.giorno], {pioggia: 90, nuvoloso: true});
+    return giorni;
+  }
   const R = REGIONI[c.regione], A = ANNI[c.anno];
   const rnd = mulberry32(20240 + Object.keys(REGIONI).indexOf(c.regione) * 7 + Object.keys(ANNI).indexOf(c.anno));
   const scala = A.pioggia < 1 ? 0.75 : A.pioggia > 1 ? 1.2 : 1;

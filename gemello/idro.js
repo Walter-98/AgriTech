@@ -78,7 +78,7 @@ const DATI_COLTURE = [
 ];
 
 const SISTEMI_IDRO = {
-  nft:    {nome: "NFT a canali (film nutritivo)", verticale: false, descr: "Canali in PVC leggermente inclinati: un velo d'acqua scorre sulle radici e torna nel serbatoio.", pro: "Il più usato per insalate ed erbe; pulito, leggero.", contro: "Se la pompa si ferma le radici seccano in 1-2 ore: serve l'UPS.", tolleranza_ore: 2, struttura_m2: [25, 50]},
+  nft:    {nome: "NFT a canali (film nutritivo)", verticale: false, descr: "Canali in PVC leggermente inclinati: un velo d'acqua scorre sulle radici e torna nel serbatoio.", pro: "Il più usato per insalate ed erbe; pulito, leggero.", contro: "Se la pompa si ferma le radici seccano in 1-2 ore: serve l'UPS.", tolleranza_ore: 2, struttura_m2: [8, 15]},
   torre:  {nome: "Torri verticali (aeroponica/NFT verticale)", verticale: true, descr: "Colonne con vasetti a spirale: l'acqua sale in cima e ricade sulle radici.", pro: "36 piante su mezzo metro quadro di pavimento.", contro: "Le luci devono stare intorno alla torre: si risparmia pavimento, non corrente. Pompa a cicli: se si ferma, radici secche in meno di un'ora.", tolleranza_ore: 1, struttura_torre: [70, 160], piante_torre: 36},
   dwc:    {nome: "DWC a zattera galleggiante", verticale: false, descr: "Vasca profonda 20-30 cm, zattera di polistirolo con i vasetti, ossigeno da una pompa d'aria.", pro: "Molto stabile: tanta acqua, regge ore senza corrente.", contro: "Pesante (80 L per m²), l'acqua si scalda d'estate.", tolleranza_ore: 12, struttura_m2: [20, 40]},
   kratky: {nome: "Kratky (passivo, senza pompe)", verticale: false, descr: "Contenitore con coperchio forato: l'acqua cala e le radici trovano aria da sole.", pro: "Il più economico, nessun consumo, ottimo per iniziare.", contro: "Solo piante a ciclo breve; niente ricircolo, l'acqua calda d'estate fa marcire le radici.", tolleranza_ore: 999, struttura_m2: [8, 20]},
@@ -122,7 +122,7 @@ const ALLARMI_IDRO = [
 const IDRO_ESEMPIO = {
   sistema: "nft", disposizione: "scaffale", piani: 3, superficie_piano: 0.72, torri: 2, secchi: 6, vassoi: 0,
   colture: [{coltura: "lattuga", quota: 60}, {coltura: "basilico", quota: 25}, {coltura: "rucola", quota: 15}],
-  luce: {tipo: "led_qb", ppfd: 0, ore: 0, notte: true, w_installati: 0},
+  luce: {tipo: "led_qb", ppfd: 0, ore: 0, notte: true, w_installati: 0, distanza_cm: 35},
   clima: {garage: "non_isolato", tenda: true, riscaldamento: "stufetta", t_min: 17, estrattore: true, circolazione: true, deumidificatore: false},
   acqua: {durezza: "media", osmosi: false, piovana: false, cambio_giorni: 21},
   nutrienti: "polvere",
@@ -242,7 +242,8 @@ function simulaIdro(c, opz = {}) {
   const microW = senzaElettronica ? 0 : (CATALOGO.micro.opzioni[A.micro] || CATALOGO.micro.opzioni.esp32).w;
   const sensW = 0.2 * [A.ph, A.ec, A.temp_acqua, A.aria, A.co2, A.livello, A.perdita, A.flusso, A.luce_sens].filter(Boolean).length;
   const elettronicaW = senzaElettronica ? (A.prese_smart ? 0.8 * 2 : 0) + (A.ups ? 4 : 0) : microW + sensW + (A.connessione === "g4" ? 0.8 : A.connessione === "nessuna" ? 0 : 0.15) + (A.ups ? 4 : 0) + (A.prese_smart ? 0.8 * 4 : 0) + 0.4;
-  const pompaW = {nft: 10 + k.piante * 0.04, torre: I.torri * 12, dwc: 0, kratky: 0, bucket: 20, vassoi: 0}[I.sistema];
+  const idr = idraulicaIdro(cc);
+  const pompaW = idr ? idr.wPompa : 0;
   const pompaOre = {nft: 24, torre: 12, dwc: 0, kratky: 0, bucket: 1.5, vassoi: 0}[I.sistema];
   const ariaW = I.sistema === "dwc" ? 3 + k.superficie * 3 : I.sistema === "bucket" ? 3 : 0;
   const guasti = (I.guasti || []).map(g => Object.assign({}, g));
@@ -258,9 +259,11 @@ function simulaIdro(c, opz = {}) {
   const vive = 1 - PR.mortalita / 100, fermo = PR.fermo_giorni;
   for (let d = 0; d < 365; d++) {
     const m = meseDi(d);
-    const tEst = R.t[m] + gaussDa(rnd) * 1.5;
+    const vero = c.meteoReale && c.meteoReale.giorni && c.meteoReale.giorni[d];
+    const tEst = vero ? (vero.tmin + vero.tmax) / 2 : R.t[m] + gaussDa(rnd) * 1.5;
     const tGarage = CL.garage === "isolato" ? 0.6 * tEst + 8 : tEst + 3;
-    const escursione = CL.garage === "isolato" ? 1.5 : 3;
+    // escursione nel garage: con il meteo vero metà (non isolato) o un quarto (isolato) di quella esterna
+    const escursione = vero ? (vero.tmax - vero.tmin) / 2 * (CL.garage === "isolato" ? 0.25 : 0.5) : CL.garage === "isolato" ? 1.5 : 3;
     const tGarageLuci = I.luce.notte ? tGarage - escursione : tGarage + escursione;
     const tGarageBuio = I.luce.notte ? tGarage + escursione : tGarage - escursione;
     // guasti del giorno
@@ -416,6 +419,93 @@ function costiAnnuiIdro(c, s) {
 const n1 = x => x.toFixed(1).replace(".", ",");
 const fmtMigliaia = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
+// ---------- mappa della luce sul ripiano ----------
+// Ogni lampada è una griglia di sorgenti puntiformi lambertiane (I(θ) = I0·cos θ, I0 = PPF/π) a "distanza" cm sopra la
+// chioma. PPFD in un punto = Σ I0·cos θ·cos θ / d² = Σ I0·h² / d⁴. Con la tenda le 4 pareti riflettenti (Mylar, ρ ≈ 0,9)
+// aggiungono una riflessione come sorgenti specchiate. Formula fotometrica esatta per sorgenti puntiformi (A); la forma
+// del fascio (lambertiano) e la riflettività sono ipotesi (C): con il file fotometrico della lampada si sostituiscono.
+const DIMENSIONI_PIANO = {0.36: [60, 60], 0.48: [80, 60], 0.72: [120, 60], 1: [100, 100], 1.44: [120, 120], 2.25: [150, 150]};
+function dimensioniPiano(I) {
+  const d = DIMENSIONI_PIANO[I.superficie_piano];
+  if (d) return {lung: d[0] / 100, prof: d[1] / 100};
+  const lato = Math.sqrt(I.superficie_piano); return {lung: lato, prof: lato};
+}
+function mappaLuce(c, opz = {}) {
+  const I = c.idro, k = capacitaIdro(c), L = k.L;
+  if (k.S.verticale) return null;
+  const {lung, prof} = I.sistema === "bucket" ? {lung: Math.sqrt(k.footprint), prof: Math.sqrt(k.footprint)} : dimensioniPiano(I);
+  const h = (I.luce.distanza_cm || 35) / 100, rho = I.clima.tenda ? 0.9 : 0;
+  const wPiano = k.wLuci / Math.max(1, k.piani), ppf = wPiano * L.eff;
+  // lampada larga l'80% del piano, sorgenti a griglia 4×3
+  const nx = 4, ny = 3, sorgenti = [];
+  for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) sorgenti.push([lung * (0.1 + 0.8 * (i + 0.5) / nx), prof * (0.1 + 0.8 * (j + 0.5) / ny)]);
+  const I0 = ppf / sorgenti.length / Math.PI;
+  const specchi = [];
+  for (const [x, y] of sorgenti) {
+    specchi.push([x, y, 1]);
+    if (rho) specchi.push([-x, y, rho], [2 * lung - x, y, rho], [x, -y, rho], [x, 2 * prof - y, rho]);
+  }
+  const gx = opz.gx || 24, gy = opz.gy || Math.max(6, Math.round(gx * prof / lung));
+  const griglia = [];
+  let somma = 0, min = Infinity, max = 0;
+  for (let j = 0; j < gy; j++) { const riga = [];
+    for (let i = 0; i < gx; i++) {
+      const px = lung * (i + 0.5) / gx, py = prof * (j + 0.5) / gy;
+      let e = 0;
+      for (const [x, y, f] of specchi) { const d2 = (px - x) ** 2 + (py - y) ** 2 + h * h; e += f * I0 * h * h / (d2 * d2); }
+      riga.push(e); somma += e; min = Math.min(min, e); max = Math.max(max, e);
+    }
+    griglia.push(riga); }
+  const media = somma / (gx * gy);
+  return {griglia, lung, prof, h, media, min, max, uniformita: min / media, dliMedio: media * k.ore * 0.0036, dliMin: min * k.ore * 0.0036,
+          utilizzo: media * lung * prof / ppf, ppfdSemplice: k.ppfd};
+}
+
+// ---------- idraulica: canali NFT, torri, secchi ----------
+// Portata per canale NFT circa 1 L/min (0,5 al trapianto, massimo 2), pendenza consigliata tra 1:100 e 1:30: valori
+// da letteratura e pratica (C). Perdite nel tubo di mandata con Hazen-Williams (A): hf = 10,67·L·Q^1,852/(C^1,852·D^4,87).
+const IDRAULICA = {portataCanale: 1.0, pendenza: 1 / 40, tuboMandata: 0.016, scabrezza: 150, efficienzaPompa: 0.15, filmLm: 0.25};
+function idraulicaIdro(c) {
+  const I = c.idro, k = capacitaIdro(c), H = IDRAULICA;
+  if (!["nft", "torre", "bucket"].includes(I.sistema)) return null;
+  let canali = 0, lungCanale = 0, portata = 0, altezza = 0, volumeRitorno = 0, righe = [];
+  if (I.sistema === "nft") {
+    const {lung, prof} = dimensioniPiano(I);
+    const passoCanali = Math.max(0.15, Math.max(...k.colture.map(x => x.P.passo || 15)) / 100);
+    const perPiano = Math.max(1, Math.floor(prof / passoCanali));
+    canali = perPiano * k.piani; lungCanale = lung;
+    portata = canali * H.portataCanale;                                     // L/min
+    altezza = 0.45 * (k.piani - 1) + 0.6;                                   // ingresso del canale più alto sopra il serbatoio
+    volumeRitorno = canali * lungCanale * H.filmLm + canali * 0.3;          // acqua che torna giù quando la pompa si ferma
+    righe.push(["Canali", canali + " (" + perPiano + " per piano, uno ogni " + Math.round(passoCanali * 100) + " cm)"],
+               ["Lunghezza dei canali", lung.toFixed(2).replace(".", ",") + " m"],
+               ["Pendenza", "1:40 = " + (lung * H.pendenza * 100).toFixed(1).replace(".", ",") + " cm di dislivello per canale (da 1:100 a 1:30 secondo le fonti)"]);
+  } else if (I.sistema === "torre") {
+    canali = I.torri; portata = I.torri * 3; altezza = 1.7; volumeRitorno = I.torri * 2;
+    righe.push(["Torri", I.torri + ", circa 3 L/min ciascuna in cima"]);
+  } else {
+    canali = I.secchi; portata = I.secchi * 2 * 4 / 60; altezza = 1.0; volumeRitorno = I.secchi * 0.5;    // 2 gocciolatori autocompensanti da 4 L/h per secchio
+    righe.push(["Secchi", I.secchi + ", 2 gocciolatori autocompensanti da 4 L/h ciascuno"]);
+  }
+  const Q = portata / 60000;                                                // m³/s
+  const lungTubo = altezza + 1.5;
+  const perdite = 10.67 * lungTubo * Math.pow(Q, 1.852) / (Math.pow(H.scabrezza, 1.852) * Math.pow(H.tuboMandata, 4.87));
+  const prevalenza = altezza + perdite + 0.3;                               // + raccordi e uscita
+  const potenzaIdraulica = 1000 * 9.81 * Q * prevalenza;                    // W
+  const wPompa = Math.max(5, potenzaIdraulica / H.efficienzaPompa);
+  // scelta della pompa: curva lineare Q = Qmax·(1 − H/Hmax), con Hmax ≥ 1,5 × prevalenza
+  const hMax = Math.ceil(prevalenza * 1.5 * 2) / 2, qMax = Math.ceil(portata * 60 / (1 - prevalenza / hMax) / 100) * 100;
+  const autonomia = k.serbatoio / Math.max(0.1, (k.colture.reduce((a, x) => a + x.piante * x.P.acqua, 0)));
+  const liberoSerbatoio = k.serbatoio * 0.25;                               // spazio tra livello di lavoro e bordo
+  righe.push(["Portata totale", portata.toFixed(1).replace(".", ",") + " L/min (" + Math.round(portata * 60) + " L/h)"],
+             ["Prevalenza richiesta", prevalenza.toFixed(2).replace(".", ",") + " m (" + altezza.toFixed(2).replace(".", ",") + " di dislivello + " + perdite.toFixed(2).replace(".", ",") + " di perdite nel tubo da 16 mm + 0,3 raccordi)"],
+             ["Pompa consigliata", "almeno " + qMax + " L/h di portata massima e " + hMax.toString().replace(".", ",") + " m di prevalenza massima (alla prevalenza richiesta dà ancora la portata)"],
+             ["Consumo stimato della pompa", Math.round(wPompa) + " W (rendimento delle piccole pompe 10-25%)"],
+             ["Acqua che torna al serbatoio a pompa ferma", Math.round(volumeRitorno) + " L: " + (volumeRitorno > liberoSerbatoio ? "PIÙ dello spazio libero nel serbatoio (" + Math.round(liberoSerbatoio) + " L): rischio di traboccare, serbatoio più grande o livello più basso" : "il serbatoio la contiene (" + Math.round(liberoSerbatoio) + " L liberi)")],
+             ["Autonomia del serbatoio senza rabbocchi", Math.round(autonomia) + " giorni a piante adulte"]);
+  return {canali, lungCanale, portata, altezza, perdite, prevalenza, wPompa, qMax, hMax, volumeRitorno, trabocca: volumeRitorno > liberoSerbatoio, autonomia, righe};
+}
+
 // ---------- lavoro ----------
 // Ore a settimana stimate (euristica dichiarata): base per sistema + semina/trapianto/raccolta per pianta + misure a
 // mano di pH ed EC se non ci sono le sonde. Va confrontata con il registro del tuo lavoro vero.
@@ -494,9 +584,13 @@ function materialiIdro(c) {
   if (!S.verticale && k.piani > 1) add("Struttura", "4b", "Scaffale metallico " + k.piani + " ripiani", 1, [25, 50], "Un ripiano per livello, ognuno con la sua luce.", "scaffale");
   if (I.sistema === "torre") add("Struttura", "4b", "Torre verticale da " + S.piante_torre + " vasetti", I.torri, S.struttura_torre, S.pro + " " + S.contro, "sistema");
   else if (I.sistema === "bucket") add("Struttura", "4b", "Secchio olandese con sifone + perlite", I.secchi, S.struttura_secchio, S.pro, "sistema");
-  else add("Struttura", "4b", S.nome + " per " + (k.superficie).toFixed(2) + " m²", 1, [S.struttura_m2[0] * k.superficie, S.struttura_m2[1] * k.superficie], S.pro + " " + S.contro, "sistema");
+  else add("Struttura", "4b", (I.sistema === "nft" ? "Staffe e supporti inclinabili per i canali" : S.nome) + " per " + (k.superficie).toFixed(2) + " m²", 1, [S.struttura_m2[0] * k.superficie, S.struttura_m2[1] * k.superficie], S.pro + " " + S.contro, "sistema");
   add("Acqua", "4b", "Serbatoio " + k.serbatoio + " L scuro con coperchio", 1, k.serbatoio <= 60 ? [10, 20] : k.serbatoio <= 120 ? [20, 35] : [40, 70], "Scuro e chiuso: con la luce crescono le alghe.", "serbatoio");
-  if (I.sistema === "nft" || I.sistema === "torre" || I.sistema === "bucket") add("Acqua", "4b", "Pompa sommersa " + Math.round({nft: 10 + k.piante * 0.04, torre: 12, bucket: 20}[I.sistema]) + " W", I.sistema === "torre" ? I.torri : 1, [12, 28], "Fa girare la soluzione nutritiva.", "pompa");
+  const idr = idraulicaIdro(c);
+  if (idr) add("Acqua", "4b", "Pompa sommersa da " + idr.qMax + " L/h, prevalenza massima " + idr.hMax + " m (circa " + Math.round(idr.wPompa) + " W)", 1, idr.qMax <= 1000 ? [12, 25] : idr.qMax <= 2000 ? [20, 40] : [35, 70], "Dimensionata per " + Math.round(idr.portata * 60) + " L/h a " + idr.prevalenza.toFixed(1) + " m (scheda Struttura).", "pompa");
+  if (I.sistema === "nft") { const {lung} = dimensioniPiano(I);
+    add("Acqua", "4b", "Canali NFT in PVC alimentare (" + lung.toFixed(1) + " m)", idr.canali, [6 * lung, 12 * lung], "Uno ogni " + Math.round(Math.max(15, ...k.colture.map(x => x.P.passo || 15))) + " cm; tappi alle estremità.", "sistema");
+    add("Acqua", "4b", "Tubo di mandata 16 mm, raccordi a T, tubicini di ingresso e collettore di ritorno 40 mm", 1, [15, 30], "", "sistema"); }
   if (I.sistema === "dwc" || I.sistema === "bucket") add("Acqua", "4b", "Pompa d'aria + pietre porose", 1, [15, 30], "Ossigeno alle radici: senza, marciscono.", "aria");
   // luci
   const L = k.L;
@@ -560,6 +654,8 @@ function compatibilitaIdro(c) {
   for (const x of k.colture) { const st = statoLuce(x.P, k.dli);
     if (st.stato === "poca") add("warn", x.P.nome + ": poca luce", "DLI " + n1(k.dli) + " contro " + x.P.dli.join("-") + " mol/m²/giorno: resa circa " + Math.round(st.fattore * 100) + "% di quella di riferimento.", "luce");
     if (st.stato === "troppa") add("warn", x.P.nome + ": luce oltre il necessario", "DLI " + n1(k.dli) + " sopra " + x.P.dli[1] + ": niente resa in più, solo corrente" + (x.coltura === "lattuga" ? " e rischio di bruciature ai bordi (tipburn)" : "") + ".", "luce"); }
+  const idr = idraulicaIdro(c);
+  if (idr && idr.trabocca) add("crit", "Il serbatoio può traboccare", "A pompa ferma tornano giù circa " + Math.round(idr.volumeRitorno) + " L dai canali: serve più spazio libero nel serbatoio (o serbatoio più grande).", "serbatoio");
   if (k.L.eff < 2) add("warn", "Lampade poco efficienti", "Con LED bianchi buoni (2,7 µmol/J) la stessa luce costerebbe " + Math.round((1 - k.L.eff / 2.7) * 100) + "% di corrente in meno.", "luce");
   if (k.S.verticale) add("warn", "Verticale: si risparmia spazio, non luce", "Ogni pianta ha bisogno della stessa luce: le torri richiedono lampade intorno e più watt per pianta (luce persa nella geometria).", "sistema");
   if (k.S.tolleranza_ore <= 2 && !A.ups) add("crit", "Nessun UPS su un sistema a ricircolo", k.S.nome + ": senza pompa le radici seccano in " + k.S.tolleranza_ore + " ore. Prova il guasto 'Blackout'.", "ups");
@@ -605,4 +701,4 @@ function pinMappaIdro(c) {
   if (A.prese_smart) righe.push(["Luci, estrattore, stufetta, deumidificatore", "Wi-Fi", "prese smart comandate via rete"]);
   return righe;
 }
-if (typeof module !== "undefined") module.exports = {FONTI, DATI_COLTURE, fTemp, coorte, calibraCrescita, vpd, simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};
+if (typeof module !== "undefined") module.exports = {mappaLuce, idraulicaIdro, dimensioniPiano, FONTI, DATI_COLTURE, fTemp, coorte, calibraCrescita, vpd, simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};

@@ -803,8 +803,10 @@ const Vista3D = (() => {
     // stazione di controllo a parete
     const wx = tx + L / 2 + 0.55, wz = -L / 2 - 0.48;
     blocco(0.9, 0.7, 0.02, MAT.legno, wx + 0.1, 1.15, wz, null);
-    const q = quadro(c, wx - 0.12, 1.0, wz + 0.09, 0, voci, A.micro);
-    stato.led = q.led;
+    const q = A.micro === "nessuno" ? null : quadro(c, wx - 0.12, 1.0, wz + 0.09, 0, voci, A.micro);
+    stato.led = q ? q.led : null;
+    if (!q) { blocco(0.07, 0.12, 0.06, mat(0xf2f2ee), wx - 0.1, 1.2, wz + 0.04, info("Timer da presa", "Senza elettronica: accende e spegne luci" + (["nft", "torre", "bucket"].includes(I.sistema) ? " e pompa" : "") + " a orario. Controlli tu livello, pH, EC e temperature.", "alimentazione", trovaVoce(voci, "alimentazione", "timer")));
+      blocco(0.06, 0.1, 0.02, mat(0xffffff), wx + 0.05, 1.3, wz + 0.02, info("Termometro minima/massima", "Ti dice quanto caldo e freddo ha fatto in tenda dall'ultima volta.", "sensori", trovaVoce(voci, "sensori", "termometro"))); }
     if (A.dosaggio) for (let i = 0; i < 3; i++) { blocco(0.06, 0.08, 0.05, mat(0x2f6fb0), wx + 0.2 + i * 0.09, 1.35, wz + 0.04, info("Pompe dosatrici peristaltiche", "A, B e pH- a piccole dosi, poi aspettano che la soluzione si mescoli.", "dosaggio", trovaVoce(voci, "dosaggio", "peristaltiche")));
       const fl = cilindro(0.04, 0.2, fisico([0x3b78c4, 0xc0392b, 0xe6c229][i], {transparent: true, opacity: 0.75, roughness: 0.2}), wx + 0.2 + i * 0.09, 0.9, wz + 0.1, info(["Nutriente A", "Nutriente B", "Correttore pH-"][i], NUTRIENTI[I.nutrienti].nome, "nutrienti", trovaVoce(voci, "nutrienti")));
       tubo([[wx + 0.2 + i * 0.09, 1.0, wz + 0.1], [wx + 0.2 + i * 0.09, 1.3, wz + 0.06]], 0.003, fisico(0xffffff, {transparent: true, opacity: 0.6})); }

@@ -29,12 +29,12 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 | Gemello: motore orto (`sim.js`) | Prototipo: senza test propri, duplica il modello Python con formule diverse |
 | Gemello: motore idroponica (`idro.js`) | Implementata e testata numericamente (14 test), non validata con raccolti veri |
 | Luce: PPFD e DLI dai watt montati | Implementata e testata (fase 1) |
-| Luce: distribuzione sul piano, uniformità, distanza | Da sviluppare |
+| Luce: distribuzione sul piano, uniformità, distanza | Implementata e testata (fase 4): mappa con sorgenti lambertiane e pareti riflettenti |
 | Crescita: risposta alla luce | Implementata, stima euristica dichiarata (MODELLI.md §2) |
 | Crescita: biomassa giorno per giorno (lattuga, basilico) | Implementata e testata contro dati pubblicati (fase 3); fasi fenologiche e carenze solo come testo |
-| Clima del garage e della tenda | Prototipo: bilancio termico stazionario su medie mensili |
-| Idraulica: portate, prevalenza, pendenza NFT | Da sviluppare (le pompe sono stimate in watt) |
-| Nutrienti per singolo ione, ricetta | Da sviluppare (oggi solo EC) |
+| Clima del garage e della tenda | Prototipo: bilancio termico stazionario; ora anche con il meteo vero del comune (Open-Meteo dal browser o CSV) |
+| Idraulica: portate, prevalenza, pendenza NFT, traboccamento | Implementata e testata (fase 4): Hazen-Williams, scelta della pompa, consumo calcolato |
+| Nutrienti: ricetta per ione dall'analisi dell'acqua | Implementata e testata (fase 4): Hoagland scalato, 5 sali, taniche A/B, acido; microelementi a etichetta |
 | Bilancio economico: CAPEX, OPEX, ammortamento, scenari, pareggio | Implementata e testata (fase 1) |
 | Giudizio "conviene / fragile / sconsigliato" | Implementata e testata (fase 1) |
 | Distinta base | Prototipo: prezzi stimati a forbice, senza fornitori, link o date |
@@ -72,8 +72,7 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 
 ### Noti e non ancora corretti
 1. Due motori per l'orto (Python e JavaScript) con formule diverse: possono dare numeri diversi per lo stesso orto.
-2. Clima su medie mensili per 4 macro-zone: niente ondate di calore né dati del comune (lo script Open-Meteo esiste
-   solo in Python).
+2. ~~Clima solo su medie mensili~~: ora si può usare un anno vero del proprio comune (fase 4).
 3. ~~Manca la versione "zero elettronica"~~: aggiunta nella fase 2 (timer, penne, termometro min/max).
 4. Moltiplicatori di stress a soglia (caldo × 0,5 ecc.), senza fonte.
 5. Tolleranze ai blackout per sistema dalla pratica, non misurate.
@@ -132,7 +131,7 @@ Ordine per importanza, ognuna con test di accettazione.
    di prova le proposte rispettano budget e spazio, e almeno un caso viene sconsigliato con motivo.
 3. ✅ **Database colture con fonti e modello di crescita** per lattuga e basilico: biomassa giornaliera da luce e
    temperatura, con intervalli. Accettazione: riproduce entro ±20% le rese pubblicate per DLI e temperatura note.
-4. **Luce, clima, acqua, nutrienti**: mappa PPFD sul ripiano, clima con meteo orario vero (Open-Meteo), NFT con
+4. ✅ **Luce, clima, acqua, nutrienti** (unificazione con il modello Python dell'orto ancora da fare): mappa PPFD sul ripiano, clima con meteo orario vero (Open-Meteo), NFT con
    portata e pendenza, ricetta nutritiva da analisi dell'acqua. Unificazione con il modello Python dell'orto.
 5. **3D parametrico collegato alla distinta**: ripiani, canali e tubi dimensionati che aggiornano quantità e costi.
 6. **Automazione simulata**: modalità simulazione / shadow / controllo reale, guasti e interblocchi, firmware

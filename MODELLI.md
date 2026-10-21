@@ -85,6 +85,66 @@ Nessun modello è stato ancora confrontato con un raccolto vero: la calibrazione
   - varietà diverse hanno parametri diversi.
 - **Si verifica con**: pesata di 3 piante a settimana nel primo ciclo, con DLI e temperatura media misurati.
 
+## 1b. Mappa della luce sul ripiano (A per la formula, C per le ipotesi)
+- **Formula**:
+  - ogni lampada è una griglia 4×3 di sorgenti puntiformi lambertiane: I(θ) = I0·cos θ, con I0 = PPF ÷ (n·π);
+  - PPFD in un punto = Σ I0·h² ÷ d⁴, con h = distanza lampada-foglie e d = distanza sorgente-punto;
+  - con la tenda: una riflessione su ciascuna delle 4 pareti come sorgente specchiata, riflettività 0,9.
+- **Uscite**: minimo, media, massimo, uniformità (min ÷ media), DLI ai bordi e al centro.
+- **Ipotesi (C)**: fascio lambertiano (tipico delle quantum board senza lenti), lampada larga l'80% del ripiano,
+  pareti alla distanza del bordo del ripiano.
+- **Controlli**:
+  - senza pareti i fotoni sul ripiano sono meno di quelli emessi;
+  - le pareti alzano media e uniformità;
+  - lampada più alta = più uniforme;
+  - la media sta entro il 20% del modello semplice (§1).
+
+## 4b. Idraulica (A per le formule, C per i parametri)
+- **Canali NFT**:
+  - uno ogni passo della coltura (minimo 15 cm);
+  - circa 1 L/min per canale: 0,5 al trapianto, 2 al massimo (Wikipedia/NFT, Atlas Scientific; altre prove indicano
+    molto meno, 0,2-0,33 L/min);
+  - pendenza 1:40 (le fonti vanno da 1:100 a 1:30).
+- **Perdite nel tubo di mandata da 16 mm** (Hazen-Williams, C = 150 per il PVC): hf = 10,67·L·Q^1,852 ÷
+  (C^1,852·D^4,87). Prevalenza = dislivello + perdite + 0,3 m di raccordi.
+- **Pompa**:
+  - curva ipotizzata lineare: Q = Qmax·(1 − H/Hmax), con Hmax ≥ 1,5 × prevalenza;
+  - consumo = potenza idraulica ÷ 0,15 (rendimento delle piccole pompe sommerse: 10-25%). È questo consumo che entra
+    nel bilancio della corrente.
+- **Traboccamento**: l'acqua che torna dai canali a pompa ferma (velo di 0,25 L/m più 0,3 L per canale) deve stare
+  nel 25% libero del serbatoio.
+- **Esempio** (scaffale di esempio):
+  - 6 canali, 6 L/min, 1,87 m di prevalenza, pompa da almeno 1.000 L/h e 3 m, circa 12 W;
+  - tornano al serbatoio 4 L, contro 30 L liberi.
+
+## 7b. Ricetta dei nutrienti (A per la stechiometria, C per EC e stime dell'acqua)
+- **Riferimento**: soluzione di Hoagland n. 2 (Hoagland e Arnon 1950): N 210, P 31, K 235, Ca 160, Mg 48, S 64 mg/L.
+  Altre versioni hanno Ca 200.
+- **Calcolo**:
+  - si cerca il fattore su Hoagland che, sommato all'acqua di partenza, dà l'EC della coltura;
+  - i sali (nitrato di calcio commerciale 15,5-0-0 con 19% Ca, nitrato di potassio 13-0-46, MKP 0-52-34, solfato di
+    magnesio, solfato di potassio) si dosano con minimi quadrati non negativi;
+  - pesi: azoto 2, potassio 1, fosforo 0,7, calcio e magnesio 0,5, zolfo 0,2.
+- **EC stimata** = cationi in meq/L ÷ 10, regola pratica (C).
+- **Acido**: si neutralizzano i bicarbonati lasciando 0,5 meq/L; acido fosforico al 75% ≈ 12 meq/mL (C).
+- **Acqua senza analisi** (C): calcio, magnesio e bicarbonati stimati dalla durezza, con 75% calcio, 25% magnesio e
+  alcalinità all'80% della durezza.
+- **Controlli**:
+  - con acqua pura ed EC 2,2 si ritrova Hoagland entro il 7%;
+  - l'EC calcolata coincide con quella della coltura;
+  - con acqua dura il nitrato di calcio scende e l'acido sale;
+  - il calcio sta solo nella tanica A.
+- **Limiti**:
+  - i microelementi non sono calcolati: si usa una miscela chelata alla dose dell'etichetta;
+  - l'assorbimento selettivo nel tempo (squilibri nel ricircolo) non è simulato.
+
+## 4c. Meteo vero
+- Dal browser, Open-Meteo: geocodifica del comune e archivio storico giornaliero (temperatura minima e massima,
+  pioggia, ET0 FAO). In alternativa il CSV di `strumenti/scarica_meteo.py`.
+- Idroponica: la temperatura media del garage segue quella esterna come nel §4; l'escursione è la metà di quella
+  esterna (un quarto se il garage è isolato).
+- Orto: pioggia, ET0 e temperature vere al posto della generazione statistica.
+
 ## 3. Energia elettrica (A per le luci, C per il resto)
 - **Formula**:
   - luci = W × ore × 365 (meno le ore di blackout);

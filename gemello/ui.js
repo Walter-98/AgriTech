@@ -106,6 +106,7 @@ function editorProgettoOrto(box) {
   if (c.acqua.fonte === "cisterna" && c.ambiente !== "interno") acq.push(campoNum("Tetto collegato alla grondaia", c.acqua.tetto_m2, 0, 500, 1, v => { c.acqua.tetto_m2 = v; aggiorna(); }, "m²"));
   acq.push(campoNum("Prezzo acqua di rete", c.prezzi.acqua_m3, 0, 10, 0.1, v => { c.prezzi.acqua_m3 = v; aggiorna(); }, "€/m³"), campoNum("Prezzo corrente", c.prezzi.kwh, 0, 1, 0.01, v => { c.prezzi.kwh = v; aggiorna(); }, "€/kWh"));
   box.append(riquadro("Acqua e prezzi", el("div", {id: "ed-cisterna"}, griglia(...acq)), c.acqua.fonte === "cisterna" ? spunta("Se la cisterna è vuota uso il rubinetto", c.acqua.rete_riserva, v => { c.acqua.rete_riserva = v; aggiorna(); }) : null));
+  box.append(meteoVeroUI());
 }
 function voceCat(fam, k, extra) {
   const o = CATALOGO[fam].opzioni[k];
@@ -240,7 +241,8 @@ function editorProgettoIdro(box) {
     el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Coltura", "DLI ideale", "DLI che riceve", "Resa rispetto al riferimento"].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
       el("tbody", null, ...k.colture.map(x => { const st = statoLuce(x.P, k.dli); return el("tr", null, el("td", {text: x.P.nome}), el("td", {class: "n", text: x.P.dli.join("–")}), el("td", {class: "n", text: k.dli.toFixed(1)}),
         el("td", {class: "n", text: Math.round(st.fattore * 100) + "%" + (st.stato === "poca" ? " · poca luce" : st.stato === "troppa" ? " · oltre il necessario" : "")})); })))),
-    el("p", {class: "piccolo", text: "La resa cresce in proporzione alla luce del giorno fino al massimo della coltura, poi non cresce più (modello a efficienza d'uso della luce, da calibrare con le tue pesate)."})));
+    el("p", {class: "piccolo", text: "La resa cresce in proporzione alla luce del giorno fino al massimo della coltura, poi non cresce più (modello a efficienza d'uso della luce, da calibrare con le tue pesate)."}),
+    ...mappaLuceUI(I, set)));
   // clima
   const CL = I.clima;
   box.append(riquadro("Clima del garage", el("div", {id: "ed-clima"}), el("div", {id: "ed-tenda"}),
@@ -255,9 +257,11 @@ function editorProgettoIdro(box) {
       campoNum("Cambio completo della soluzione ogni", I.acqua.cambio_giorni, 7, 60, 1, v => set(I.acqua, "cambio_giorni", v), "giorni")),
     spunta("Osmosi inversa", I.acqua.osmosi, v => set(I.acqua, "osmosi", v)), spunta("Mescolo acqua piovana", I.acqua.piovana, v => set(I.acqua, "piovana", v)),
     schede("Nutrienti", I.nutrienti, Object.entries(NUTRIENTI).map(([kk, n]) => [kk, n.nome, prezzoTesto(n.kit) + " il kit", n.pro, n.contro]), v => { I.nutrienti = v; aggiorna(); }),
+    ...ricettaUI(I, k),
     griglia(campoSel("Zona d'Italia (clima del garage)", cfg.regione, Object.entries(REGIONI).map(([kk, r]) => [kk, r.nome]), v => { cfg.regione = v; aggiorna(); }),
       campoNum("Prezzo corrente", cfg.prezzi.kwh, 0, 1, 0.01, v => { cfg.prezzi.kwh = v; aggiorna(); }, "€/kWh"),
       campoNum("Prezzo acqua", cfg.prezzi.acqua_m3, 0, 10, 0.1, v => { cfg.prezzi.acqua_m3 = v; aggiorna(); }, "€/m³"))));
+  box.append(meteoVeroUI());
   // produzione ed economia
   const PR = I.produzione, E = I.economia;
   box.append(riquadro("Produzione ed economia", el("div", {id: "ed-economia"}),
@@ -274,7 +278,8 @@ function editorProgettoIdro(box) {
 }
 function editorComponentiIdro(box) {
   const A = cfg.idro.auto, set = (kk, v) => { A[kk] = v; aggiorna(true); };
-  box.append(riquadro("Microcontrollore", el("div", {id: "ed-micro"}), schede("Scheda", A.micro, Object.keys(CATALOGO.micro.opzioni).map(o => voceCat("micro", o, x => x.linguaggio)), v => set("micro", v))));
+  box.append(riquadro("Microcontrollore", el("div", {id: "ed-micro"}), schede("Scheda", A.micro, [["nessuno", "Nessuno: timer e penne", "0 € · niente allarmi", "Il modo più economico per imparare con un impianto piccolo.", "Controlli tu ogni giorno; nessun avviso per perdite o pompa ferma."], ...Object.keys(CATALOGO.micro.opzioni).map(o => voceCat("micro", o, x => x.linguaggio))],
+    v => { if (v === "nessuno") Object.assign(A, LIVELLI_AUTO.nessuna.auto); set("micro", v); })));
   const sensori = [["ph", "Sonda pH", "35-60 €", "Si tara ogni mese; dura 12-18 mesi."], ["ec", "Sonda EC", "45-70 €", "Misura i nutrienti disciolti."], ["temp_acqua", "Temperatura acqua", "2-4 €", "Sopra 24 °C le radici soffrono."],
     ["aria", "Aria (temperatura e umidità)", "8-14 €", "Comanda estrattore e stufetta."], ["co2", "CO₂", "30-45 €", "Utile solo con tanta luce."], ["livello", "Galleggianti min/max", "4-6 €", "Pompa mai a secco, rabbocco."],
     ["perdita", "Sensore di perdita a pavimento", "4-10 €", "Indispensabile in garage."], ["flusso", "Flussimetro", "3-6 €", "Scopre una pompa ferma in pochi minuti."], ["luce_sens", "Sensore di luce", "2-4 €", "Scopre una lampada spenta."]];
@@ -577,7 +582,7 @@ function schedaStruttura(box) {
     if (A.flusso) fila.push(["Flussimetro", "acqua che scorre"]);
     fila.push([SISTEMI_IDRO[I.sistema].nome.split(" (")[0], k.piante + " piante", true], ["Ritorno al serbatoio", I.sistema === "kratky" ? "nessuno" : "per gravità"]);
     svgA = schemaSvg(fila, "", []);
-    const filaE = [["Presa con salvavita", "ciabatta sollevata"], ...(A.ups ? [["UPS", "blackout brevi"]] : []), ["Prese smart", "luci, clima", true], ["Alimentatore 12 V", "pompe, dosatori"], [CATALOGO.micro.opzioni[A.micro].nome, "logica e sicurezze", true]];
+    const filaE = [["Presa con salvavita", "ciabatta sollevata"], ...(A.ups ? [["UPS", "blackout brevi"]] : []), ["Prese smart", "luci, clima", true], ...(A.micro === "nessuno" ? [["Timer da presa", "luci e pompa a orario", true]] : [["Alimentatore 12 V", "pompe, dosatori"], [CATALOGO.micro.opzioni[A.micro].nome, "logica e sicurezze", true]])];
     svgE = schemaSvg(filaE, "", []);
   } else {
     const c = cfg, comp = c.componenti, cist = c.acqua.fonte === "cisterna";
@@ -592,8 +597,12 @@ function schedaStruttura(box) {
   }
   const pin = idro() ? pinMappaIdro(cfg) : pinMappa(cfg);
   const micro = idro() ? cfg.idro.auto.micro : cfg.componenti.micro;
-  box.append(riquadro("Percorso dell'acqua", el("div", {class: "scorri"}, svgA)), riquadro("Percorso della corrente", el("div", {class: "scorri"}, svgE)),
-    riquadro("Collegamenti di " + CATALOGO.micro.opzioni[micro].nome, el("p", {class: "piccolo", text: "Software: " + CATALOGO.micro.opzioni[micro].firmware + "."}),
+  box.append(riquadro("Percorso dell'acqua", el("div", {class: "scorri"}, svgA)), riquadro("Percorso della corrente", el("div", {class: "scorri"}, svgE)));
+  if (idro()) { const idr = idraulicaIdro(cfg);
+    if (idr) box.append(riquadro("Idraulica: canali, portate e pompa", el("p", {class: "piccolo", text: "Calcolo: portata per canale ~1 L/min (da 0,5 a 2), pendenza 1:40, perdite nel tubo con Hazen-Williams, pompa con curva lineare e margine del 50% sulla prevalenza. Fonti e limiti in MODELLI.md."}),
+      el("div", {class: "scorri"}, el("table", null, el("tbody", null, ...idr.righe.map(r => el("tr", null, el("th", {text: r[0]}), el("td", {text: r[1]})))))))); }
+  if (idro() && micro === "nessuno") return;
+  box.append(riquadro("Collegamenti di " + CATALOGO.micro.opzioni[micro].nome, el("p", {class: "piccolo", text: "Software: " + CATALOGO.micro.opzioni[micro].firmware + "."}),
       el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, el("th", {text: "Cosa"}), el("th", {text: "Pin"}), el("th", {text: "Note"}))), el("tbody", null, ...pin.map(p => el("tr", null, el("td", {text: p[0]}), el("td", {class: "dati", text: p[1]}), el("td", {text: p[2]}))))))));
 }
 function schedaGestione(box) {
@@ -700,6 +709,69 @@ function schedaPercorso(box) {
   box.append(riquadro("La tua configurazione (JSON)", el("details", null, el("summary", {text: "Mostra"}), el("pre", {text: JSON.stringify(cfg, null, 2)}))));
 }
 function selezionaTesto(n) { const r = document.createRange(); r.selectNodeContents(n); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+// ---------- meteo vero ----------
+function meteoVeroUI() {
+  const MR = cfg.meteoReale, esito = el("p", {class: "piccolo", "aria-live": "polite"});
+  const luogo = el("input", {type: "text", placeholder: "Comune, es. Ancona", "aria-label": "Comune"});
+  const anno = el("input", {type: "number", min: "1950", max: String(new Date().getFullYear() - 1), value: String(new Date().getFullYear() - 1), "aria-label": "Anno"});
+  const scarica = el("button", {class: "az sec", type: "button", text: "Scarica da Open-Meteo"});
+  scarica.addEventListener("click", async () => {
+    esito.textContent = "Cerco " + luogo.value + "…";
+    try {
+      const g = await (await fetch("https://geocoding-api.open-meteo.com/v1/search?count=1&language=it&country=IT&name=" + encodeURIComponent(luogo.value))).json();
+      if (!g.results || !g.results.length) throw new Error("comune non trovato");
+      const p = g.results[0], a = +anno.value;
+      esito.textContent = "Scarico il " + a + " di " + p.name + "…";
+      const url = "https://archive-api.open-meteo.com/v1/archive?latitude=" + p.latitude + "&longitude=" + p.longitude + "&start_date=" + a + "-01-01&end_date=" + a + "-12-31&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,et0_fao_evapotranspiration&timezone=Europe%2FRome";
+      cfg.meteoReale = meteoDaOpenMeteo(await (await fetch(url)).json(), p.name + " " + a);
+      aggiorna(true);
+    } catch (e) { esito.textContent = "Download non riuscito (" + e.message + "). Se la pagina non può uscire in rete, usa lo script strumenti/scarica_meteo.py e carica qui il CSV."; }
+  });
+  const file = el("input", {type: "file", accept: ".csv,text/csv", "aria-label": "File CSV del meteo"});
+  file.addEventListener("change", () => { const f = file.files[0]; if (!f) return; f.text().then(t => { try { cfg.meteoReale = meteoDaCsv(t); aggiorna(true); } catch (e) { esito.textContent = "CSV non valido: " + e.message; } }); });
+  const togli = el("button", {class: "az sec", type: "button", text: "Torna al clima medio"});
+  togli.addEventListener("click", () => { delete cfg.meteoReale; aggiorna(true); });
+  return riquadro("Meteo vero del tuo comune", el("div", {id: "ed-meteo"}),
+    el("p", {class: "piccolo", text: MR ? "In uso: " + MR.fonte + " (" + MR.dal + " → " + MR.al + "). Temperature minime e massime vere giorno per giorno" + (idro() ? ": il garage segue il meteo di quell'anno." : ", pioggia ed evapotraspirazione.") : "Ora il gemello usa le medie mensili della zona. Con un anno vero del tuo comune vedi ondate di calore, gelate e piogge vere."}),
+    el("div", {class: "campi"}, luogo, anno, scarica), el("div", {class: "campi"}, el("label", {class: "campo"}, document.createTextNode("Oppure carica un CSV (data, et0_mm, pioggia_mm, t_min, t_max)"), file), MR ? togli : null), esito);
+}
+
+// ---------- ricetta dei nutrienti ----------
+function ricettaUI(I, k) {
+  const an = I.acqua.analisi = Object.assign({ca: null, mg: null, hco3: null, na: null}, I.acqua.analisi || {});
+  const r = ricetta(k.ec, Object.assign({durezza: I.acqua.durezza}, an), 100);
+  const setA = (kk, v) => { an[kk] = v > 0 ? v : null; aggiorna(false); };
+  const nomeSale = kk => SALI[kk].nome;
+  const righe = Object.entries(r.grammi).filter(([, g]) => g > 0.05);
+  return [el("div", {class: "blocco"}, el("span", {class: "etichetta", text: "Ricetta per EC " + fmt(k.ec, 1) + " (dalle tue colture)"}),
+    el("p", {class: "piccolo", text: "Analisi dell'acqua (dal sito o dalla bolletta del gestore; vuoto = stimata dalla durezza):"}),
+    griglia(campoNum("Calcio", an.ca || 0, 0, 300, 1, v => setA("ca", v), "mg/L"), campoNum("Magnesio", an.mg || 0, 0, 150, 1, v => setA("mg", v), "mg/L"),
+      campoNum("Bicarbonati", an.hco3 || 0, 0, 600, 1, v => setA("hco3", v), "mg/L"), campoNum("Sodio", an.na || 0, 0, 300, 1, v => setA("na", v), "mg/L")),
+    el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Tanica", "Sale", "g per 100 L", "g per il serbatoio (" + k.serbatoio + " L)"].map((t, i) => el("th", {class: i > 1 ? "n" : "", text: t})))),
+      el("tbody", null, ...righe.map(([kk, g]) => el("tr", null, el("td", {text: SALI[kk].tanica}), el("td", {text: nomeSale(kk)}), el("td", {class: "n", text: fmt(g, 1)}), el("td", {class: "n", text: fmt(g * k.serbatoio / 100, 1)}))),
+        el("tr", null, el("td", {text: "-"}), el("td", {text: "Acido fosforico 75% per i bicarbonati"}), el("td", {class: "n", text: fmt(r.acidoMl, 0) + " mL"}), el("td", {class: "n", text: fmt(r.acidoMl * k.serbatoio / 100, 0) + " mL"}))))),
+    el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["mg/L", "N", "P", "K", "Ca", "Mg", "S"].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
+      el("tbody", null, el("tr", null, el("td", {text: "Obiettivo (Hoagland × " + fmt(r.fattore, 2) + ")"}), ...["N", "P", "K", "Ca", "Mg", "S"].map(e => el("td", {class: "n", text: fmt(r.obiettivo[e])}))),
+        el("tr", null, el("td", {text: "Ottenuto (acqua + sali)"}), ...["N", "P", "K", "Ca", "Mg", "S"].map(e => el("td", {class: "n", text: fmt(r.ottenuto[e])})))))),
+    el("p", {class: "piccolo", text: "EC stimata " + fmt(r.ec, 2) + " mS/cm (acqua " + fmt(r.ecAcqua, 2) + "). Costo dei sali circa " + euro(r.costo) + " ogni 100 L. Taniche madre 100 volte concentrate: 1 L di A e 1 L di B ogni 100 L d'acqua."}),
+    ...r.avvisi.map(t => el("p", {class: "piccolo", text: "• " + t})))];
+}
+
+// ---------- mappa della luce ----------
+function mappaLuceUI(I, set) {
+  const m = mappaLuce(cfg);
+  if (!m) return [el("p", {class: "piccolo", text: "Per le torri la luce arriva di lato: la mappa sul piano non si applica."})];
+  const W = 520, H = Math.round(W * m.prof / m.lung), gx = m.griglia[0].length, gy = m.griglia.length;
+  const svg = sv("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Mappa della luce sul ripiano", style: "width:100%;max-width:520px;display:block"});
+  const scalaCol = v => { const t = Math.max(0, Math.min(1, (v - m.min) / Math.max(1, m.max - m.min))); return `color-mix(in oklab, var(--s1) ${Math.round(12 + 88 * t)}%, var(--carta))`; };
+  m.griglia.forEach((riga, j) => riga.forEach((v, i) => {
+    const r = sv("rect", {x: i * W / gx, y: j * H / gy, width: W / gx + 0.5, height: H / gy + 0.5, fill: scalaCol(v)});
+    r.append(sv("title", {}, Math.round(v) + " µmol/m²/s")); svg.append(r); }));
+  return [griglia(campoNum("Distanza lampada-foglie", I.luce.distanza_cm || 35, 10, 100, 5, v => set(I.luce, "distanza_cm", v), "cm")),
+    el("div", {class: "blocco"}, el("span", {class: "etichetta", text: "Luce sul ripiano (vista dall'alto, " + Math.round(m.lung * 100) + " × " + Math.round(m.prof * 100) + " cm)"}), el("div", {class: "scorri"}, svg), el("p", {class: "piccolo num", text: "min " + Math.round(m.min) + " · media " + Math.round(m.media) + " · max " + Math.round(m.max) + " µmol/m²/s · uniformità " + fmt(m.uniformita, 2) + " (chiaro = meno luce, scuro = più luce)"})),
+    el("p", {class: "piccolo", text: "Ai bordi arriva il " + Math.round((1 - m.min / m.media) * 100) + "% di luce in meno della media: DLI da " + fmt(m.dliMin, 1) + " a " + fmt(m.max * capacitaIdro(cfg).ore * 0.0036, 1) + ". " + (m.uniformita < 0.6 ? "Uniformità bassa: alza la lampada o usa barre distribuite; ai bordi metti le piante che vogliono meno luce." : "Uniformità accettabile (sopra 0,6).") + " Calcolo con sorgenti lambertiane" + (I.clima.tenda ? " e pareti riflettenti della tenda (90%)" : "") + "; con la mappa del costruttore è più preciso."})];
+}
 
 // ---------- percorso guidato ----------
 let PROPOSTE = null;
