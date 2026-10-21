@@ -13,7 +13,7 @@ niente è dichiarato "validato" finché non è confrontato con misure vere.
 | Strumenti | `strumenti/` | Simulatore da riga di comando, scaricamento del meteo storico (Open-Meteo) |
 | Gemello digitale | `gemello/` (HTML + 6 moduli JS) | Configuratore e simulatore in browser: orto in terra e idroponica in garage, 3D, distinta, costi, guasti, schemi |
 | Documenti | `PIANO.md`, `COLLAUDO.md`, `SOLUZIONI.md`, `IDROPONICA.md`, `MODELLI.md` | Piano a fasi, collaudo, soluzioni, guida idroponica, schede dei modelli |
-| Test | `test/*.py` (58), `test/js/` (14) | Logica, scenari, firmware con hardware simulato; test numerici del motore idroponico. Girano su GitHub a ogni modifica |
+| Test | `test/*.py` (83), `test/js/` (59) | Logica, scenari, firmware con hardware simulato; test numerici del motore idroponico. Girano su GitHub a ogni modifica |
 
 Architettura attuale: due motori separati. Python serve per il controllo e per il simulatore dell'orto (lo stesso
 codice va sull'ESP32). JavaScript serve per il gemello nel browser (gratis, senza server, funziona anche offline).
@@ -42,7 +42,8 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 | Confronto tra alternative | Prototipo: "confronti rapidi" a una variabile; ottimizzazione da sviluppare |
 | Percorso guidato per principianti (scheda Inizia) | Implementata e testata (fase 2): prova circa 400 configurazioni, rispetta i vincoli, propone A/B/C, sa dire di no |
 | 3D | Parametrico (fase 5): tenda rettangolare e scaffale con le misure vere in cm, piani, distanza tra i ripiani. Resta una visualizzazione, non un CAD, e non prova niente |
-| Firmware idroponica (pH, EC, dosaggio) | Da sviluppare |
+| Logica idroponica (pH, EC, dosaggio, sicurezze, modi simulazione/ombra/reale) | Implementata e testata (fase 6): 16 test su serbatoio simulato con 12 scenari di guasto |
+| Firmware idroponica ESP32 | Implementato, provato con hardware finto (9 test); non provato su scheda vera |
 | Monitoraggio remoto | Da sviluppare (previsti ESPHome + Home Assistant) |
 | Confronto con dati reali e calibrazione | Da sviluppare |
 | Normativa per la vendita | Da sviluppare (solo cenni) |
@@ -135,7 +136,7 @@ Ordine per importanza, ognuna con test di accettazione.
 4. ✅ **Luce, clima, acqua, nutrienti** (unificazione con il modello Python dell'orto ancora da fare): mappa PPFD sul ripiano, clima con meteo orario vero (Open-Meteo), NFT con
    portata e pendenza, ricetta nutritiva da analisi dell'acqua. Unificazione con il modello Python dell'orto.
 5. ✅ **3D parametrico collegato alla distinta** (con pianta del locale in SVG; niente esportazione CAD): ripiani, canali e tubi dimensionati che aggiornano quantità e costi.
-6. **Automazione simulata**: modalità simulazione / shadow / controllo reale, guasti e interblocchi, firmware
+6. ✅ **Automazione simulata**: modalità simulazione / shadow / controllo reale, guasti e interblocchi, firmware
    idroponica con dosaggio limitato, a piccole dosi, con attesa di miscelazione e blocchi.
 7. **Hardware e monitoraggio**: ESPHome + Home Assistant, storico, allarmi.
 8. **Dati reali e calibrazione**: registro colture, confronto previsto/misurato, ricalibrazione con versioni e

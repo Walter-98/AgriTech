@@ -238,6 +238,21 @@ Nessun modello è stato ancora confrontato con un raccolto vero: la calibrazione
   - non c'è l'IVA per chi vende.
 - **Esempio verificabile**: nel test "bilancio", costo al kg = (OPEX + CAPEX medio ÷ 5) ÷ (kg × 0,9).
 
+## 8b. Serbatoio simulato per provare il controllo (C)
+`sistema/idro_modello.py`. Serve a provare la logica, non a prevedere la chimica.
+- **Volume**: le piante bevono 0,15 L al giorno per pianta, di più con le luci accese.
+- **EC**:
+  - le piante assorbono sali al 70% della concentrazione, quindi l'EC sale bevendo;
+  - il rabbocco con acqua di rete la riporta giù;
+  - 1 mL/L di A (o di B) alza l'EC di 0,3.
+- **pH = 4 + 4·a/(a+0,8)**, con a = alcalinità in meq/L:
+  - le piante rilasciano 0,15 meq/L al giorno (assorbono nitrati);
+  - l'acqua di rete porta 3,6 meq/L di bicarbonati;
+  - il pH- commerciale ne toglie circa 6 per mL.
+  - **Risultato importante**: è soprattutto il **rabbocco con acqua dura** a far salire il pH. Il limite giornaliero
+    del pH- deve coprirlo (0,15 mL/L).
+- **Sonde**: rumore pH 0,02 ed EC 0,01; deriva, blocco e distacco programmabili.
+
 ## 9. Guasti (C)
 - Il blackout fa perdere piante quando le ore senza pompa superano la tolleranza del sistema: NFT 2 h, torri 1 h,
   DWC e secchi 12 h, vassoi 24 h, Kratky illimitata.

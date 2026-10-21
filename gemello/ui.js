@@ -315,6 +315,15 @@ function editorLogicaIdro(box) {
     ["Acqua", "rabbocco quando scende sotto il galleggiante minimo; cambio completo ogni " + I.acqua.cambio_giorni + " giorni; sopra 24 °C allarme ACQUA_CALDA."],
     ["Sicurezze", "perdita → tutto spento; flusso assente → allarme; " + (S.tolleranza_ore <= 2 ? "senza corrente le radici reggono " + S.tolleranza_ore + " ore: UPS." : "il sistema regge " + (S.tolleranza_ore >= 999 ? "senza corrente" : S.tolleranza_ore + " ore") + " senza pompa.")],
   ];
+  box.append(riquadro("Il controllo vero (firmware ESP32)", el("p", {class: "piccolo", text: "Le regole qui sotto diventano la logica di sistema/idro_controllo.py, la stessa che gira sull'ESP32 (firmware/esp32-idroponica). Tre modalità: simulazione (nessun hardware), ombra (legge i sensori veri ma non comanda niente: dice cosa farebbe) e reale (solo con conferma esplicita nella configurazione). Provata su 12 scenari con il serbatoio simulato: sonda pH che deriva, sonda bloccata o staccata, flacone vuoto, perdita, pompa guasta, blackout, acqua calda, rete chiusa."}),
+    el("div", {class: "scorri"}, el("table", null, el("tbody", null, ...[
+      ["Dosaggio", "solo con letture valide e stabili, a piccole dosi (A e B " + fmt(0.03 * k.serbatoio, 1) + " mL, pH- " + fmt(0.01 * k.serbatoio, 1) + " mL), 10 minuti tra due dosi, il pH 15 minuti dopo i nutrienti, limite giornaliero per ogni dosatore"],
+      ["Dosi senza effetto", "3 dosi che non spostano la lettura (flacone vuoto, tubo tappato) → dosaggio bloccato fino a reset"],
+      ["Sonde", "fuori campo, bloccate un'ora sullo stesso valore o con salti → niente dosi; penna diversa dalla sonda di più di 0,3 → sonda da tarare"],
+      ["Perdita", "sensore a pavimento → tutto spento fino a reset"],
+      ["Pompa", "flusso assente dopo 90 secondi → riprova 3 volte, poi ferma fino a reset (non gira a secco)"],
+      ["Riavvio", "dopo un blackout niente dosi per 15 minuti; allarmi e dosi del giorno salvati su file"],
+      ["Limite hardware", "nessuna dose dura più di 20 secondi, qualunque cosa chieda la logica"]].map(r => el("tr", null, el("th", {text: r[0]}), el("td", {text: r[1]}))))))));
   box.append(riquadro("Regole del controllo (calcolate dalle tue colture)", el("div", {class: "scorri"}, el("table", null, el("tbody", null, ...regole.map(r => el("tr", null, el("th", {text: r[0]}), el("td", {text: r[1]}))))))),
     riquadro("Cambia luce e temperature", griglia(campoNum("Intensità della luce (0 = consigliata)", I.luce.ppfd, 0, 1000, 10, v => { I.luce.ppfd = v; aggiorna(); }, "µmol/m²/s"),
       campoNum("Ore di luce (0 = consigliate)", I.luce.ore, 0, 20, 1, v => { I.luce.ore = v; aggiorna(); }),
