@@ -45,7 +45,7 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 | Logica idroponica (pH, EC, dosaggio, sicurezze, modi simulazione/ombra/reale) | Implementata e testata (fase 6): 16 test su serbatoio simulato con 12 scenari di guasto |
 | Firmware idroponica ESP32 | Implementato, provato con hardware finto (9 test); non provato su scheda vera |
 | Monitoraggio remoto | Implementato (fase 7): ESPHome di sorveglianza validato con `esphome config`, MQTT con auto-scoperta nel firmware, pacchetto Home Assistant con 6 avvisi e plancia, esportazione dello storico. Non provato con un Home Assistant vero |
-| Confronto con dati reali e calibrazione | Da sviluppare |
+| Confronto con dati reali e calibrazione | Implementato e testato (fase 8): scheda Registro, previsione per le stesse date con le temperature misurate, errore, correzione per coltura solo con 2+ cicli, versioni e ritorno indietro, confronto dei kWh |
 | Normativa per la vendita | Da sviluppare (solo cenni) |
 | Esportazione PDF, CSV, XLSX | Da sviluppare (oggi copia del testo) |
 | Pianta del locale, ingombri, spazio per lavorare e passaggio | Implementata e testata (fase 5), esportabile in SVG |
@@ -139,7 +139,7 @@ Ordine per importanza, ognuna con test di accettazione.
 6. ✅ **Automazione simulata**: modalità simulazione / shadow / controllo reale, guasti e interblocchi, firmware
    idroponica con dosaggio limitato, a piccole dosi, con attesa di miscelazione e blocchi.
 7. ✅ **Hardware e monitoraggio** (configurazioni pronte e validate; prova su hardware vero a carico tuo): ESPHome + Home Assistant, storico, allarmi.
-8. **Dati reali e calibrazione**: registro colture, confronto previsto/misurato, ricalibrazione con versioni e
+8. ✅ **Dati reali e calibrazione** (pronto: servono i tuoi raccolti): registro colture, confronto previsto/misurato, ricalibrazione con versioni e
    ritorno indietro.
 9. Altre colture e tecnologie (ebb & flow, goccia su substrato).
 10. Documenti in PDF/XLSX, normativa per la vendita (D.Lgs. 228/2001, Reg. CE 852/2004, SUAP e AST delle Marche),

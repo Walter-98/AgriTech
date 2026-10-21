@@ -831,6 +831,65 @@ function mappaLuceUI(I, set) {
     el("p", {class: "piccolo", text: "Ai bordi arriva il " + Math.round((1 - m.min / m.media) * 100) + "% di luce in meno della media: DLI da " + fmt(m.dliMin, 1) + " a " + fmt(m.max * capacitaIdro(cfg).ore * 0.0036, 1) + ". " + (m.uniformita < 0.6 ? "Uniformità bassa: alza la lampada o usa barre distribuite; ai bordi metti le piante che vogliono meno luce." : "Uniformità accettabile (sopra 0,6).") + " Calcolo con sorgenti lambertiane" + (I.clima.tenda ? " e pareti riflettenti della tenda (90%)" : "") + "; con la mappa del costruttore è più preciso."})];
 }
 
+// ---------- registro e calibrazione ----------
+function schedaRegistro(box) {
+  if (!idro()) { box.append(el("p", {class: "piccolo", text: "Il registro con la calibrazione per ora è per l'idroponica. Per l'orto: il simulatore Python accetta il meteo vero e le tue soglie (scheda Percorso)."})); return; }
+  const I = cfg.idro;
+  I.registro = I.registro || []; I.misure = I.misure || []; I.energia = I.energia || [];
+  const oggi = new Date().toISOString().slice(0, 10);
+  // nuovo ciclo
+  const col = el("select", {"aria-label": "Coltura"}); I.colture.forEach(x => col.append(el("option", {value: x.coltura, text: IDRO_PIANTE[x.coltura].nome})));
+  const sem = el("input", {type: "date", "aria-label": "Semina"}), rac = el("input", {type: "date", value: oggi, "aria-label": "Raccolta"});
+  const npi = el("input", {type: "number", min: "1", value: "6", "aria-label": "Piante raccolte"}), peso = el("input", {type: "number", min: "1", placeholder: "g in tutto", "aria-label": "Peso totale in grammi"});
+  const nota = el("input", {type: "text", placeholder: "note (varietà, problemi)", "aria-label": "Note"});
+  const agg = el("button", {class: "az", type: "button", text: "Aggiungi ciclo"});
+  agg.addEventListener("click", () => { if (!sem.value || !rac.value || !(+peso.value > 0)) return;
+    I.registro.push({coltura: col.value, semina: sem.value, raccolta: rac.value, piante: +npi.value, peso_g: +peso.value, note: nota.value}); salva(); disegnaScheda(); });
+  box.append(el("p", {class: "piccolo", text: "Scrivi qui ogni raccolto vero: date e peso. Il gemello calcola cosa avrebbe previsto per le stesse date (con le temperature misurate, se le carichi) e misura il suo errore. Con almeno 2 cicli per coltura propone una correzione, che puoi applicare e annullare. Le correzioni cambiano solo le previsioni di resa: mai la logica di controllo e le sicurezze."}),
+    riquadro("Nuovo ciclo raccolto", el("div", {class: "campi"},
+      el("label", {class: "campo"}, document.createTextNode("Coltura"), col), el("label", {class: "campo"}, document.createTextNode("Semina"), sem),
+      el("label", {class: "campo"}, document.createTextNode("Raccolta"), rac), el("label", {class: "campo"}, document.createTextNode("Piante raccolte"), npi),
+      el("label", {class: "campo"}, document.createTextNode("Peso totale (g)"), peso), el("label", {class: "campo"}, document.createTextNode("Note"), nota)), el("div", null, agg)));
+  // misure e energia
+  const file = el("input", {type: "file", accept: ".csv", "aria-label": "CSV delle misure"});
+  const esito = el("p", {class: "piccolo", "aria-live": "polite", text: I.misure.length ? I.misure.length + " giorni di misure caricati (" + I.misure[0].data + " → " + I.misure[I.misure.length - 1].data + ")." : "Nessuna misura caricata: il gemello usa le temperature simulate."});
+  file.addEventListener("change", () => { const f = file.files[0]; if (!f) return; f.text().then(t => { try { I.misure = misureDaCsv(t); salva(); disegnaScheda(); } catch (e) { esito.textContent = "CSV non valido: " + e.message; } }); });
+  const dal = el("input", {type: "date", "aria-label": "Dal"}), al = el("input", {type: "date", "aria-label": "Al"}), kwh = el("input", {type: "number", min: "0", step: "0.1", "aria-label": "kWh letti"});
+  const aggE = el("button", {class: "az sec", type: "button", text: "Aggiungi lettura"});
+  aggE.addEventListener("click", () => { if (dal.value && al.value && +kwh.value > 0) { I.energia.push({dal: dal.value, al: al.value, kwh: +kwh.value}); salva(); disegnaScheda(); } });
+  const ce = confrontoEnergia(cfg, I.energia);
+  box.append(el("div", {class: "due"},
+    riquadro("Misure dell'impianto (da Home Assistant)", el("p", {class: "piccolo", text: "CSV di strumenti/storico_ha.py (data, t_aria_min, t_aria_max, …): le temperature vere sostituiscono quelle simulate nelle previsioni."}), file, esito),
+    riquadro("Corrente letta sulla presa con contatore", el("div", {class: "campi"}, el("label", {class: "campo"}, document.createTextNode("Dal"), dal), el("label", {class: "campo"}, document.createTextNode("Al"), al), el("label", {class: "campo"}, document.createTextNode("kWh"), kwh)), el("div", null, aggE),
+      ce.length ? el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Periodo", "Letti", "Gemello", "Errore"].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
+        el("tbody", null, ...ce.map(x => el("tr", null, el("td", {text: x.dal + " → " + x.al}), el("td", {class: "n", text: fmt(x.kwh, 1)}), el("td", {class: "n", text: fmt(x.simulati, 1)}), el("td", {class: "n", text: (x.errore > 0 ? "+" : "") + fmt(x.errore * 100) + "%"})))))) : el("p", {class: "piccolo", text: "Tolleranza attesa ±5% (AUDIT.md §7)."}))));
+  // confronto raccolti
+  const cf = confronto(cfg, I.registro, I.misure), att = fattoriAttivi(I);
+  if (cf.righe.length) box.append(riquadro("Raccolti: vero contro gemello", el("div", {class: "scorri"}, el("table", null,
+    el("thead", null, el("tr", null, ...["Coltura", "Semina → raccolta", "Giorni", "g/pianta veri", "Gemello", "Errore", "Giorni previsti", "Giorni con misure", ""].map((t, i) => el("th", {class: i > 1 ? "n" : "", text: t})))),
+    el("tbody", null, ...cf.righe.map(r => { const del = el("button", {class: "link", type: "button", text: "Togli"});
+      del.addEventListener("click", () => { I.registro.splice(I.registro.indexOf(I.registro.find(x => x.semina === r.semina && x.raccolta === r.raccolta && x.coltura === r.coltura)), 1); salva(); disegnaScheda(); });
+      return el("tr", null, el("td", {text: IDRO_PIANTE[r.coltura].nome}), el("td", {text: r.semina + " → " + r.raccolta}), el("td", {class: "n", text: fmt(r.durata)}),
+        el("td", {class: "n", text: fmt(r.pesoVero)}), el("td", {class: "n", text: fmt(r.pesoPrevisto) + (att[r.coltura] ? " (×" + fmt(att[r.coltura], 2) + " = " + fmt(r.pesoPrevisto * att[r.coltura]) + ")" : "")}),
+        el("td", {class: "n", text: (r.errore > 0 ? "+" : "") + fmt(r.errore * 100) + "%"}), el("td", {class: "n", text: fmt(r.giorniPrevisti)}), el("td", {class: "n", text: fmt(r.giorniMisurati) + "/" + fmt(r.durata)}), el("td", null, del)); }))))));
+  else box.append(riquadro("Raccolti: vero contro gemello", el("p", {class: "piccolo", text: "Ancora nessun raccolto registrato."})));
+  // calibrazione
+  const righeSt = cf.statistiche.map(st => el("tr", null, el("td", {text: IDRO_PIANTE[st.coltura].nome}), el("td", {class: "n", text: st.n}),
+    el("td", {class: "n", text: fmt(st.mape * 100) + "%"}), el("td", {class: "n", text: "× " + fmt(st.fattore, 2) + (st.intervallo ? " (" + fmt(st.intervallo[0], 2) + "–" + fmt(st.intervallo[1], 2) + ")" : "")}),
+    el("td", {class: "n", text: st.proponibile ? fmt(erroreDopo(st, cf.righe) * 100) + "%" : "-"}), el("td", null, chip(st.proponibile ? "ok" : "warn", st.proponibile ? "proponibile" : 2 - st.n === 1 ? "serve ancora 1 ciclo" : "servono " + (2 - st.n) + " cicli"))));
+  const appl = el("button", {class: "az", type: "button", text: "Applica la correzione (nuova versione)"});
+  appl.disabled = !cf.statistiche.some(s => s.proponibile);
+  appl.addEventListener("click", () => { applicaCalibrazione(I, cf.statistiche); aggiorna(false); });
+  const indietro = el("button", {class: "az sec", type: "button", text: "Torna alla versione precedente"});
+  indietro.disabled = !(I.calibrazioni && I.calibrazioni.length);
+  indietro.addEventListener("click", () => { tornaIndietro(I); aggiorna(false); });
+  box.append(riquadro("Calibrazione del modello",
+    cf.statistiche.length ? el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Coltura", "Cicli", "Errore medio ora", "Correzione proposta (95%)", "Errore dopo", ""].map((t, i) => el("th", {class: i ? "n" : "", text: t})))), el("tbody", null, ...righeSt))) : el("p", {class: "piccolo", text: "Servono almeno 2 cicli registrati per coltura."}),
+    el("p", {class: "piccolo", text: "L'errore \"dopo\" è calcolato sugli stessi cicli: dice che la correzione è coerente, non che è giusta. Verificala sui prossimi raccolti."}),
+    el("div", null, appl, document.createTextNode(" "), indietro),
+    ...(I.calibrazioni || []).slice().reverse().map((v, i) => el("p", {class: "piccolo", text: (i ? "" : "In uso: ") + "versione " + v.versione + " del " + v.data + " · " + v.note}))));
+}
+
 // ---------- percorso guidato ----------
 let PROPOSTE = null;
 function schedaInizia(box) {
@@ -885,7 +944,7 @@ function schedaInizia(box) {
 }
 
 // ---------- schede e aggiornamento ----------
-const SCHEDE = [["inizia", "Inizia"], ["progetto", "Progetto"], ["componenti", "Componenti"], ["logica", "Logica"], ["guasti", "Guasti"], ["simulazione", "Simulazione"], ["costi", "Costi"], ["materiali", "Materiali"], ["struttura", "Struttura"], ["gestione", "Gestione"], ["guida", "Guida"], ["percorso", "Percorso"]];
+const SCHEDE = [["inizia", "Inizia"], ["progetto", "Progetto"], ["componenti", "Componenti"], ["logica", "Logica"], ["guasti", "Guasti"], ["simulazione", "Simulazione"], ["registro", "Registro"], ["costi", "Costi"], ["materiali", "Materiali"], ["struttura", "Struttura"], ["gestione", "Gestione"], ["guida", "Guida"], ["percorso", "Percorso"]];
 let schedaAperta = "progetto";
 function apri(nome) {
   if (!SCHEDE.some(s => s[0] === nome)) nome = "progetto";
@@ -896,10 +955,10 @@ function apri(nome) {
 }
 function disegnaScheda() {
   const box = $("contenuto"); box.replaceChildren();
-  const titoli = {inizia: "Progetta il tuo primo impianto", progetto: idro() ? "Il tuo impianto idroponico" : "Il tuo orto", componenti: "Componenti", logica: "Logica di controllo", guasti: "Guasti e scenari", simulazione: "Un anno nel gemello",
+  const titoli = {registro: "Registro: misure vere contro gemello", inizia: "Progetta il tuo primo impianto", progetto: idro() ? "Il tuo impianto idroponico" : "Il tuo orto", componenti: "Componenti", logica: "Logica di controllo", guasti: "Guasti e scenari", simulazione: "Un anno nel gemello",
     costi: "Quanto costa, davvero", materiali: "Lista della spesa", struttura: "Come è fatto", gestione: "Gestirlo ogni giorno", guida: idro() ? "Guida da tecnico dell'idroponica" : "Guida", percorso: "Dal gemello alla realtà"};
   box.append(el("h2", {text: titoli[schedaAperta]}));
-  const f = {inizia: () => schedaInizia(box), progetto: () => idro() ? editorProgettoIdro(box) : editorProgettoOrto(box), componenti: () => idro() ? editorComponentiIdro(box) : editorComponentiOrto(box),
+  const f = {registro: () => schedaRegistro(box), inizia: () => schedaInizia(box), progetto: () => idro() ? editorProgettoIdro(box) : editorProgettoOrto(box), componenti: () => idro() ? editorComponentiIdro(box) : editorComponentiOrto(box),
     logica: () => idro() ? editorLogicaIdro(box) : editorLogicaOrto(box), guasti: () => editorGuasti(box, idro() ? GUASTI_IDRO : GUASTI, !idro()),
     simulazione: () => schedaSimulazione(box), costi: () => schedaCosti(box), materiali: () => schedaMateriali(box), struttura: () => schedaStruttura(box),
     gestione: () => schedaGestione(box), guida: () => schedaGuida(box), percorso: () => schedaPercorso(box)}[schedaAperta];

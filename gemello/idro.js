@@ -298,6 +298,9 @@ function simulaIdro(c, opz = {}) {
   const evento = (d, tipo, testo) => out.eventi.push({d, tipo, testo});
   let perditaKgStock = 0, lampadaFino = -1, phFino = -1, pompaFino = -1;
   const kgColtura = k.colture.map(() => 0);
+  // calibrazione dai raccolti veri (scheda Registro): fattore per coltura, 1 se non c'è
+  const calib = (I.calibrazioni && I.calibrazioni.length) ? I.calibrazioni[I.calibrazioni.length - 1].fattori : {};
+  const fCal = k.colture.map(x => calib[x.coltura] || 1);
   const PR = Object.assign({mortalita: 0, fermo_giorni: 0, scarto: 0}, I.produzione || {});
   const vive = 1 - PR.mortalita / 100, fermo = PR.fermo_giorni;
   for (let d = 0; d < 365; d++) {
@@ -369,7 +372,7 @@ function simulaIdro(c, opz = {}) {
       if (tLuci > x.P.t[1] + 2) f *= 0.5;
       if (tBuio < x.P.t[0] - 4) f *= 0.5;
       const raccolte = x.piante / (x.P.giorni + fermo);
-      const kgX = x.P.crescita ? 0 : raccolte * x.P.resa / 1000 * f;      // con modello di crescita: calcolato dopo
+      const kgX = x.P.crescita ? 0 : raccolte * x.P.resa / 1000 * f * fCal[i];      // con modello di crescita: calcolato dopo
       kgGiorno += kgX; kgColtura[i] += kgX;
       if (!x.P.crescita) { out.raccolti += raccolte; out.semi += raccolte * 1.2 * x.P.seme; }
       traspirazione += x.piante * x.P.acqua * 0.6 * Math.max(0.4, f) * Math.max(0.6, tLuci / 22);
@@ -419,7 +422,7 @@ function simulaIdro(c, opz = {}) {
     for (let d = 0; d < 365; d++) {
       if (d % ogni === 0) c0 = coorte(x.P, d, g => out.giorni[g % 365], passo);
       const raccolte = x.piante / (c0.giorni + fermo);
-      const kgX = raccolte * c0.fresco / 1000 * out.giorni[d].fattori[i];
+      const kgX = raccolte * c0.fresco / 1000 * out.giorni[d].fattori[i] * fCal[i];
       out.giorni[d].kg += kgX; out.mesi[meseDi(d)].kg += kgX; out.kg += kgX; kgColtura[i] += kgX;
       out.raccolti += raccolte; out.semi += raccolte * 1.2 * x.P.seme;
       cicli.push(c0);

@@ -253,6 +253,20 @@ Nessun modello è stato ancora confrontato con un raccolto vero: la calibrazione
     del pH- deve coprirlo (0,15 mL/L).
 - **Sonde**: rumore pH 0,02 ed EC 0,01; deriva, blocco e distacco programmabili.
 
+## 8c. Confronto con i raccolti veri e calibrazione
+- **Previsione per un ciclo registrato**: coorte seminata il giorno vero. Le temperature sono quelle misurate (CSV di
+  Home Assistant) dove ci sono, altrimenti quelle simulate; la luce è quella del progetto. Si prende il peso del modello
+  alla data vera di raccolta.
+- **Errore** = (previsto − vero) ÷ vero. Errore medio assoluto per coltura.
+- **Correzione**: fattore = media di vero ÷ previsto, con intervallo al 95% (± 2 deviazioni standard ÷ √n). È
+  proposta solo con **almeno 2 cicli** e moltiplica la resa simulata di quella coltura.
+- **Versioni**: ogni correzione è una versione con data e motivo. "Torna alla versione precedente" la annulla. Il
+  fattore è assoluto (rispetto al modello senza correzioni), non si accumula.
+- **Limiti**:
+  - l'errore "dopo" è calcolato sugli stessi cicli usati per la correzione: è un controllo di coerenza, non una
+    validazione;
+  - la correzione riguarda solo la resa, mai la logica di controllo o le sicurezze.
+
 ## 9. Guasti (C)
 - Il blackout fa perdere piante quando le ore senza pompa superano la tolleranza del sistema: NFT 2 h, torri 1 h,
   DWC e secchi 12 h, vassoi 24 h, Kratky illimitata.
