@@ -31,14 +31,14 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 | Luce: PPFD e DLI dai watt montati | Implementata e testata (fase 1) |
 | Luce: distribuzione sul piano, uniformità, distanza | Da sviluppare |
 | Crescita: risposta alla luce | Implementata, stima euristica dichiarata (MODELLI.md §2) |
-| Crescita: biomassa giorno per giorno, fasi, carenze | Da sviluppare |
+| Crescita: biomassa giorno per giorno (lattuga, basilico) | Implementata e testata contro dati pubblicati (fase 3); fasi fenologiche e carenze solo come testo |
 | Clima del garage e della tenda | Prototipo: bilancio termico stazionario su medie mensili |
 | Idraulica: portate, prevalenza, pendenza NFT | Da sviluppare (le pompe sono stimate in watt) |
 | Nutrienti per singolo ione, ricetta | Da sviluppare (oggi solo EC) |
 | Bilancio economico: CAPEX, OPEX, ammortamento, scenari, pareggio | Implementata e testata (fase 1) |
 | Giudizio "conviene / fragile / sconsigliato" | Implementata e testata (fase 1) |
 | Distinta base | Prototipo: prezzi stimati a forbice, senza fornitori, link o date |
-| Database colture con fonti | Prototipo: valori da manuali, fonti solo per luce ed efficienza |
+| Database colture con fonti | Implementato (fase 3): 27 dati con fonte, condizioni e affidabilità A-D; il resto dei valori di tabella resta C |
 | Confronto tra alternative | Prototipo: "confronti rapidi" a una variabile; ottimizzazione da sviluppare |
 | Percorso guidato per principianti (scheda Inizia) | Implementata e testata (fase 2): prova circa 400 configurazioni, rispetta i vincoli, propone A/B/C, sa dire di no |
 | 3D | Dimostrazione: coerente con i numeri (piante, lampade, serbatoio) ma non è un CAD; non prova niente |
@@ -130,7 +130,7 @@ Ordine per importanza, ognuna con test di accettazione.
 2. ✅ **Percorso guidato e confronto delle tecnologie.** Domande essenziali (luogo, spazio, budget, tempo, colture,
    obiettivo) → tre proposte A/B/C, compresa la versione senza elettronica, e un giudizio. Accettazione: per 10 casi
    di prova le proposte rispettano budget e spazio, e almeno un caso viene sconsigliato con motivo.
-3. **Database colture con fonti e modello di crescita** per lattuga e basilico: biomassa giornaliera da luce e
+3. ✅ **Database colture con fonti e modello di crescita** per lattuga e basilico: biomassa giornaliera da luce e
    temperatura, con intervalli. Accettazione: riproduce entro ±20% le rese pubblicate per DLI e temperatura note.
 4. **Luce, clima, acqua, nutrienti**: mappa PPFD sul ripiano, clima con meteo orario vero (Open-Meteo), NFT con
    portata e pendenza, ricetta nutritiva da analisi dell'acqua. Unificazione con il modello Python dell'orto.

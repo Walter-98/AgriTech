@@ -51,6 +51,40 @@ Nessun modello è stato ancora confrontato con un raccolto vero: la calibrazione
   - Con DLI 30 resta 117%.
 - **Si verifica con**: la pesata delle teste alla raccolta (bilancia da cucina), con il DLI misurato.
 
+## 2b. Modello di crescita giorno per giorno: lattuga e basilico (B/C)
+- **Formula** (per pianta, un passo al giorno):
+  - massa secca: dD = LUE × DLI × A × (1 − e^(−k·LAR·D/A)) × f(T);
+  - A = spazio per pianta: cubetto 5×5 cm in vivaio, poi passo²;
+  - k = coefficiente di estinzione della luce (0,9 lattuga, 0,8 basilico);
+  - LAR = superficie fogliare per grammo secco. Con poca luce le foglie si allargano (acclimatazione all'ombra):
+    LAR = LARrif × (DLIrif/DLI)^0,7;
+  - f(T) = funzione beta delle temperature cardinali (Yan e Hunt 1999) sulla temperatura media del giorno in tenda;
+  - massa fresca = massa secca ÷ sostanza secca (4,7% lattuga, 8% basilico).
+- **Calibrazione**:
+  - LUE si calcola all'avvio in modo che la lattuga faccia **150 g a 35 giorni dalla semina** con DLI 17 e 22,3 °C
+    medi (Both 1995, Cornell): risulta circa 0,6 g secchi per mole di luce;
+  - per il basilico il riferimento è il valore di tabella (90 g a 49 giorni con DLI 18,5 e 25 °C, affidabilità **D**).
+- **Temperature cardinali** (base / ottimale / massima):
+  - lattuga 8 / 26 / 36 °C: base e ottimo da Michigan State, massima ipotizzata;
+  - basilico 8 / 30 / 40 °C: base 8,3 e crescita fino a circa 30 °C da Iowa State, massima ipotizzata.
+- **Uso nella simulazione**:
+  - una coorte seminata ogni 7 giorni cresce con la luce e la temperatura dei giorni seguenti fino al peso di
+    raccolta: la durata del ciclo cambia con la stagione;
+  - produzione = piante ÷ (ciclo + giorni fermi) × peso;
+  - col caldo oltre la massima di qualità (lattuga 24 °C) metà raccolto è considerato non vendibile (salita a seme,
+    amaro): euristica **D**.
+- **Controlli contro i dati pubblicati** (`test/js/test_crescita.js`):
+  - lattuga 150 g ±1% al punto Cornell;
+  - lattuga a DLI 8,6 pesa il 40-65% di quella a DLI 17 (risposta quasi lineare, ISHS);
+  - basilico da DLI 7 a 15 cresce di +100-260% (Iowa State: +144-208%);
+  - basilico più pesante a 30 °C che a 24 °C, meno a 37 °C.
+- **Errori noti**:
+  - sotto 18 °C la crescita rallenta probabilmente troppo: l'effetto della temperatura si moltiplica giorno dopo
+    giorno. Basilico seminato a gennaio con la tenda a 17 °C: 90-130 giorni secondo il modello;
+  - nessun effetto di CO₂, VPD o nutrienti sulla crescita;
+  - varietà diverse hanno parametri diversi.
+- **Si verifica con**: pesata di 3 piante a settimana nel primo ciclo, con DLI e temperatura media misurati.
+
 ## 3. Energia elettrica (A per le luci, C per il resto)
 - **Formula**:
   - luci = W × ore × 365 (meno le ore di blackout);

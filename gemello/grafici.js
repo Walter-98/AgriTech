@@ -44,11 +44,13 @@ function lineChart(cont, o) {
     svg.append(sv("line", {x1: sx, x2: W - dx, y1: y(r.v), y2: y(r.v), stroke: "var(--asse)", "stroke-width": 1}));
     svg.append(sv("text", {x: W - dx - 4, y: y(r.v) - 4, "text-anchor": "end"}, r.testo));
   }
-  for (let m = 0; m < 12; m++) {
-    const xm = x(INIZIO_MESE[m] * (n - 1) / 364);
-    if (W > 700 || m % 2 === 0) svg.append(sv("text", {x: xm + 4, y: H - 8}, MESI[m]));
+  // tacche sull'asse X: mesi dell'anno, oppure quelle date (o.tickX = [{i, testo}])
+  const tacche = o.tickX || MESI.map((t, m) => ({i: INIZIO_MESE[m] * (n - 1) / 364, testo: t}));
+  tacche.forEach((t, j) => {
+    const xm = x(t.i);
+    if (W > 700 || j % 2 === 0) svg.append(sv("text", {x: xm + 4, y: H - 8}, t.testo));
     svg.append(sv("line", {x1: xm, x2: xm, y1: H - basso, y2: H - basso + 5, stroke: "var(--asse)", "stroke-width": 1}));
-  }
+  });
   svg.append(sv("line", {x1: sx, x2: W - dx, y1: H - basso, y2: H - basso, stroke: "var(--asse)", "stroke-width": 1}));
   for (const s of o.serie) {
     let dpath = "", su = false;

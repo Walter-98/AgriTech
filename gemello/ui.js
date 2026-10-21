@@ -408,8 +408,29 @@ function schedaSimulazione(box) {
     lineChart(gT, {titolo: "Temperature", n: 365, yMin: tmin, yMax: tmax, ticks, fmt: t => t + "°", serie: serieT, etichettaX: etGiorno, fmtTip: v => fmt(v, 1) + " °C"});
     barChart(gP, {larghezza: 520, largo: 0.8, titolo: "Raccolto per mese", categorie: MESI, serie: [{nome: "Raccolto", colore: "var(--s3)", valori: S.mesi.map(m => m.kg)}], fmt: v => fmt(v, v < 10 ? 1 : 0), fmtTip: v => fmt(v, 1) + " kg"});
     barChart(gA, {larghezza: 520, largo: 0.8, titolo: "Acqua per mese", categorie: MESI, serie: [{nome: "Acqua", colore: "var(--s1)", valori: S.mesi.map(m => m.acqua)}], fmt: compatto, fmtTip: v => fmt(v) + " L"});
-    box.append(riquadro("Coltura per coltura", el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Coltura", "Piante", "Raccolti all'anno", "kg all'anno", "Valore €", "Semi €"].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
-      el("tbody", null, ...S.perColtura.map(x => el("tr", null, el("td", {text: IDRO_PIANTE[x.coltura].nome}), el("td", {class: "n", text: fmt(x.piante)}), el("td", {class: "n", text: fmt(x.raccolti)}), el("td", {class: "n", text: fmt(x.kg, 1)}), el("td", {class: "n", text: fmt(x.valore)}), el("td", {class: "n", text: fmt(x.raccolti * 1.2 * IDRO_PIANTE[x.coltura].seme, 2)}))))))));
+    const conModello = Object.keys(S.coorti || {});
+    if (conModello.length) {
+      const gC = el("div", {class: "grafico"}), lC = el("div", {class: "legenda"}), gD = el("div", {class: "grafico"}), lD = el("div", {class: "legenda"});
+      const curve = [];
+      conModello.forEach((kk, i) => { for (const [m, nome] of [[0, "gennaio"], [6, "luglio"]]) { const co = S.coorti[kk][INIZIO_MESE[m]];
+        curve.push({nome: IDRO_PIANTE[kk].nome + " seminata a " + nome, colore: COLORI[curve.length % COLORI.length], valori: co.curva}); } });
+      const n = Math.max(...curve.map(c => c.valori.length)), top = Math.max(...curve.map(c => Math.max(...c.valori)));
+      curve.forEach(c => { while (c.valori.length < n) c.valori.push(null); });
+      const tk = niceTicks(top);
+      box.append(el("div", {class: "due"},
+        riquadro("Crescita di una pianta (modello)", el("p", {class: "piccolo", text: "Peso fresco giorno per giorno dalla semina, con la luce e la temperatura della tua tenda. Si raccoglie al peso di tabella. Modello a efficienza d'uso della luce con temperature cardinali, calibrato sulla lattuga di Cornell (150 g a 35 giorni): vedi Guida → fonti."}), lC, gC),
+        riquadro("Giorni dal trapianto al raccolto, per mese di semina", lD, gD)));
+      legenda(lC, curve);
+      lineChart(gC, {larghezza: 520, titolo: "Peso fresco", n, yMin: 0, yMax: tk[tk.length - 1], ticks: tk, fmt: v => v + " g", serie: curve, etichettaX: d => "giorno " + (d + 1), fmtTip: v => fmt(v) + " g", altezza: 240,
+        tickX: Array.from({length: Math.floor((n - 1) / 20) + 1}, (_, j) => ({i: j * 20, testo: j ? "giorno " + j * 20 : "semina"}))});
+      const serieD = conModello.map((kk, i) => ({nome: IDRO_PIANTE[kk].nome, colore: COLORI[i], valori: MESI.map((_, m) => S.coorti[kk][INIZIO_MESE[m] + 14].giorni)}));
+      legenda(lD, serieD);
+      const tkD = niceTicks(Math.max(...serieD.flatMap(x => x.valori)));
+      lineChart(gD, {larghezza: 520, titolo: "Durata del ciclo", n: 12, yMin: 0, yMax: tkD[tkD.length - 1], ticks: tkD, fmt: v => v + " gg", serie: serieD, etichettaX: m => "semina a " + MESI_LUNGHI[m], fmtTip: v => fmt(v) + " giorni", altezza: 240,
+        tickX: MESI.map((t, m) => ({i: m, testo: t}))});
+    }
+    box.append(riquadro("Coltura per coltura", el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Coltura", "Piante", "Giorni del ciclo", "Raccolti all'anno", "kg all'anno", "Valore €", "Semi €"].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
+      el("tbody", null, ...S.perColtura.map(x => el("tr", null, el("td", {text: IDRO_PIANTE[x.coltura].nome}), el("td", {class: "n", text: fmt(x.piante)}), el("td", {class: "n", text: fmt(x.giorniCiclo) + (x.modello ? " (modello)" : "")}), el("td", {class: "n", text: fmt(x.raccolti)}), el("td", {class: "n", text: fmt(x.kg, 1)}), el("td", {class: "n", text: fmt(x.valore)}), el("td", {class: "n", text: fmt(x.raccolti * 1.2 * IDRO_PIANTE[x.coltura].seme, 2)}))))))));
   } else {
     const serie = cfg.zone.map((z, i) => ({nome: (i + 1) + " · " + PIANTE[z.coltura].nome, colore: COLORI[i], valori: S.giorni.map(g => g.umid[i] == null ? null : g.umid[i] * 100)}));
     const gU = el("div", {class: "grafico"}), lU = el("div", {class: "legenda"});
@@ -592,6 +613,14 @@ function schedaGestione(box) {
     riquadro("Cosa vuol dire ogni allarme", el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Allarme", "Cosa succede", "Cosa fai", "Si sblocca"].map(t => el("th", {text: t})))),
       el("tbody", null, ...al.map(a => el("tr", null, el("td", {class: "dati", text: a[0]}), el("td", {text: a[1]}), el("td", {text: a[2]}), el("td", {text: a[3]}))))))));
 }
+function fontiColture(box) {
+  const nomeC = k => k === "tutte" ? "Tutte" : IDRO_PIANTE[k].nome;
+  const cella = (r) => { const F = FONTI[r[4]]; return el("td", null, F.url ? el("a", {href: F.url, target: "_blank", rel: "noopener", text: F.testo}) : document.createTextNode(F.testo)); };
+  box.append(riquadro("Da dove vengono i dati (fonti e affidabilità)",
+    el("p", {class: "piccolo", text: "A = definizione o formula esatta · B = letteratura con parametri medi · C = manuali e pratica, da verificare · D = ipotesi senza fonte. Il gemello usa questi valori: quelli C e D vanno sostituiti con le tue misure."}),
+    el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Coltura", "Dato", "Valore", "Condizioni", "Fonte", ""].map(t => el("th", {text: t})))),
+      el("tbody", null, ...DATI_COLTURE.map(r => el("tr", null, el("td", {text: nomeC(r[0])}), el("td", {text: r[1]}), el("td", {text: r[2] + (r[3] ? " " + r[3] : "")}), el("td", {class: "piccolo", text: r[5]}), cella(r), el("td", null, chip(r[6] <= "B" ? "ok" : "warn", r[6])))))))));
+}
 function schedaGuida(box) {
   if (idro()) {
     const t = el("tbody", null, ...Object.values(IDRO_PIANTE).map(P => el("tr", null, el("td", null, el("strong", {text: P.nome}), el("br"), el("span", {class: "piccolo", text: P.note})),
@@ -637,6 +666,7 @@ function schedaGuida(box) {
       riquadro("Dove mettere i sensori", el("ul", {class: "lista"}, el("li", {text: "A 10-15 cm di profondità (dove ci sono le radici), a 10 cm da un gocciolatoio."}), el("li", {text: "Elettronica fuori terra e riparata; cavo che scende verso il basso prima di entrare nel quadro."}),
         el("li", {text: "Due sensori per zona se la zona è grande o il terreno disomogeneo: il gemello fa la media."}), el("li", {text: "Taratura: lettura in aria (secco) e in un bicchiere d'acqua (saturo), da ripetere ogni primavera."}))));
   }
+  if (idro()) fontiColture(box);
 }
 function schedaPercorso(box) {
   const costo = f => { const v = VOCI.filter(x => x.fase === f); return v.length ? forbice(somma(v, "min"), somma(v, "max")) : "0 €"; };

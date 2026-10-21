@@ -8,8 +8,12 @@
 // seme € per pianta (o piantina), prezzo €/kg al negozio, consumo kg per persona a settimana (stima per una famiglia
 // italiana, da cambiare: oltre questo il raccolto va venduto o regalato), sistemi adatti
 const IDRO_PIANTE = {
-  lattuga:    {nome: "Lattuga", ec: [0.8, 1.2], ph: [5.5, 6.5], ppfd: [200, 300], dli: [12, 17], ore: 16, t: [16, 22], ur: [50, 70], passo: 20, giorni: 40, vivaio: 14, resa: 180, acqua: 0.15, seme: 0.02, prezzo: 3, consumo: 0.3, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Sopra 24 °C va a seme (sale lo stelo) e diventa amara; sotto 5 °C si ferma. Bruciature ai bordi (tipburn) con poca ventilazione."},
-  basilico:   {nome: "Basilico", ec: [1.0, 1.6], ph: [5.5, 6.5], ppfd: [300, 500], dli: [15, 22], ore: 16, t: [21, 27], ur: [50, 60], passo: 20, giorni: 35, vivaio: 14, resa: 90, acqua: 0.12, seme: 0.01, prezzo: 20, consumo: 0.03, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Soffre il freddo sotto 15 °C (foglie nere). Si raccoglie a tagli: cima sopra il secondo nodo, ricresce in 3 settimane."},
+  lattuga:    {crescita: {tb: 8, to: 26, tm: 36, k: 0.9, lar: 0.075, a: 0.7, dliRif: 17, d0: 0.004, sec: 0.047,
+                          rif: {giorni: 35, dli: 17, t: 22.3, passo: 20, fresco: 150, fonte: "both1995"}},
+               nome: "Lattuga", ec: [0.8, 1.2], ph: [5.5, 6.5], ppfd: [200, 300], dli: [12, 17], ore: 16, t: [16, 22], ur: [50, 70], passo: 20, giorni: 40, vivaio: 14, resa: 180, acqua: 0.15, seme: 0.02, prezzo: 3, consumo: 0.3, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Sopra 24 °C va a seme (sale lo stelo) e diventa amara; sotto 5 °C si ferma. Bruciature ai bordi (tipburn) con poca ventilazione."},
+  basilico:   {crescita: {tb: 8, to: 30, tm: 40, k: 0.8, lar: 0.06, a: 0.7, dliRif: 15, d0: 0.003, sec: 0.08,
+                          rif: {giorni: 49, dli: 18.5, t: 25, passo: 20, fresco: 90, fonte: "tabella"}},
+               nome: "Basilico", ec: [1.0, 1.6], ph: [5.5, 6.5], ppfd: [300, 500], dli: [15, 22], ore: 16, t: [21, 27], ur: [50, 60], passo: 20, giorni: 35, vivaio: 14, resa: 90, acqua: 0.12, seme: 0.01, prezzo: 20, consumo: 0.03, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Soffre il freddo sotto 15 °C (foglie nere). Si raccoglie a tagli: cima sopra il secondo nodo, ricresce in 3 settimane."},
   rucola:     {nome: "Rucola", ec: [0.8, 1.2], ph: [6.0, 6.5], ppfd: [200, 300], dli: [12, 16], ore: 14, t: [15, 21], ur: [50, 70], passo: 10, giorni: 25, vivaio: 7, resa: 40, acqua: 0.05, seme: 0.01, prezzo: 12, consumo: 0.05, sistemi: ["nft", "torre", "dwc", "kratky"], note: "Ciuffi di 4-5 semi per vasetto. Con caldo e luce lunga fiorisce presto."},
   spinacio:   {nome: "Spinacio", ec: [1.8, 2.3], ph: [6.0, 7.0], ppfd: [250, 350], dli: [12, 15], ore: 12, t: [15, 20], ur: [50, 70], passo: 15, giorni: 40, vivaio: 14, resa: 80, acqua: 0.08, seme: 0.01, prezzo: 6, consumo: 0.15, sistemi: ["nft", "torre", "dwc"], note: "Con più di 14 ore di luce o caldo va a seme: luce corta."},
   cavolo_riccio: {nome: "Cavolo riccio (kale)", ec: [1.2, 1.8], ph: [5.5, 6.5], ppfd: [300, 400], dli: [14, 18], ore: 16, t: [15, 22], ur: [50, 70], passo: 25, giorni: 45, vivaio: 14, resa: 200, acqua: 0.15, seme: 0.02, prezzo: 8, consumo: 0.1, sistemi: ["nft", "torre", "dwc"], note: "Si raccolgono le foglie basse, la pianta produce per mesi."},
@@ -20,6 +24,58 @@ const IDRO_PIANTE = {
   peperoncino: {nome: "Peperoncino", ec: [1.8, 2.4], ph: [5.8, 6.3], ppfd: [400, 600], dli: [18, 25], ore: 16, t: [22, 28], ur: [50, 70], passo: 50, giorni: 120, vivaio: 28, resa: 400, acqua: 0.6, seme: 0.05, prezzo: 15, consumo: 0.01, sistemi: ["bucket", "dwc"], note: "Ama il caldo: ideale d'estate in garage. Germina a 25-30 °C."},
   microgreens: {nome: "Microgreens (vassoi)", ec: [0, 0.6], ph: [5.5, 6.5], ppfd: [100, 250], dli: [6, 12], ore: 16, t: [18, 22], ur: [40, 60], passo: 0, giorni: 10, vivaio: 0, resa: 250, acqua: 0.25, seme: 0.75, prezzo: 30, consumo: 0.03, sistemi: ["vassoi"], note: "Per vassoio 25×50 cm: 15-30 g di seme (girasole e piselli 80-100 g), 3-4 giorni al buio, poi luce. Si vendono a ristoranti."},
 };
+
+for (const P of Object.values(IDRO_PIANTE)) if (P.crescita) calibraCrescita(P);
+
+// ---------- fonti e affidabilità dei dati ----------
+// A = definizione o formula esatta, B = letteratura con parametri medi, C = manuali e pratica (da verificare),
+// D = ipotesi senza fonte. Ogni riga dice a quali condizioni vale il dato.
+const FONTI = {
+  both1995: {testo: "Both A.J. (1995), tesi di dottorato Cornell; riassunto in Both, Ten years of hydroponic lettuce research (2003)", url: "https://www.haifa-group.com/sites/default/files/2024-03/AJBothTenYearsofHydroponicLettuceResearch2003.pdf"},
+  msu_cardinali: {testo: "Michigan State University, tesi sulle temperature cardinali di lattuga, rucola e cavolo riccio (prove 8-33 °C)", url: "https://d.lib.msu.edu/etd/50442"},
+  msu_tipburn: {testo: "Michigan State University, Urban Ag Series parte 2", url: "https://www.canr.msu.edu/floriculture/uploads/files/Urban-Ag-Series-Part-2.pdf"},
+  iowa_basilico_luce: {testo: "Iowa State University, ASHS 2015: basilico a DLI 7 e 15", url: "https://ashs.confex.com/ashs/2015/webprogram/Paper21160.html"},
+  iowa_basilico_temp: {testo: "Iowa State University (Walters, Currey): temperatura base del basilico 8,3 °C, crescita fino a circa 29-30 °C", url: "https://producegrower.com/article/hydroponic-production-primer-how-temperature-and-light-affect-basil-production"},
+  walters2023: {testo: "Walters et al. (2023), PLoS ONE: temperatura ottimale del basilico 32,6-35,5 °C secondo il DLI", url: "https://doaj.org/article/18bde24b4cad47839506133a26e2bfa0"},
+  ishs1337: {testo: "ISHS Acta Horticulturae 1337: basilico indoor sotto LED, crescita lineare con il DLI", url: "https://ishs.org/ishs-article/1337_22/"},
+  ishs1425: {testo: "ISHS Acta Horticulturae 1425: ortaggi a foglia, 150-300 µmol/m²/s per 16 h = DLI 8,6-17,3", url: "https://ishs.org/ishs-article/1425_51/"},
+  uky_led: {testo: "University of Kentucky, LED Efficacy (2022) e DLC: minimo 1,9 µmol/J", url: "https://greenhousehort.ca.uky.edu/sites/greenhousehort.ca.uky.edu/files/2022-03/LED%20Efficacy.pdf"},
+  yan_hunt: {testo: "Yan W., Hunt L.A. (1999), An equation for modelling the temperature response of plants using only the cardinal temperatures, Annals of Botany 84", url: ""},
+  monteith: {testo: "Monteith J.L. (1977), Climate and the efficiency of crop production in Britain, Phil. Trans. R. Soc. B 281", url: ""},
+  fao56: {testo: "Allen R.G. et al. (1998), FAO Irrigation and Drainage Paper 56: pressione di vapore (formula di Tetens)", url: "https://www.fao.org/4/x0490e/x0490e00.htm"},
+  manuali: {testo: "Manuali di coltivazione idroponica e pratica dei coltivatori (intervalli tipici, non legati a una prova)", url: ""},
+  tabella: {testo: "Valore di tabella del gemello (resa tipica), usato come riferimento finché non ci sono pesate vere", url: ""},
+};
+const DATI_COLTURE = [
+  // [coltura, parametro, valore, unità, fonte, condizioni, affidabilità]
+  ["lattuga", "Nome scientifico", "Lactuca sativa L.", "", "manuali", "", "A"],
+  ["lattuga", "Peso fresco a 35 giorni dalla semina", "150 (7 secchi)", "g/pianta", "both1995", "DLI 17, aria 24/18,8 °C giorno/notte, serra con HPS, floating", "B"],
+  ["lattuga", "DLI oltre cui aumentano le bruciature ai bordi", "16-17", "mol/m²/giorno", "msu_tipburn", "secondo varietà e ventilazione", "B"],
+  ["lattuga", "Temperatura base / ottimale", "8 / 26", "°C", "msu_cardinali", "varietà 'Rex' e 'Rouxaï RZ', prove 8-33 °C", "B"],
+  ["lattuga", "Temperatura massima di crescita", "36", "°C", "manuali", "ipotesi: le prove arrivano a 33 °C", "D"],
+  ["lattuga", "Aria consigliata per la qualità (non sale a seme)", "16-22", "°C", "manuali", "sopra 24 °C rischio di salita a seme e amaro", "C"],
+  ["lattuga", "EC / pH", "0,8-1,2 / 5,5-6,5", "mS/cm / -", "manuali", "", "C"],
+  ["lattuga", "Sostanza secca", "4,7", "%", "both1995", "7 g secchi su 150 g freschi", "B"],
+  ["lattuga", "Germinazione", "2-7 giorni a 15-20 °C; sopra 25-28 °C può non germinare", "", "manuali", "dipende dalla varietà", "C"],
+  ["lattuga", "Carenze e problemi", "bruciature ai bordi = poco calcio nelle foglie giovani (poca ventilazione); foglie vecchie gialle = poco azoto; radici marroni = acqua calda", "", "manuali", "", "C"],
+  ["basilico", "Nome scientifico", "Ocimum basilicum L.", "", "manuali", "", "A"],
+  ["basilico", "Aumento di massa fresca da DLI 7 a 15", "+144% / +208%", "", "iowa_basilico_luce", "basilico dolce / limone e sacro, serra", "B"],
+  ["basilico", "DLI per una crescita accettabile al chiuso", "8-10 (di più rende di più)", "mol/m²/giorno", "ishs1337", "LED, piccola scala", "B"],
+  ["basilico", "Temperatura base", "8,3", "°C", "iowa_basilico_temp", "per l'apertura delle foglie", "B"],
+  ["basilico", "Temperatura ottimale", "30 (32,6-35,5 secondo il DLI)", "°C", "walters2023", "temperatura media del giorno, DLI 6-11", "B"],
+  ["basilico", "Temperatura massima", "40", "°C", "manuali", "ipotesi: a 35 °C già cala", "D"],
+  ["basilico", "Sostanza secca", "8", "%", "manuali", "", "C"],
+  ["basilico", "Peso al primo taglio", "90", "g/pianta", "tabella", "da confermare con le pesate", "D"],
+  ["basilico", "Carenze e problemi", "foglie nere sotto 10-12 °C; peronospora con umidità alta; foglie pallide = poco azoto o ferro (pH alto)", "", "manuali", "", "C"],
+  ["rucola", "Temperatura base / ottimale", "6 / 23", "°C", "msu_cardinali", "rucola in coltura fuori suolo", "B"],
+  ["cavolo_riccio", "Temperatura base / ottimale", "6 / 23", "°C", "msu_cardinali", "", "B"],
+  ["tutte", "DLI = PPFD × ore × 0,0036", "", "mol/m²/giorno", "manuali", "definizione", "A"],
+  ["tutte", "Effetto della luce: crescita proporzionale alla luce intercettata", "", "", "monteith", "", "B"],
+  ["tutte", "Risposta alla temperatura: funzione beta delle temperature cardinali", "", "", "yan_hunt", "", "B"],
+  ["tutte", "VPD consigliato per ortaggi a foglia", "0,8-1,2", "kPa", "manuali", "", "C"],
+  ["tutte", "Pressione di vapore (VPD)", "0,6108·e^(17,27T/(T+237,3))·(1−UR)", "kPa", "fao56", "", "A"],
+  ["tutte", "Efficienza minima lampade da coltivazione", "1,9", "µmol/J", "uky_led", "DLC", "A"],
+];
 
 const SISTEMI_IDRO = {
   nft:    {nome: "NFT a canali (film nutritivo)", verticale: false, descr: "Canali in PVC leggermente inclinati: un velo d'acqua scorre sulle radici e torna nel serbatoio.", pro: "Il più usato per insalate ed erbe; pulito, leggero.", contro: "Se la pompa si ferma le radici seccano in 1-2 ore: serve l'UPS.", tolleranza_ore: 2, struttura_m2: [25, 50]},
@@ -130,6 +186,47 @@ function statoLuce(P, dli) {
   return {dli, min: P.dli[0], max: P.dli[1], fattore: rispostaLuce(P, dli), stato: dli < P.dli[0] * 0.95 ? "poca" : dli > P.dli[1] * 1.05 ? "troppa" : "giusta"};
 }
 
+// ---------- modello di crescita (lattuga, basilico) ----------
+// Massa secca per pianta: dD/dt = LUE × DLI × A × (1 − e^(−k·LAR·D/A)) × f(T)
+//   A = spazio per pianta (cubetto in vivaio, poi passo²), LAR = superficie fogliare per g secco, che aumenta con poca
+//   luce (acclimatazione all'ombra: LAR = LARrif × (DLIrif/DLI)^a), f(T) = funzione beta delle temperature cardinali
+//   (Yan e Hunt 1999). Massa fresca = secca ÷ sostanza secca. LUE si calibra sul caso di riferimento pubblicato.
+// Vedi MODELLI.md §2b per fonti, ipotesi e limiti.
+function fTemp(T, b, o, m) {
+  if (T <= b || T >= m) return 0;
+  return ((m - T) / (m - o)) * Math.pow((T - b) / (o - b), (o - b) / (m - o));
+}
+function passoCrescita(G, D, dli, T, A) {
+  const lar = G.lar * Math.pow(G.dliRif / Math.max(dli, 0.5), G.a);
+  return G.lue * dli * A * (1 - Math.exp(-G.k * lar * D / A)) * fTemp(T, G.tb, G.to, G.tm);
+}
+function calibraCrescita(P) {
+  const G = P.crescita, r = G.rif;
+  let lo = 0.01, hi = 5;
+  for (let i = 0; i < 60; i++) {
+    G.lue = (lo + hi) / 2;
+    let D = G.d0;
+    for (let g = 0; g < r.giorni; g++) D += passoCrescita(G, D, r.dli, r.t, g < P.vivaio ? 0.0025 : Math.pow(r.passo / 100, 2));
+    if (D > r.fresco * G.sec) hi = G.lue; else lo = G.lue;
+  }
+  return G.lue;
+}
+// una coorte seminata il giorno "inizio": clima(g) restituisce {tMedia, dli} del giorno g
+function coorte(P, inizio, clima, passo) {
+  const G = P.crescita, max = 3 * (P.vivaio + P.giorni), curva = [];
+  let D = G.d0, g = 0;
+  for (; g < max; g++) {
+    const c = clima(inizio + g);
+    D += passoCrescita(G, D, c.dli, c.tMedia, g < P.vivaio ? 0.0025 : Math.pow(passo / 100, 2));
+    curva.push(D / G.sec);
+    if (D / G.sec >= P.resa && g >= P.vivaio) break;
+  }
+  const giorni = Math.min(g + 1, max), fresco = D / G.sec;
+  return {inizio, giorni: Math.max(1, giorni - P.vivaio), giorniDaSemina: giorni, fresco: Math.min(fresco, P.resa), secco: D, curva, completa: fresco >= P.resa};
+}
+// deficit di pressione di vapore (kPa) dall'aria: formula di Tetens
+function vpd(T, ur) { return 0.6108 * Math.exp(17.27 * T / (T + 237.3)) * (1 - ur / 100); }
+
 // ---------- simulazione di un anno ----------
 function simulaIdro(c, opz = {}) {
   const I = Object.assign({}, c.idro, opz.idro || {}), cc = Object.assign({}, c, {idro: I});
@@ -156,6 +253,7 @@ function simulaIdro(c, opz = {}) {
                giorniAcquaCalda: 0, giorniUmido: 0, perse: 0, k, ecBase, ecNutr, UA};
   const evento = (d, tipo, testo) => out.eventi.push({d, tipo, testo});
   let perditaKgStock = 0, lampadaFino = -1, phFino = -1, pompaFino = -1;
+  const kgColtura = k.colture.map(() => 0);
   const PR = Object.assign({mortalita: 0, fermo_giorni: 0, scarto: 0}, I.produzione || {});
   const vive = 1 - PR.mortalita / 100, fermo = PR.fermo_giorni;
   for (let d = 0; d < 365; d++) {
@@ -215,16 +313,19 @@ function simulaIdro(c, opz = {}) {
     // crescita e raccolto (produzione continua a semina scaglionata)
     let kgGiorno = 0, traspirazione = 0;
     const fattoreLuce = Math.min(...k.colture.map(x => rispostaLuce(x.P, k.dli * luceFattore)));
-    for (const x of k.colture) {
-      let f = rispostaLuce(x.P, k.dli * luceFattore) * phFattore * (A.dosaggio ? 0.98 : 0.92) * vive;
+    const fattori = [];
+    for (const [i, x] of k.colture.entries()) {
+      // fattori che il modello di crescita non contiene: pH, controllo, mortalità, radici calde, piante perse
+      let altri = phFattore * (A.dosaggio ? 0.98 : 0.92) * vive * (acquaCalda && (I.sistema === "dwc" || I.sistema === "kratky" || I.sistema === "nft") ? 0.8 : 1) * Math.max(0, 1 - perditaKgStock);
+      // col caldo la pianta cresce ma perde qualità (lattuga che sale a seme, amara): metà del raccolto non vendibile
+      fattori.push(x.P.crescita && tLuci > x.P.t[1] + 2 ? altri * 0.5 : altri);
+      let f = rispostaLuce(x.P, k.dli * luceFattore) * altri;
       if (tLuci > x.P.t[1] + 2) f *= 0.5;
       if (tBuio < x.P.t[0] - 4) f *= 0.5;
-      if (acquaCalda && (I.sistema === "dwc" || I.sistema === "kratky" || I.sistema === "nft")) f *= 0.8;
-      f *= Math.max(0, 1 - perditaKgStock);
       const raccolte = x.piante / (x.P.giorni + fermo);
-      kgGiorno += raccolte * x.P.resa / 1000 * f;
-      out.raccolti += raccolte;
-      out.semi += raccolte * 1.2 * x.P.seme;
+      const kgX = x.P.crescita ? 0 : raccolte * x.P.resa / 1000 * f;      // con modello di crescita: calcolato dopo
+      kgGiorno += kgX; kgColtura[i] += kgX;
+      if (!x.P.crescita) { out.raccolti += raccolte; out.semi += raccolte * 1.2 * x.P.seme; }
       traspirazione += x.piante * x.P.acqua * 0.6 * Math.max(0.4, f) * Math.max(0.6, tLuci / 22);
     }
     perditaKgStock = Math.max(0, perditaKgStock - 1 / 30);          // le piante perse si rimpiazzano in un mese
@@ -259,13 +360,31 @@ function simulaIdro(c, opz = {}) {
     const allarmi = [];
     if (caldo) allarmi.push("CALDO"); if (freddo) allarmi.push("FREDDO"); if (acquaCalda) allarmi.push("ACQUA_CALDA"); if (umido) allarmi.push("UMIDITA_ALTA");
     if (d < phFino) allarmi.push(A.ph ? "PH_FUORI (sonda da tarare)" : "PH_FUORI"); if (d < lampadaFino) allarmi.push("LUCE_ASSENTE");
-    out.giorni.push({d, tGarage, tLuci, tBuio, tAcqua, ur, kg: kgGiorno, acqua, wh, allarmi, luce: fattoreLuce, perse: perditaKgStock, blackout: blackoutEff});
+    const tMedia = (tLuci * k.ore + tBuio * (24 - k.ore)) / 24;
+    out.giorni.push({d, tGarage, tLuci, tBuio, tAcqua, tMedia, vpd: vpd(tLuci, ur), ur, kg: kgGiorno, acqua, wh, allarmi, luce: fattoreLuce, dli: k.dli * luceFattore, fattori, perse: perditaKgStock, blackout: blackoutEff});
   }
-  // valore del raccolto: ripartito per coltura
-  const pesi = k.colture.map(x => x.piante / (x.P.giorni + fermo) * x.P.resa * rispostaLuce(x.P, k.dli));
-  const totPesi = pesi.reduce((a, b) => a + b, 0) || 1;
-  out.perColtura = k.colture.map((x, i) => ({coltura: x.coltura, piante: x.piante, quota: x.quota, kg: out.kg * pesi[i] / totPesi, valore: out.kg * pesi[i] / totPesi * x.P.prezzo,
-                                             raccolti: x.piante / (x.P.giorni + fermo) * 365, luce: statoLuce(x.P, k.dli)}));
+  // colture con modello di crescita: una coorte seminata ogni giorno, cresce con il clima e la luce dei giorni
+  // seguenti fino al peso di raccolta; produzione del giorno = piante ÷ (durata del ciclo + giorni fermi) × peso
+  out.coorti = {};
+  for (const [i, x] of k.colture.entries()) {
+    if (!x.P.crescita) continue;
+    const passo = x.P.passo || 20, cicli = [], ogni = opz.passoCoorti || 7;
+    let c0 = null;
+    for (let d = 0; d < 365; d++) {
+      if (d % ogni === 0) c0 = coorte(x.P, d, g => out.giorni[g % 365], passo);
+      const raccolte = x.piante / (c0.giorni + fermo);
+      const kgX = raccolte * c0.fresco / 1000 * out.giorni[d].fattori[i];
+      out.giorni[d].kg += kgX; out.mesi[meseDi(d)].kg += kgX; out.kg += kgX; kgColtura[i] += kgX;
+      out.raccolti += raccolte; out.semi += raccolte * 1.2 * x.P.seme;
+      cicli.push(c0);
+    }
+    out.coorti[x.coltura] = cicli;
+  }
+  out.perColtura = k.colture.map((x, i) => {
+    const cicli = out.coorti[x.coltura], giorniCiclo = cicli ? cicli.reduce((a, c) => a + c.giorni, 0) / 365 : x.P.giorni;
+    return {coltura: x.coltura, piante: x.piante, quota: x.quota, kg: kgColtura[i], valore: kgColtura[i] * x.P.prezzo,
+            raccolti: x.piante / (giorniCiclo + fermo) * 365, giorniCiclo, luce: statoLuce(x.P, k.dli), modello: !!x.P.crescita};
+  });
   out.valore = out.perColtura.reduce((a, x) => a + x.valore, 0);
   out.eventi.sort((a, b) => a.d - b.d);
   return out;
@@ -330,7 +449,7 @@ function economiaIdro(c, s, voci, costi) {
   // per coltura: prima la parte venduta, poi quello che la famiglia mangia davvero, il resto è eccedenza (regalata o buttata)
   const ripartisci = (x, resa) => {
     const P = IDRO_PIANTE[x.coltura], kgU = x.kg * resa * (1 - PR.scarto / 100);
-    const venduti = kgU * E.quota_vendita / 100, casa = Math.max(0, Math.min(kgU - venduti, P.consumo * E.persone * 52));
+    const venduti = kgU * E.quota_vendita / 100, casa = Math.max(0, Math.min(kgU * (1 - E.quota_vendita / 100), P.consumo * E.persone * 52));
     return {P, kgU, venduti, casa, eccedenza: kgU - venduti - casa};
   };
   const scenari = {};
@@ -486,4 +605,4 @@ function pinMappaIdro(c) {
   if (A.prese_smart) righe.push(["Luci, estrattore, stufetta, deumidificatore", "Wi-Fi", "prese smart comandate via rete"]);
   return righe;
 }
-if (typeof module !== "undefined") module.exports = {simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};
+if (typeof module !== "undefined") module.exports = {FONTI, DATI_COLTURE, fTemp, coorte, calibraCrescita, vpd, simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};
