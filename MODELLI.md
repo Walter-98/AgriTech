@@ -318,6 +318,21 @@ Nessun modello è stato ancora confrontato con un raccolto vero: la calibrazione
     validazione;
   - la correzione riguarda solo la resa, mai la logica di controllo o le sicurezze.
 
+## 8d. Laboratorio esperimenti: previsioni congelate
+- **Prima della semina** il gemello salva la previsione: peso per pianta (caso centrale), intervallo P10-P90 su 30
+  varianti di LUE e temperature cardinali, giorni alla raccolta, kWh del periodo, data e impronta della configurazione.
+- **Non si ricalcola più**: alla raccolta il vero si confronta con quella previsione, anche se nel frattempo il
+  progetto è cambiato.
+- **Ruoli**: gli esperimenti si alternano tra calibrazione e validazione.
+  - La correzione usa solo quelli di calibrazione.
+  - Le metriche di validazione (MAE, RMSE, errore sistematico, quota di raccolti dentro P10-P90) usano solo quelli di
+    validazione.
+- **Giudizio "il modello regge"**: errore sistematico sotto il 25% del peso medio vero e almeno il 60% dei raccolti
+  dentro l'intervallo. È una soglia pratica dichiarata, non statistica: con pochi cicli l'incertezza sulle metriche
+  è grande.
+- **Protocollo delle misure**: aria e soluzione ogni 15 minuti, pH/EC e livello ogni giorno, kWh, PPFD, altezza e
+  foglie ogni 3-4 giorni, foto, peso edibile e scarto, lotto dei semi, mortalità e rabbocchi.
+
 ## 9. Guasti (C)
 - Il blackout fa perdere piante quando le ore senza pompa superano la tolleranza del sistema: NFT 2 h, torri 1 h,
   DWC e secchi 12 h, vassoi 24 h, Kratky illimitata.

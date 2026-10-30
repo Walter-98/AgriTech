@@ -76,6 +76,7 @@ header.testa { padding-block: 22px 14px; display: flex; flex-wrap: wrap; gap: 12
 .kpi .val { font-size: 1.45rem; font-weight: 700; line-height: 1.2; }
 .kpi .sotto { font-size: 0.8rem; color: var(--ink-2); }
 nav.schede { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px; display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--riga); }
+@media (min-width: 900px) { nav.schede { flex-wrap: wrap; overflow-x: visible; } }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
 nav.schede button { font: 600 0.95rem var(--f-body); color: var(--ink-2); background: none; border: 0; padding: 8px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
 nav.schede button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); }
@@ -190,6 +191,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; fon
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="dati.js"></script>
+<script src="progetto.js"></script>
 <script src="sim.js"></script>
 <script src="idro.js"></script>
 <script src="clima.js"></script>

@@ -102,3 +102,85 @@ function confrontoEnergia(c, letture) {
   });
 }
 if (typeof module !== "undefined") module.exports = {previsioneCiclo, confronto, applicaCalibrazione, tornaIndietro, fattoriAttivi, confrontoEnergia, misureDaCsv, giornoAnno, erroreDopo};
+
+// ---------- Laboratorio esperimenti: previsioni congelate prima di iniziare ----------
+// La previsione si salva PRIMA della semina (con data, impronta della configurazione e intervallo P10-P90) e non si
+// ricalcola più: il confronto con il raccolto usa quella. Così il modello non può "aggiustare" il passato.
+// Ogni esperimento è di calibrazione o di validazione: le metriche di validazione usano solo quelli non usati per
+// calibrare.
+const PROTOCOLLO_MISURE = [
+  ["Temperatura e umidità dell'aria", "ogni 15 minuti (sensore o termometro con memoria)"],
+  ["Temperatura della soluzione", "ogni 15 minuti"],
+  ["pH ed EC", "ogni giorno, penne tarate"],
+  ["Livello e acqua rabboccata", "ogni giorno (litri)"],
+  ["Corrente (kWh)", "ogni giorno dalla presa con contatore"],
+  ["PPFD e ore di luce", "all'inizio e dopo ogni modifica"],
+  ["Altezza e numero di foglie", "ogni 3-4 giorni, 3 piante segnate"],
+  ["Foto dalla stessa posizione", "ogni 3-4 giorni"],
+  ["Stress, alghe, malattie", "ogni giorno (note)"],
+  ["Peso fresco edibile e scarto", "alla raccolta, pianta per pianta"],
+  ["Varietà e lotto dei semi, piantine iniziali, piante morte, rabbocchi e modifiche alla soluzione", "nel registro"],
+];
+function congelaPrevisione(c, esp, n = 30) {
+  const P = IDRO_PIANTE[esp.coltura], s = simulaIdro(c, {passoClima: 1}), inizio = giornoAnno(esp.semina);
+  const clima = g => s.giorni[g % 365];
+  const raccolta = esp.raccolta_prevista ? giorniTra(esp.semina, esp.raccolta_prevista) : null;
+  const rnd = mulberry32(7 + inizio), norm = (m, sd) => m + sd * gaussDa(rnd);
+  const pesi = [], durate = [];
+  for (let i = 0; i < n; i++) {
+    const v = i === 0 ? null : {fLue: Math.min(1.4, Math.max(0.6, norm(1, 0.15))), dT: norm(0, 1)};
+    const Pv = variaPianta(P, v);
+    if (P.crescita) {
+      const co = coorte(Object.assign({}, Pv, {resa: 1e9}), inizio, clima, P.passo || 20);
+      const fine = coorte(Pv, inizio, clima, P.passo || 20);
+      const giorni = raccolta || fine.giorniDaSemina;
+      pesi.push(co.curva[Math.min(co.curva.length - 1, giorni - 1)]); durate.push(fine.giorniDaSemina);
+    } else { pesi.push(Pv.resa * rispostaLuce(P, s.k.dli)); durate.push(P.vivaio + P.giorni); }
+  }
+  const ord = l => l.slice(1).sort((a, b) => a - b), q = (l, p) => l[Math.floor(p * (l.length - 1) + 0.5)];
+  const op = ord(pesi), od = ord(durate);
+  const giorniKwh = raccolta || durate[0];
+  let kwh = 0; for (let g = 0; g < giorniKwh; g++) kwh += s.giorni[(inizio + g) % 365].wh / 1000;
+  return {data: new Date().toISOString().slice(0, 10), impronta: typeof versioneConfig === "function" ? versioneConfig(c) : "",
+          peso: pesi[0], pesoP10: q(op, 0.1), pesoP90: q(op, 0.9), giorni: durate[0], giorniP10: q(od, 0.1), giorniP90: q(od, 0.9),
+          kwhPeriodo: kwh, giorniRaccolta: raccolta || durate[0], modello: P.crescita ? "crescita" : "tabella"};
+}
+function nuovoEsperimento(c, dati) {
+  const I = c.idro; I.esperimenti = I.esperimenti || [];
+  const esp = Object.assign({id: "E" + (I.esperimenti.length + 1), stato: "in corso", ruolo: dati.ruolo || (I.esperimenti.filter(e => e.ruolo === "calibrazione").length <= I.esperimenti.filter(e => e.ruolo === "validazione").length ? "calibrazione" : "validazione")}, dati);
+  esp.previsione = congelaPrevisione(c, esp);
+  I.esperimenti.push(esp);
+  return esp;
+}
+function concludiEsperimento(esp, raccolta, peso_g, piante_raccolte, kwh) {
+  // la previsione congelata non si tocca
+  Object.assign(esp, {stato: "concluso", raccolta, peso_g, piante_raccolte, kwh_misurati: kwh});
+  return esp;
+}
+function metriche(errori) {
+  const n = errori.length; if (!n) return null;
+  const mae = errori.reduce((a, e) => a + Math.abs(e), 0) / n, rmse = Math.sqrt(errori.reduce((a, e) => a + e * e, 0) / n), bias = errori.reduce((a, e) => a + e, 0) / n;
+  return {n, mae, rmse, bias};
+}
+function valutaEsperimenti(I) {
+  const conclusi = (I.esperimenti || []).filter(e => e.stato === "concluso" && e.peso_g > 0 && e.piante_raccolte > 0);
+  const righe = conclusi.map(e => { const vero = e.peso_g / e.piante_raccolte, p = e.previsione;
+    return {id: e.id, coltura: e.coltura, ruolo: e.ruolo, vero, previsto: p.peso, p10: p.pesoP10, p90: p.pesoP90, dentro: vero >= p.pesoP10 && vero <= p.pesoP90,
+            errore: p.peso - vero, erroreRel: (p.peso - vero) / vero, kwhPrevisti: p.kwhPeriodo, kwhMisurati: e.kwh_misurati, congelata: p.data}; });
+  const per = ruolo => metriche(righe.filter(r => r.ruolo === ruolo).map(r => r.errore));
+  const val = righe.filter(r => r.ruolo === "validazione");
+  return {righe, calibrazione: per("calibrazione"), validazione: per("validazione"),
+          copertura: val.length ? val.filter(r => r.dentro).length / val.length : null,
+          giudizio: !val.length ? "Nessun esperimento di validazione concluso: l'affidabilità del modello non è ancora misurata."
+            : Math.abs(per("validazione").bias) / (val.reduce((a, r) => a + r.vero, 0) / val.length) < 0.25 && val.filter(r => r.dentro).length / val.length >= 0.6
+              ? "Il modello regge sui cicli di validazione: errore sistematico sotto il 25% e la maggior parte dei raccolti dentro l'intervallo previsto."
+              : "Il modello sbaglia sui cicli di validazione: usa i cicli di calibrazione per correggerlo e ripeti un ciclo di validazione prima di fidarti."};
+}
+if (typeof module !== "undefined") Object.assign(module.exports, {congelaPrevisione, nuovoEsperimento, concludiEsperimento, valutaEsperimenti, metriche, PROTOCOLLO_MISURE});
+// statistiche per la calibrazione dai soli esperimenti di calibrazione (previsioni congelate)
+function statisticheEsperimenti(I) {
+  const v = valutaEsperimenti(I), per = {};
+  for (const r of v.righe.filter(r => r.ruolo === "calibrazione")) (per[r.coltura] = per[r.coltura] || []).push(r.vero / r.previsto);
+  return Object.entries(per).map(([coltura, l]) => ({coltura, n: l.length, fattore: l.reduce((a, b) => a + b, 0) / l.length, proponibile: l.length >= MIN_CICLI_CALIBRAZIONE}));
+}
+if (typeof module !== "undefined") module.exports.statisticheEsperimenti = statisticheEsperimenti;

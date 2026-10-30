@@ -757,7 +757,7 @@ function compatibilitaIdro(c) {
   for (const x of k.colture) { const st = statoLuce(x.P, k.dli);
     if (st.stato === "poca") add("warn", x.P.nome + ": poca luce", "DLI " + n1(k.dli) + " contro " + x.P.dli.join("-") + " mol/m²/giorno: resa circa " + Math.round(st.fattore * 100) + "% di quella di riferimento.", "luce");
     if (st.stato === "troppa") add("warn", x.P.nome + ": luce oltre il necessario", "DLI " + n1(k.dli) + " sopra " + x.P.dli[1] + ": niente resa in più, solo corrente" + (x.coltura === "lattuga" ? " e rischio di bruciature ai bordi (tipburn)" : "") + ".", "luce"); }
-  if (CL.tenda && k.misure.alt > k.tenda.alt) add("crit", "Lo scaffale non entra nella tenda", "Scaffale alto " + Math.round(k.misure.alt * 100) + " cm, tenda " + Math.round(k.tenda.alt * 100) + " cm: meno piani o ripiani più bassi.", "struttura");
+  if (CL.tenda && k.misure.alt > k.tenda.alt + 0.001) add("crit", "Lo scaffale non entra nella tenda", "Scaffale alto " + Math.round(k.misure.alt * 100) + " cm, tenda " + Math.round(k.tenda.alt * 100) + " cm: meno piani o ripiani più bassi.", "struttura");
   if (CL.tenda && !k.tenda.basta) add("crit", "Nessuna tenda standard abbastanza grande", "Servono più tende o una stanza dedicata.", "struttura");
   const pos = posizionaImpianto(c);
   if (pos && !pos.entra) add("crit", "Non entra nel locale", pos.motivo, "locale");

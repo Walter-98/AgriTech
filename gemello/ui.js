@@ -14,7 +14,7 @@ function unisci(base, sopra) {
   }
   return out;
 }
-cfg = cfg && Array.isArray(cfg.zone) ? unisci(DEFAULT, cfg) : JSON.parse(JSON.stringify(DEFAULT));
+cfg = migra(cfg && Array.isArray(cfg.zone) ? unisci(DEFAULT, cfg) : JSON.parse(JSON.stringify(DEFAULT)));
 function salva() { try { localStorage.setItem(CHIAVE, JSON.stringify(cfg)); } catch (e) {} }
 const idro = () => cfg.modalita === "idro";
 const etGiorno = d => { const m = meseDi(d); return (d - INIZIO_MESE[m] + 1) + " " + MESI[m]; };
@@ -864,7 +864,12 @@ function schedaDocumenti(box) {
   const xlsx = el("button", {class: "az sec", type: "button", text: "Scarica Excel (.xlsx)"}), esito = el("span", {class: "piccolo", "aria-live": "polite"});
   xlsx.addEventListener("click", () => esportaXlsx(esito));
   const csv = el("button", {class: "az sec", type: "button", text: "Lista materiali (CSV)"}); csv.addEventListener("click", () => scarica("lista-materiali.csv", "text/csv;charset=utf-8", distintaCsv()));
-  barra.append(el("p", {class: "piccolo", text: "Tutti i documenti del progetto in un'unica relazione: stampala o salvala in PDF dal browser (Stampa → Salva come PDF). Ogni documento riporta data, versione della configurazione, ipotesi e limiti."}), stampa, document.createTextNode(" "), xlsx, document.createTextNode(" "), csv, document.createTextNode(" "), esito);
+  const js = el("button", {class: "az sec", type: "button", text: "Salva il progetto (JSON)"});
+  js.addEventListener("click", () => scarica("progetto-agritech-" + versioneConfig(cfg) + ".json", "application/json", esportaProgetto(cfg, idro() ? {kg: S.kg, kwh: S.kwh, acqua_l: S.acqua} : {kg: S.kg, kwh: S.kwh})));
+  const apriJs = el("input", {type: "file", accept: ".json,application/json", "aria-label": "Apri un progetto"});
+  apriJs.addEventListener("change", () => { const f = apriJs.files[0]; if (!f) return; f.text().then(t => { try { const r = importaProgetto(t); cfg = unisci(DEFAULT, r.cfg); aggiorna(true); esito.textContent = "Progetto caricato (salvato il " + (r.salvato || "?").slice(0, 10) + ")."; } catch (e) { esito.textContent = e.message; } }); });
+  barra.append(el("p", {class: "piccolo", text: "Tutti i documenti del progetto in un'unica relazione: stampala o salvala in PDF dal browser (Stampa → Salva come PDF). Ogni documento riporta data, versione della configurazione, ipotesi e limiti."}), stampa, document.createTextNode(" "), xlsx, document.createTextNode(" "), csv, document.createTextNode(" "), js, document.createTextNode(" "),
+    el("label", {class: "piccolo"}, document.createTextNode("Apri un progetto salvato: "), apriJs), document.createTextNode(" "), esito);
   box.append(barra);
   const testa = el("div", {class: "doc-testa"}, el("h2", {text: "Progetto AgriTech · " + (idro() ? SISTEMI_IDRO[cfg.idro.sistema].nome : "orto in terra")}),
     el("p", {class: "piccolo", text: "Data " + oggi + " · versione della configurazione " + ver + " · generato dal gemello digitale AgriTech. Valori simulati e stimati, non misure: vedi Ipotesi e limiti."}));
@@ -941,11 +946,47 @@ function esportaXlsx(esito) {
   document.head.append(sc);
 }
 
+// ---------- laboratorio esperimenti ----------
+function laboratorioUI(box, I) {
+  const oggi = new Date().toISOString().slice(0, 10);
+  const col = el("select", {"aria-label": "Coltura dell'esperimento"}); I.colture.forEach(x => col.append(el("option", {value: x.coltura, text: IDRO_PIANTE[x.coltura].nome})));
+  const sem = el("input", {type: "date", value: oggi, "aria-label": "Semina"}), rp = el("input", {type: "date", "aria-label": "Raccolta prevista"});
+  const np = el("input", {type: "number", min: "1", value: "12", "aria-label": "Piante"}), ruolo = el("select", {"aria-label": "Ruolo"});
+  [["auto", "Automatico (alterna)"], ["calibrazione", "Calibrazione"], ["validazione", "Validazione"]].forEach(([v, t]) => ruolo.append(el("option", {value: v, text: t})));
+  const nota = el("input", {type: "text", placeholder: "varietà, lotto semi, condizione provata", "aria-label": "Note"});
+  const via = el("button", {class: "az", type: "button", text: "Congela la previsione e inizia"});
+  via.addEventListener("click", () => { nuovoEsperimento(cfg, Object.assign({coltura: col.value, semina: sem.value, piante: +np.value, note: nota.value}, rp.value ? {raccolta_prevista: rp.value} : {}, ruolo.value !== "auto" ? {ruolo: ruolo.value} : {})); salva(); disegnaScheda(); });
+  const righe = I.esperimenti.map(e => {
+    const p = e.previsione, td = [el("td", {text: e.id + " · " + IDRO_PIANTE[e.coltura].nome}), el("td", {text: e.ruolo}), el("td", {text: e.semina}),
+      el("td", {class: "n", text: fmt(p.peso) + " g (" + fmt(p.pesoP10) + "–" + fmt(p.pesoP90) + ")"}), el("td", {class: "n", text: fmt(p.giorniRaccolta) + " gg"}), el("td", {class: "n", text: fmt(p.kwhPeriodo, 1)}), el("td", {class: "piccolo", text: "congelata il " + p.data})];
+    if (e.stato === "concluso") td.push(el("td", {class: "n", text: fmt(e.peso_g / e.piante_raccolte) + " g veri"}));
+    else { const r = el("input", {type: "date", value: oggi, "aria-label": "Raccolta"}), pr = el("input", {type: "number", min: "1", value: String(e.piante), style: "width:5em", "aria-label": "Piante raccolte"}),
+             pg = el("input", {type: "number", min: "1", placeholder: "g in tutto", style: "width:7em", "aria-label": "Peso"}), kw = el("input", {type: "number", min: "0", step: "0.1", placeholder: "kWh", style: "width:5em", "aria-label": "kWh"}),
+             b = el("button", {class: "az sec", type: "button", text: "Concludi"});
+      b.addEventListener("click", () => { if (+pg.value > 0) { concludiEsperimento(e, r.value, +pg.value, +pr.value, +kw.value || null); salva(); disegnaScheda(); } });
+      td.push(el("td", null, r, pr, pg, kw, b)); }
+    return el("tr", null, ...td); });
+  const v = valutaEsperimenti(I), m = x => x ? "MAE " + fmt(x.mae) + " g · RMSE " + fmt(x.rmse) + " g · errore sistematico " + (x.bias > 0 ? "+" : "") + fmt(x.bias) + " g (" + x.n + ")" : "nessuno concluso";
+  const st = statisticheEsperimenti(I), cal = el("button", {class: "az sec", type: "button", text: "Calibra con gli esperimenti di calibrazione"});
+  cal.disabled = !st.some(x => x.proponibile);
+  cal.addEventListener("click", () => { applicaCalibrazione(I, st); aggiorna(false); });
+  box.append(riquadro("Laboratorio esperimenti",
+    el("p", {class: "piccolo", text: "Prima di seminare il gemello congela la sua previsione: peso per pianta con intervallo P10-P90 (30 varianti dei parametri), giorni e kWh. Non si ricalcola più: alla raccolta si confronta il vero con quella. Gli esperimenti si alternano tra calibrazione (per correggere il modello) e validazione (per misurare se è affidabile, mai usati per correggerlo)."}),
+    el("div", {class: "campi"}, el("label", {class: "campo"}, document.createTextNode("Coltura"), col), el("label", {class: "campo"}, document.createTextNode("Semina"), sem),
+      el("label", {class: "campo"}, document.createTextNode("Raccolta prevista (facoltativa)"), rp), el("label", {class: "campo"}, document.createTextNode("Piante"), np),
+      el("label", {class: "campo"}, document.createTextNode("Ruolo"), ruolo), el("label", {class: "campo"}, document.createTextNode("Note"), nota)), el("div", null, via),
+    I.esperimenti.length ? el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Esperimento", "Ruolo", "Semina", "Previsto per pianta", "Raccolta a", "kWh previsti", "", "Risultato"].map(t => el("th", {text: t})))), el("tbody", null, ...righe))) : null,
+    el("p", {class: "piccolo", text: "Calibrazione: " + m(v.calibrazione) + ". Validazione: " + m(v.validazione) + (v.copertura != null ? ". Raccolti dentro l'intervallo: " + Math.round(v.copertura * 100) + "%." : ".")}),
+    el("p", null, el("strong", {text: v.giudizio})), el("div", null, cal),
+    el("details", null, el("summary", {text: "Protocollo delle misure per ogni esperimento"}), tabella(["Cosa", "Quando"], PROTOCOLLO_MISURE))));
+}
+
 // ---------- registro e calibrazione ----------
 function schedaRegistro(box) {
   if (!idro()) { box.append(el("p", {class: "piccolo", text: "Il registro con la calibrazione per ora è per l'idroponica. Per l'orto: il simulatore Python accetta il meteo vero e le tue soglie (scheda Percorso)."})); return; }
   const I = cfg.idro;
-  I.registro = I.registro || []; I.misure = I.misure || []; I.energia = I.energia || [];
+  I.registro = I.registro || []; I.misure = I.misure || []; I.energia = I.energia || []; I.esperimenti = I.esperimenti || [];
+  laboratorioUI(box, I);
   const oggi = new Date().toISOString().slice(0, 10);
   // nuovo ciclo
   const col = el("select", {"aria-label": "Coltura"}); I.colture.forEach(x => col.append(el("option", {value: x.coltura, text: IDRO_PIANTE[x.coltura].nome})));
