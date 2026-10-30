@@ -625,6 +625,37 @@ function incertezzaIdro(c, n = 40, seme = 99) {
   return r;
 }
 
+// ---------- microgreens per la vendita: conto per vassoio ----------
+// I prezzi di vendita, i clienti e i costi di confezione e consegna li inserisci tu (default dichiarati "da
+// verificare"): il gemello non li conosce. Energia e acqua per vassoio vengono dalla simulazione dell'impianto.
+const MICRO_ESEMPIO = {vassoi_settimana: 20, grammi_vassoio: 250, prezzo_kg: 30, confezione_g: 50, costo_confezione: 0.25,
+                       km_settimana: 40, euro_km: 0.35, minuti_vassoio: 12, euro_ora: 0, scarto: 15, clienti: 3};
+function microgreensVendita(c, s, M) {
+  M = Object.assign({}, MICRO_ESEMPIO, M || {});
+  const P = IDRO_PIANTE.microgreens, k = s.k;
+  const vassoiAnno = s.perColtura.reduce((a, x) => a + (x.coltura === "microgreens" ? x.raccolti : 0), 0) || 1;
+  const capacitaSett = vassoiAnno / 52;
+  const energia = s.kwh * c.prezzi.kwh / vassoiAnno, acqua = s.acqua / 1000 * c.prezzi.acqua_m3 / vassoiAnno;
+  const seme = P.seme * 1.0, substrato = 0.35;                                // € per vassoio (seme da tabella, substrato stima)
+  const confezioni = M.grammi_vassoio * (1 - M.scarto / 100) / M.confezione_g;
+  const venduti = Math.min(M.vassoi_settimana, capacitaSett);
+  const consegna = M.km_settimana * M.euro_km / Math.max(1, venduti);
+  const lavoro = M.minuti_vassoio / 60 * M.euro_ora;
+  const costo = energia + acqua + seme + substrato + confezioni * M.costo_confezione + consegna + lavoro;
+  const ricavo = M.grammi_vassoio * (1 - M.scarto / 100) / 1000 * M.prezzo_kg;
+  const margine = ricavo - costo;
+  const fissoSett = M.km_settimana * M.euro_km;                               // la consegna si paga anche con pochi vassoi
+  const variabile = costo - consegna;
+  const pareggioSett = ricavo > variabile ? fissoSett / (ricavo - variabile) : Infinity;
+  return {M, capacitaSett, venduti, voci: {energia, acqua, seme, substrato, confezione: confezioni * M.costo_confezione, consegna, lavoro}, costo, ricavo, margine,
+          margineAnno: margine * venduti * 52, pareggioSett, oreSettimana: venduti * M.minuti_vassoio / 60,
+          avvisi: [
+            ...(M.vassoi_settimana > capacitaSett ? ["L'impianto produce circa " + Math.round(capacitaSett) + " vassoi a settimana: per " + M.vassoi_settimana + " servono più ripiani."] : []),
+            ...(pareggioSett > venduti ? ["Con " + Math.round(venduti) + " vassoi a settimana non copri nemmeno le consegne: ne servono almeno " + Math.ceil(pareggioSett) + "."] : []),
+            "Prezzo, clienti e costi di confezione e consegna sono tuoi dati da verificare: chiedi ai ristoranti quanto pagano e quanto ne prendono davvero ogni settimana.",
+            "Prima di vendere: inquadramento dell'attività, notifica sanitaria e tracciabilità dei lotti (Documenti → Regole per vendere)."]};
+}
+
 // ---------- lavoro ----------
 // Ore a settimana stimate (euristica dichiarata): base per sistema + semina/trapianto/raccolta per pianta + misure a
 // mano di pH ed EC se non ci sono le sonde. Va confrontata con il registro del tuo lavoro vero.
@@ -846,4 +877,4 @@ function pinMappaIdro(c) {
   if (A.prese_smart) righe.push(["Luci, estrattore, stufetta, deumidificatore", "Wi-Fi", "prese smart comandate via rete"]);
   return righe;
 }
-if (typeof module !== "undefined") module.exports = {caricoScaffale, incertezzaIdro, lueIncidente, variaPianta, ACCLIMATAZIONE, misureImpianto, sceltaTenda, posizionaImpianto, TENDE, mappaLuce, idraulicaIdro, dimensioniPiano, FONTI, DATI_COLTURE, fTemp, coorte, calibraCrescita, vpd, simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};
+if (typeof module !== "undefined") module.exports = {microgreensVendita, MICRO_ESEMPIO, caricoScaffale, incertezzaIdro, lueIncidente, variaPianta, ACCLIMATAZIONE, misureImpianto, sceltaTenda, posizionaImpianto, TENDE, mappaLuce, idraulicaIdro, dimensioniPiano, FONTI, DATI_COLTURE, fTemp, coorte, calibraCrescita, vpd, simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};

@@ -136,3 +136,15 @@ test("VAN e TIR: definizioni verificate (al TIR il VAN è zero)", () => {
   assert.equal(casa.tir, null);
   assert.ok(casa.van < 0);
 });
+
+test("microgreens per la vendita: il conto per vassoio torna e la consegna pesa di più con pochi vassoi", () => {
+  const c = config(G, {sistema: "vassoi", disposizione: "scaffale", piani: 3, colture: [{coltura: "microgreens", quota: 100}]});
+  const s = G.simulaIdro(c);
+  const r = G.microgreensVendita(c, s, {vassoi_settimana: 10});
+  const somma = Object.values(r.voci).reduce((a, b) => a + b, 0);
+  assert.ok(Math.abs(somma - r.costo) < 1e-9);
+  assert.ok(Math.abs(r.ricavo - 250 * 0.85 / 1000 * 30) < 1e-9);
+  const pochi = G.microgreensVendita(c, s, {vassoi_settimana: 2});
+  assert.ok(pochi.voci.consegna > r.voci.consegna);
+  assert.ok(G.microgreensVendita(c, s, {prezzo_kg: 2}).pareggioSett === Infinity);
+});

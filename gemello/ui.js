@@ -17,7 +17,7 @@ function unisci(base, sopra) {
 cfg = migra(cfg && Array.isArray(cfg.zone) ? unisci(DEFAULT, cfg) : JSON.parse(JSON.stringify(DEFAULT)));
 function salva() { try { localStorage.setItem(CHIAVE, JSON.stringify(cfg)); } catch (e) {} }
 const idro = () => cfg.modalita === "idro";
-const etGiorno = d => { const m = meseDi(d); return (d - INIZIO_MESE[m] + 1) + " " + MESI[m]; };
+const etichettaGiorno = d => { const m = meseDi(d); return (d - INIZIO_MESE[m] + 1) + " " + MESI[m]; };
 
 // ---------- piccoli costruttori di modulo ----------
 let idSeq = 0;
@@ -175,7 +175,7 @@ function editorLogicaOrto(box) {
 function editorGuasti(box, tipi, opzZona) {
   const lista = idro() ? cfg.idro.guasti : cfg.guasti;
   const righe = el("div");
-  lista.forEach((g, i) => righe.append(el("div", {class: "mat"}, el("span", null, document.createTextNode(tipi[g.tipo].nome + (g.zona != null && tipi[g.tipo].zona ? " · zona " + (g.zona + 1) : "") + " · " + etGiorno(g.giorno) + (g.durata ? " · " + g.durata + " giorni" : "") + (g.ore ? " · " + g.ore + " ore" : ""))),
+  lista.forEach((g, i) => righe.append(el("div", {class: "mat"}, el("span", null, document.createTextNode(tipi[g.tipo].nome + (g.zona != null && tipi[g.tipo].zona ? " · zona " + (g.zona + 1) : "") + " · " + etichettaGiorno(g.giorno) + (g.durata ? " · " + g.durata + " giorni" : "") + (g.ore ? " · " + g.ore + " ore" : ""))),
     el("button", {class: "link", type: "button", text: "Togli", onclick: () => { lista.splice(i, 1); aggiorna(); }}), el("span", {class: "perche", text: tipi[g.tipo].spiega}))));
   if (!lista.length) righe.append(el("p", {class: "piccolo", text: "Nessun guasto programmato: l'anno scorre liscio. Aggiungine uno per vedere come reagisce l'impianto."}));
   const nuovo = {tipo: Object.keys(tipi)[0], zona: 0, mese: 7, giorno: 10, durata: 3, ore: 5};
@@ -278,7 +278,7 @@ function editorProgettoIdro(box) {
   box.append(meteoVeroUI());
   // produzione ed economia
   const PR = I.produzione, E = I.economia;
-  box.append(riquadro("Produzione ed economia", el("div", {id: "ed-economia"}),
+  box.append(riquadro("Produzione ed economia", el("div", {id: "ed-economia", class: "solo-esperto"}),
     griglia(campoNum("Piante che muoiono o si scartano", PR.mortalita, 0, 50, 1, v => set(PR, "mortalita", v, false), "%"),
       campoNum("Giorni fermi tra un ciclo e l'altro", PR.fermo_giorni, 0, 30, 1, v => set(PR, "fermo_giorni", v, false), "pulizia e trapianto"),
       campoNum("Raccolto non utilizzabile", PR.scarto, 0, 50, 1, v => set(PR, "scarto", v, false), "%"),
@@ -408,7 +408,7 @@ function messaggi() {
       if (S.giorniSpento || S.giorniBatteriaBassa) lista.push({tipo: "crit", titolo: "Pannello o batteria troppo piccoli", testo: S.giorniSpento + " giorni spento, " + S.giorniBatteriaBassa + " senza pompa. " + (id ? "Basta " + id.w + " W con " + id.ah + " Ah." : "Valuta la presa di casa."), chiave: "alimentazione"});
       else lista.push({tipo: "ok", titolo: "Il solare regge tutto l'anno", testo: id && (id.w < comp.pannello_w || id.ah < comp.batteria_ah) ? "Basterebbe anche " + id.w + " W con " + id.ah + " Ah." : ""}); }
     else lista.push({tipo: "ok", titolo: "Corrente: " + euro(S.kwh * cfg.prezzi.kwh) + " all'anno", testo: fmt(S.baseW, 1) + " W sempre accesi più la pompa (" + fmt(S.minutiPompa / 60) + " ore in un anno)." + (S.whLed ? " Le luci LED pesano " + fmt(S.whLed / 1000) + " kWh." : "")});
-    for (const e of S.eventi.filter(e => e.tipo === "crit").slice(0, 3)) lista.push({tipo: "crit", titolo: etGiorno(e.d), testo: e.testo});
+    for (const e of S.eventi.filter(e => e.tipo === "crit").slice(0, 3)) lista.push({tipo: "crit", titolo: etichettaGiorno(e.d), testo: e.testo});
   }
   lista.sort((a, b) => ord[a.tipo] - ord[b.tipo]);
   lista.forEach(x => box.append(messaggio(x.tipo, x.titolo, x.testo, x.chiave)));
@@ -433,7 +433,7 @@ function schedaSimulazione(box) {
     legenda(lT, serieT);
     const tmin = Math.floor(Math.min(...S.giorni.map(g => Math.min(g.tGarage, g.tBuio, g.tEst))) / 5) * 5, tmax = Math.ceil(Math.max(...S.giorni.map(g => g.tLuci)) / 5) * 5;
     const ticks = []; for (let t = tmin; t <= tmax; t += 5) ticks.push(t);
-    lineChart(gT, {titolo: "Temperature", n: 365, yMin: tmin, yMax: tmax, ticks, fmt: t => t + "°", serie: serieT, etichettaX: etGiorno, fmtTip: v => fmt(v, 1) + " °C"});
+    lineChart(gT, {titolo: "Temperature", n: 365, yMin: tmin, yMax: tmax, ticks, fmt: t => t + "°", serie: serieT, etichettaX: etichettaGiorno, fmtTip: v => fmt(v, 1) + " °C"});
     barChart(gP, {larghezza: 520, largo: 0.8, titolo: "Raccolto per mese", categorie: MESI, serie: [{nome: "Raccolto", colore: "var(--s3)", valori: S.mesi.map(m => m.kg)}], fmt: v => fmt(v, v < 10 ? 1 : 0), fmtTip: v => fmt(v, 1) + " kg"});
     barChart(gA, {larghezza: 520, largo: 0.8, titolo: "Acqua per mese", categorie: MESI, serie: [{nome: "Acqua", colore: "var(--s1)", valori: S.mesi.map(m => m.acqua)}], fmt: compatto, fmtTip: v => fmt(v) + " L"});
     const conModello = Object.keys(S.coorti || {});
@@ -464,7 +464,7 @@ function schedaSimulazione(box) {
     const gU = el("div", {class: "grafico"}), lU = el("div", {class: "legenda"});
     box.append(riquadro("Umidità vera del terreno", el("p", {class: "piccolo", text: "Sotto il 30% la pianta soffre; il sistema irriga sotto il " + cfg.logica.soglia_on + "% (letto dal sensore) e smette al " + cfg.logica.soglia_off + "%. Nel pannello sopra la scena vedi anche quanto legge il sensore."}), lU, gU));
     legenda(lU, serie);
-    lineChart(gU, {titolo: "Umidità", n: 365, yMin: 0, yMax: 100, ticks: [0, 30, cfg.logica.soglia_on, cfg.logica.soglia_off, 100].sort((a, b) => a - b), fmt: t => t + "%", serie, etichettaX: etGiorno, fmtTip: v => fmt(v) + "%"});
+    lineChart(gU, {titolo: "Umidità", n: 365, yMin: 0, yMax: 100, ticks: [0, 30, cfg.logica.soglia_on, cfg.logica.soglia_off, 100].sort((a, b) => a - b), fmt: t => t + "%", serie, etichettaX: etichettaGiorno, fmtTip: v => fmt(v) + "%"});
     const serA = [{nome: cfg.acqua.fonte === "cisterna" ? "Dalla cisterna" : "Dal rubinetto", colore: "var(--s1)", valori: S.mesi.map(m => cfg.acqua.fonte === "cisterna" ? m.cisterna : m.rete)}];
     if (cfg.acqua.fonte === "cisterna") serA.push({nome: "Dal rubinetto", colore: "var(--s2)", valori: S.mesi.map(m => m.rete)});
     const gA = el("div", {class: "grafico"}), lA = el("div", {class: "legenda"}), gC = el("div", {class: "grafico"}), gE = el("div", {class: "grafico"});
@@ -474,16 +474,16 @@ function schedaSimulazione(box) {
     legenda(lA, serA, true);
     barChart(gA, {larghezza: 520, largo: 0.8, titolo: "Acqua per mese", categorie: MESI, serie: serA, fmt: compatto, fmtTip: v => fmt(v) + " L"});
     if (cfg.acqua.fonte === "cisterna") { const tk = niceTicks(cfg.acqua.cisterna_l);
-      lineChart(gC, {larghezza: 520, titolo: "Cisterna", n: 365, yMin: 0, yMax: tk[tk.length - 1], ticks: tk, fmt: compatto, altezza: 240, serie: [{nome: "Cisterna", colore: "var(--s1)", area: true, valori: S.giorni.map(g => g.cisterna)}], etichettaX: etGiorno, fmtTip: v => fmt(v) + " L"}); }
+      lineChart(gC, {larghezza: 520, titolo: "Cisterna", n: 365, yMin: 0, yMax: tk[tk.length - 1], ticks: tk, fmt: compatto, altezza: 240, serie: [{nome: "Cisterna", colore: "var(--s1)", area: true, valori: S.giorni.map(g => g.cisterna)}], etichettaX: etichettaGiorno, fmtTip: v => fmt(v) + " L"}); }
     barChart(gE, {titolo: "Corrente per mese", categorie: MESI, serie: [{nome: "Corrente", colore: "var(--s1)", valori: S.mesi.map(m => m.wh)}], fmt: compatto, fmtTip: v => fmt(v) + " Wh", altezza: 220});
     if (S.solare) { const gB = el("div", {class: "grafico"}); box.append(riquadro("Carica della batteria", gB));
-      lineChart(gB, {titolo: "Batteria", n: 365, yMin: 0, yMax: 100, ticks: [0, 35, 100], fmt: t => t + "%", altezza: 220, serie: [{nome: "Batteria", colore: "var(--s1)", area: true, valori: S.giorni.map(g => g.soc * 100)}], etichettaX: etGiorno, fmtTip: v => fmt(v) + "%"}); }
+      lineChart(gB, {titolo: "Batteria", n: 365, yMin: 0, yMax: 100, ticks: [0, 35, 100], fmt: t => t + "%", altezza: 220, serie: [{nome: "Batteria", colore: "var(--s1)", area: true, valori: S.giorni.map(g => g.soc * 100)}], etichettaX: etichettaGiorno, fmtTip: v => fmt(v) + "%"}); }
     box.append(riquadro("Zona per zona", el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Zona", "Acqua L", "Persa L", "Drenata L", "Sofferenza gg", "Acqua ferma h", "Sensori cambiati", "kg"].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
       el("tbody", null, ...S.zone.map((z, i) => el("tr", null, el("td", null, el("span", {class: "pallino", style: `background:${COLORI[i]}`}), document.createTextNode((i + 1) + " · " + PIANTE[cfg.zone[i].coltura].nome)),
         ...[z.litri, z.persi, z.drenati, z.stress, z.ristagno, z.sostituzioni, z.kg].map((v, j) => el("td", {class: "n", text: fmt(v, j === 6 ? 1 : 0)})))))))));
   }
   const ev = S.eventi;
-  box.append(riquadro("Diario dell'anno", ev.length ? el("div", null, ...ev.slice(0, 80).map(e => el("div", {class: "msg"}, chip(e.tipo, e.tipo === "ok" ? "risolto" : e.tipo === "warn" ? "avviso" : "danno"), el("div", null, el("strong", {text: etGiorno(e.d)}), el("p", {class: "piccolo", text: e.testo})))))
+  box.append(riquadro("Diario dell'anno", ev.length ? el("div", null, ...ev.slice(0, 80).map(e => el("div", {class: "msg"}, chip(e.tipo, e.tipo === "ok" ? "risolto" : e.tipo === "warn" ? "avviso" : "danno"), el("div", null, el("strong", {text: etichettaGiorno(e.d)}), el("p", {class: "piccolo", text: e.testo})))))
     : el("p", {class: "piccolo", text: "Nessun evento: nessun guasto programmato e nessun problema. Prova la scheda Guasti."})));
 }
 
@@ -505,6 +505,7 @@ function schedaCosti(box) {
     riquadro("Ogni anno", el("div", {class: "scorri"}, el("table", null, ta)), el("p", {class: "piccolo", text: rit}))));
   barChart(gT, {larghezza: 520, titolo: "Spesa cumulata", categorie: righe.map(r => "Fase " + r[0]), etichetteLunghe: righe.map(r => r[1]), serie: [{nome: "Totale fin qui (medio)", colore: "var(--accent)", valori: cumul}], fmt: v => fmt(v) + " €", fmtTip: v => fmt(v) + " €", altezza: 240, largo: 1.6});
   if (idro()) bilancioIdro(box);
+  if (idro() && cfg.idro.colture.some(x => x.coltura === "microgreens")) microgreensUI(box);
   // confronti rapidi
   const varianti = idro() ? [
     ["La tua configurazione", {}],
@@ -667,6 +668,28 @@ function schedaGestione(box) {
     riquadro("Cosa vuol dire ogni allarme", el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Allarme", "Cosa succede", "Cosa fai", "Si sblocca"].map(t => el("th", {text: t})))),
       el("tbody", null, ...al.map(a => el("tr", null, el("td", {class: "dati", text: a[0]}), el("td", {text: a[1]}), el("td", {text: a[2]}), el("td", {text: a[3]}))))))));
 }
+const GLOSSARIO = [
+  ["PPFD", "Luce utile alle piante che arriva su un punto, in µmol di fotoni per m² al secondo. 200-300 per le insalate."],
+  ["DLI", "Luce utile di tutto il giorno, in mol/m²: PPFD × ore × 0,0036. Lattuga circa 12-17."],
+  ["µmol/J", "Efficienza di una lampada: quanta luce utile dà per ogni joule di corrente. LED buoni 2,5-3."],
+  ["EC", "Conducibilità elettrica della soluzione (mS/cm): dice quanti sali ci sono, non quali."],
+  ["pH", "Acidità della soluzione. In idroponica 5,5-6,5: fuori, le radici non assorbono alcuni elementi."],
+  ["VPD", "Quanto l'aria \"tira\" acqua dalle foglie (kPa). Troppo basso: muffe; troppo alto: stress."],
+  ["NFT", "Canali con un velo d'acqua che scorre sulle radici. Senza pompa le radici seccano in poche ore."],
+  ["DWC", "Vasca profonda con le piante su una zattera e l'aria pompata nell'acqua."],
+  ["Kratky", "Contenitore senza pompe: l'acqua cala e le radici trovano aria da sole."],
+  ["Flusso e riflusso", "Vassoio allagato a cicli e poi svuotato nel serbatoio."],
+  ["Soluzione A e B", "Due concentrati separati (calcio da una parte, solfati e fosfati dall'altra) che si mescolano solo diluiti."],
+  ["Taratura", "Mettere la sonda in liquidi di valore noto per correggere le sue letture."],
+  ["Modo ombra", "La centralina legge e decide ma non comanda niente: serve a provarla senza rischi."],
+  ["CAPEX / OPEX", "Spesa per partire / spese di ogni anno."],
+  ["Ammortamento", "La spesa iniziale divisa sugli anni di vita dell'impianto."],
+  ["VAN / TIR", "Valore di oggi di tutti i guadagni futuri meno l'investimento / rendimento annuo che rende il VAN zero."],
+  ["P10 / P50 / P90", "Su 100 simulazioni con parametri incerti: 10 sotto P10, metà sotto P50, 90 sotto P90."],
+  ["Fronte di Pareto", "Le soluzioni per cui non esiste un'altra migliore in tutto: tra queste si sceglie in base a cosa conta di più."],
+  ["Calibrazione / validazione", "Correggere il modello con alcuni raccolti / controllare con altri raccolti, mai usati per correggerlo, se funziona."],
+  ["Previsione congelata", "Previsione salvata prima della semina e mai più ricalcolata: così il confronto con il raccolto è onesto."],
+];
 function fontiColture(box) {
   const nomeC = k => k === "tutte" ? "Tutte" : IDRO_PIANTE[k].nome;
   const cella = (r) => { const F = FONTI[r[4]]; return el("td", null, F.url ? el("a", {href: F.url, target: "_blank", rel: "noopener", text: F.testo}) : document.createTextNode(F.testo)); };
@@ -721,6 +744,7 @@ function schedaGuida(box) {
         el("li", {text: "Due sensori per zona se la zona è grande o il terreno disomogeneo: il gemello fa la media."}), el("li", {text: "Taratura: lettura in aria (secco) e in un bicchiere d'acqua (saturo), da ripetere ogni primavera."}))));
   }
   if (idro()) fontiColture(box);
+  box.append(riquadro("Glossario", tabella(["Parola", "Cosa vuol dire"], GLOSSARIO)));
 }
 function schedaPercorso(box) {
   const costo = f => { const v = VOCI.filter(x => x.fase === f); return v.length ? forbice(somma(v, "min"), somma(v, "max")) : "0 €"; };
@@ -816,7 +840,7 @@ function ricettaUI(I, k) {
   const setA = (kk, v) => { an[kk] = v > 0 ? v : null; aggiorna(false); };
   const nomeSale = kk => SALI[kk].nome;
   const righe = Object.entries(r.grammi).filter(([, g]) => g > 0.05);
-  return [el("div", {class: "blocco"}, el("span", {class: "etichetta", text: "Ricetta per EC " + fmt(k.ec, 1) + " (dalle tue colture)"}),
+  return [el("div", {class: "blocco solo-esperto"}, el("span", {class: "etichetta", text: "Ricetta per EC " + fmt(k.ec, 1) + " (dalle tue colture)"}),
     el("p", {class: "piccolo", text: "Analisi dell'acqua (dal sito o dalla bolletta del gestore; vuoto = stimata dalla durezza):"}),
     griglia(campoNum("Calcio", an.ca || 0, 0, 300, 1, v => setA("ca", v), "mg/L"), campoNum("Magnesio", an.mg || 0, 0, 150, 1, v => setA("mg", v), "mg/L"),
       campoNum("Bicarbonati", an.hco3 || 0, 0, 600, 1, v => setA("hco3", v), "mg/L"), campoNum("Sodio", an.na || 0, 0, 300, 1, v => setA("na", v), "mg/L")),
@@ -830,9 +854,25 @@ function ricettaUI(I, k) {
     ...r.avvisi.map(t => el("p", {class: "piccolo", text: "• " + t})))];
 }
 
+// ---------- microgreens per la vendita ----------
+function microgreensUI(box) {
+  const M = cfg.idro.micro = Object.assign({}, MICRO_ESEMPIO, cfg.idro.micro || {});
+  const r = microgreensVendita(cfg, S, M), set = (kk, v) => { M[kk] = v; salva(); disegnaScheda(); };
+  box.append(riquadro("Microgreens per la vendita: conto per vassoio",
+    el("p", {class: "piccolo", text: "Prezzi, clienti, confezioni e consegne sono dati tuoi (i valori iniziali sono solo esempi da verificare). Energia e acqua per vassoio vengono dalla simulazione del tuo impianto."}),
+    griglia(campoNum("Vassoi venduti a settimana", M.vassoi_settimana, 1, 500, 1, v => set("vassoi_settimana", v)), campoNum("Prezzo di vendita", M.prezzo_kg, 1, 200, 1, v => set("prezzo_kg", v), "€/kg"),
+      campoNum("Grammi per vassoio", M.grammi_vassoio, 50, 800, 10, v => set("grammi_vassoio", v), "g"), campoNum("Scarto", M.scarto, 0, 60, 1, v => set("scarto", v), "%"),
+      campoNum("Confezione da", M.confezione_g, 10, 500, 5, v => set("confezione_g", v), "g"), campoNum("Costo confezione ed etichetta", M.costo_confezione, 0, 3, 0.01, v => set("costo_confezione", v), "€"),
+      campoNum("Km di consegna a settimana", M.km_settimana, 0, 1000, 5, v => set("km_settimana", v), "km"), campoNum("Costo per km", M.euro_km, 0, 2, 0.01, v => set("euro_km", v), "€/km"),
+      campoNum("Lavoro per vassoio", M.minuti_vassoio, 0, 120, 1, v => set("minuti_vassoio", v), "minuti"), campoNum("Valore del tuo lavoro", M.euro_ora, 0, 50, 1, v => set("euro_ora", v), "€/ora")),
+    tabella(["Per vassoio", "€"], [...Object.entries(r.voci).map(([kk, v]) => [kk, fmt(v, 2)]), ["Costo totale", fmt(r.costo, 2)], ["Ricavo", fmt(r.ricavo, 2)], ["Margine", fmt(r.margine, 2)]], [1]),
+    el("p", {class: "piccolo", text: "Capacità dell'impianto circa " + fmt(r.capacitaSett) + " vassoi a settimana; venduti " + fmt(r.venduti) + ". Margine all'anno ≈ " + euro(r.margineAnno) + ", lavoro " + fmt(r.oreSettimana, 1) + " ore a settimana. Pareggio delle consegne: " + (isFinite(r.pareggioSett) ? fmt(Math.ceil(r.pareggioSett)) + " vassoi a settimana." : "mai con questo prezzo.")}),
+    ...r.avvisi.map(t => el("p", {class: "piccolo", text: "• " + t}))));
+}
+
 // ---------- clima: confronto di ambienti ----------
 function confrontoAmbientiUI() {
-  const det = el("details", null, el("summary", {text: "Confronta 6 ambienti con le stesse piante e lampade (garage, garage isolato, tenda, serra fredda, serra riscaldata)"}));
+  const det = el("details", {class: "solo-esperto"}, el("summary", {text: "Confronta 6 ambienti con le stesse piante e lampade (garage, garage isolato, tenda, serra fredda, serra riscaldata)"}));
   det.addEventListener("toggle", () => { if (!det.open || det.dataset.fatto) return; det.dataset.fatto = "1";
     const r = confrontoAmbienti(cfg);
     det.append(el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Ambiente", "Minima", "Massima", "Ore sotto 1 °C", "Ore troppo calde", "Giorni adatti", "Riscaldamento kWh"].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
@@ -852,7 +892,7 @@ function mappaLuceUI(I, set) {
   m.griglia.forEach((riga, j) => riga.forEach((v, i) => {
     const r = sv("rect", {x: i * W / gx, y: j * H / gy, width: W / gx + 0.5, height: H / gy + 0.5, fill: scalaCol(v)});
     r.append(sv("title", {}, Math.round(v) + " µmol/m²/s")); svg.append(r); }));
-  return [griglia(campoNum("Distanza lampada-foglie", I.luce.distanza_cm || 35, 10, 100, 5, v => set(I.luce, "distanza_cm", v), "cm")),
+  return [el("div", {class: "solo-esperto"}, griglia(campoNum("Distanza lampada-foglie", I.luce.distanza_cm || 35, 10, 100, 5, v => set(I.luce, "distanza_cm", v), "cm"))),
     el("div", {class: "blocco"}, el("span", {class: "etichetta", text: "Luce sul ripiano (vista dall'alto, " + Math.round(m.lung * 100) + " × " + Math.round(m.prof * 100) + " cm)"}), el("div", {class: "scorri"}, svg), el("p", {class: "piccolo num", text: "min " + Math.round(m.min) + " · media " + Math.round(m.media) + " · max " + Math.round(m.max) + " µmol/m²/s · uniformità " + fmt(m.uniformita, 2) + " (chiaro = meno luce, scuro = più luce)"})),
     el("p", {class: "piccolo", text: "Ai bordi arriva il " + Math.round((1 - m.min / m.media) * 100) + "% di luce in meno della media: DLI da " + fmt(m.dliMin, 1) + " a " + fmt(m.max * capacitaIdro(cfg).ore * 0.0036, 1) + ". " + (m.uniformita < 0.6 ? "Uniformità bassa: alza la lampada o usa barre distribuite; ai bordi metti le piante che vogliono meno luce." : "Uniformità accettabile (sopra 0,6).") + " Calcolo con sorgenti lambertiane" + (I.clima.tenda ? " e pareti riflettenti della tenda (90%)" : "") + "; con la mappa del costruttore è più preciso."})];
 }
@@ -1144,7 +1184,8 @@ function aggiorna(ricostruisci3d = true) {
   if (idro()) { S = simulaIdro(cfg); VOCI = materialiIdro(cfg); COSTI = costiAnnuiIdro(cfg, S); ECO = economiaIdro(cfg, S, VOCI, COSTI); M = null; }
   else { M = meteo(cfg); S = simula(cfg, {meteo: M}); VOCI = materiali(cfg); COSTI = costiAnnui(cfg, S, VOCI); }
   kpi(); messaggi(); disegnaScheda(); hud(giorno);
-  document.querySelectorAll(".modo button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === cfg.modalita ? "true" : "false"));
+  document.querySelectorAll(".modo button[data-m]").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === cfg.modalita ? "true" : "false"));
+  applicaLivello();
   if (Vista3D) { clearTimeout(timer3d); timer3d = setTimeout(() => { Vista3D.costruisci(cfg, S, VOCI); Vista3D.mostraGiorno(giorno); disegnaInquadrature(); }, ricostruisci3d ? 30 : 30); }
 }
 function disegnaInquadrature() {
@@ -1152,8 +1193,20 @@ function disegnaInquadrature() {
 }
 
 // ---------- avvio ----------
+// modalità principiante (meno schede, niente parametri avanzati) o esperto (tutto)
+const SCHEDE_ESPERTO = ["componenti", "logica", "guasti", "struttura"];
+function applicaLivello() {
+  const princ = (cfg.livello || "principiante") === "principiante";
+  document.body.classList.toggle("principiante", princ);
+  document.querySelectorAll("nav.schede button").forEach(b => { b.hidden = princ && SCHEDE_ESPERTO.includes(b.dataset.s); });
+  document.querySelectorAll(".livello button").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === (cfg.livello || "principiante") ? "true" : "false"));
+  if (princ && SCHEDE_ESPERTO.includes(schedaAperta)) apri("progetto");
+}
 $("schede").replaceChildren(...SCHEDE.map(([k, n]) => { const b = el("button", {role: "tab", "data-s": k, "aria-selected": "false", type: "button", text: n}); b.addEventListener("click", () => apri(k)); return b; }));
-document.querySelectorAll(".modo button").forEach(b => b.addEventListener("click", () => { cfg.modalita = b.dataset.m; Vista3D && (giorno = giorno); aggiorna(true); }));
+(() => { const g = el("div", {class: "modo livello", role: "group", "aria-label": "Livello"});
+  for (const [l, t] of [["principiante", "Principiante"], ["esperto", "Esperto"]]) { const b = el("button", {type: "button", "data-l": l, text: t}); b.addEventListener("click", () => { cfg.livello = l; salva(); applicaLivello(); disegnaScheda(); }); g.append(b); }
+  document.querySelector(".modo").after(g); })();
+document.querySelectorAll(".modo button[data-m]").forEach(b => b.addEventListener("click", () => { cfg.modalita = b.dataset.m; Vista3D && (giorno = giorno); aggiorna(true); }));
 let ora = 11, inGioco = false, accumulo = 0;
 $("ora").addEventListener("input", e => { ora = +e.target.value; if (Vista3D) Vista3D.impostaOra(ora); hud(giorno); });
 $("giorno").addEventListener("input", e => { giorno = +e.target.value; if (Vista3D) Vista3D.mostraGiorno(giorno); hud(giorno); });
