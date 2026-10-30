@@ -560,6 +560,12 @@ function bilancioIdro(box) {
         el("tbody", null, ...ECO.colture.map(x => el("tr", null, el("td", {text: IDRO_PIANTE[x.coltura].nome}), el("td", {class: "n", text: fmt(x.kg, 1)}), el("td", {class: "n", text: isFinite(x.costoKg) ? euro(x.costoKg) : "-"}),
           el("td", {class: "n", text: euro(x.prezzo)}), el("td", null, chip(x.conviene ? "ok" : "warn", x.conviene ? "conviene" : "non conviene")))))))),
     ));
+  const inc = el("div"), binc = el("button", {class: "az sec", type: "button", text: "Calcola l'incertezza (40 simulazioni)"});
+  binc.addEventListener("click", () => { inc.replaceChildren(el("p", {class: "piccolo", text: "Calcolo…"})); setTimeout(() => { const r = incertezzaIdro(cfg, 40);
+    const f = (x, u) => fmt(x.p10, u === "€" ? 0 : 1) + " / " + fmt(x.p50, u === "€" ? 0 : 1) + " / " + fmt(x.p90, u === "€" ? 0 : 1) + " " + u;
+    inc.replaceChildren(tabella(["Grandezza", "P10 / P50 / P90"], [["Raccolto utile", f(r.kg, "kg")], ["Corrente", f(r.kwh, "kWh")], ["Costo al kg", f(r.costoKg, "€")], ["Margine all'anno", f(r.margine, "€")], ["Probabilità di ripagarsi (con ammortamento)", Math.round(r.probRipaga * 100) + "%"]]),
+      el("p", {class: "piccolo", text: "Su 40 simulazioni con efficienza della luce ×N(1; 0,15), temperature cardinali ±1 °C, piante perse 2-10%, prezzi ±15%, kWh ±10%, materiale tra minimo e massimo. 8 casi su 10 stanno tra P10 e P90. Le distribuzioni sono ipotesi dichiarate, non misure."})); }, 30); });
+  box.append(riquadro("Incertezza", el("p", {class: "piccolo", text: "I numeri sopra sono il caso centrale. Quanto possono cambiare?"}), el("div", null, binc), inc));
   box.append(riquadro(ECO.giudizio === "conviene" ? "Giudizio: conviene" : ECO.giudizio === "fragile" ? "Giudizio: si ripaga, ma fragile" : "Giudizio: sconsigliato",
     ...(ECO.motivi.length ? ECO.motivi : ["Nessun motivo per sconsigliarlo con queste ipotesi: verificale con un piccolo impianto di prova."]).map(t => el("p", {class: "piccolo", text: t}))));
 }

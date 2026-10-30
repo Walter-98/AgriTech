@@ -249,9 +249,27 @@ function fTemp(T, b, o, m) {
   if (T <= b || T >= m) return 0;
   return ((m - T) / (m - o)) * Math.pow((T - b) / (o - b), (o - b) / (m - o));
 }
+// L'acclimatazione all'ombra è limitata a foglie al massimo 1,6 volte più larghe (e 0,7 volte più strette) di quelle
+// di riferimento: senza limiti la relazione empirica darebbe superfici fogliari irrealistiche con poca luce.
 function passoCrescita(G, D, dli, T, A) {
-  const lar = G.lar * Math.pow(G.dliRif / Math.max(dli, 0.5), G.a);
-  return G.lue * dli * A * (1 - Math.exp(-G.k * lar * D / A)) * fTemp(T, G.tb, G.to, G.tm);
+  const acc = Math.min(1.6, Math.max(0.7, Math.pow(G.dliRif / Math.max(dli, 0.5), G.a)));      // ACCLIMATAZIONE
+  return G.lue * dli * A * (1 - Math.exp(-G.k * G.lar * acc * D / A)) * fTemp(T, G.tb, G.to, G.tm);
+}
+// LUE del modello = grammi di sostanza secca per mole di luce INTERCETTATA dalla chioma. Per confrontarla con i valori
+// pubblicati sulla luce INCIDENTE (es. ~0,55 g/mol nelle vertical farm) si divide la massa secca finale per tutta la
+// luce arrivata sullo spazio della pianta durante il ciclo.
+function lueIncidente(P, giorni, dli, T, passo) {
+  const G = P.crescita; let D = G.d0, luce = 0;
+  for (let g = 0; g < giorni; g++) { const A = g < P.vivaio ? 0.0025 : Math.pow(passo / 100, 2); D += passoCrescita(G, D, dli, T, A); luce += dli * A; }
+  return {secco: D, luce, lue: D / luce};
+}
+const ACCLIMATAZIONE = [0.7, 1.6];
+// copia di una coltura con parametri variati (per l'incertezza): LUE e resa × fLue, temperature cardinali + dT
+function variaPianta(P, v) {
+  if (!v) return P;
+  const Q = Object.assign({}, P, {resa: P.resa * (P.crescita ? 1 : v.fLue || 1)});
+  if (P.crescita) Q.crescita = Object.assign({}, P.crescita, {lue: P.crescita.lue * (v.fLue || 1), tb: P.crescita.tb + (v.dT || 0), to: P.crescita.to + (v.dT || 0), tm: P.crescita.tm + (v.dT || 0)});
+  return Q;
 }
 function calibraCrescita(P) {
   const G = P.crescita, r = G.rif;
@@ -369,7 +387,7 @@ function simulaIdro(c, opz = {}) {
       if (tLuci > x.P.t[1] + 2) f *= 0.5;
       if (tBuio < x.P.t[0] - 4) f *= 0.5;
       const raccolte = x.piante / (x.P.giorni + fermo);
-      const kgX = x.P.crescita ? 0 : raccolte * x.P.resa / 1000 * f * fCal[i];      // con modello di crescita: calcolato dopo
+      const kgX = x.P.crescita ? 0 : raccolte * x.P.resa * (opz.variazione && opz.variazione.fLue || 1) / 1000 * f * fCal[i];      // con modello di crescita: calcolato dopo
       kgGiorno += kgX; kgColtura[i] += kgX;
       if (!x.P.crescita) { out.raccolti += raccolte; out.semi += raccolte * 1.2 * x.P.seme; }
       traspirazione += x.piante * x.P.acqua * 0.6 * Math.max(0.4, f) * Math.max(0.6, tLuci / 22);
@@ -417,7 +435,7 @@ function simulaIdro(c, opz = {}) {
     const passo = x.P.passo || 20, cicli = [], ogni = opz.passoCoorti || 7;
     let c0 = null;
     for (let d = 0; d < 365; d++) {
-      if (d % ogni === 0) c0 = coorte(x.P, d, g => out.giorni[g % 365], passo);
+      if (d % ogni === 0) c0 = coorte(variaPianta(x.P, opz.variazione), d, g => out.giorni[g % 365], passo);
       const raccolte = x.piante / (c0.giorni + fermo);
       const kgX = raccolte * c0.fresco / 1000 * out.giorni[d].fattori[i] * fCal[i];
       out.giorni[d].kg += kgX; out.mesi[meseDi(d)].kg += kgX; out.kg += kgX; kgColtura[i] += kgX;
@@ -558,6 +576,32 @@ function idraulicaIdro(c) {
              ["Acqua che torna al serbatoio a pompa ferma", Math.round(volumeRitorno) + " L: " + (volumeRitorno > liberoSerbatoio ? "PIÙ dello spazio libero nel serbatoio (" + Math.round(liberoSerbatoio) + " L): rischio di traboccare, serbatoio più grande o livello più basso" : "il serbatoio la contiene (" + Math.round(liberoSerbatoio) + " L liberi)")],
              ["Autonomia del serbatoio senza rabbocchi", Math.round(autonomia) + " giorni a piante adulte"]);
   return {canali, lungCanale, portata, altezza, perdite, prevalenza, wPompa, qMax, hMax, volumeRitorno, trabocca: volumeRitorno > liberoSerbatoio, autonomia, righe};
+}
+
+// ---------- incertezza: Monte Carlo ----------
+// Ripete la simulazione variando i parametri più incerti con distribuzioni dichiarate e riporta P10, P50, P90:
+//   efficienza della luce (e resa delle colture senza modello) ×N(1; 0,15) tra 0,6 e 1,4; temperature cardinali
+//   +N(0; 1) °C; piante perse 2-10%; prezzi al negozio ×N(1; 0,15); prezzo del kWh ×N(1; 0,1); materiale uniforme
+//   tra prezzo minimo e massimo. Seme fisso: stesso risultato a ogni esecuzione.
+function incertezzaIdro(c, n = 40, seme = 99) {
+  const rnd = mulberry32(seme), norm = (m, s, a, b) => Math.min(b, Math.max(a, m + s * gaussDa(rnd)));
+  const voci = materialiIdro(c), capMin = somma(voci, "min"), capMax = somma(voci, "max");
+  const corse = [];
+  for (let i = 0; i < n; i++) {
+    const v = {fLue: norm(1, 0.15, 0.6, 1.4), dT: norm(0, 1, -3, 3)};
+    const fPrezzo = norm(1, 0.15, 0.5, 1.5), fKwh = norm(1, 0.1, 0.6, 1.4), mort = 2 + rnd() * 8, cap = capMin + rnd() * (capMax - capMin);
+    const c2 = JSON.parse(JSON.stringify(c));
+    c2.prezzi.kwh *= fKwh; c2.idro.produzione = Object.assign({}, c2.idro.produzione, {mortalita: mort});
+    const s = simulaIdro(c2, {variazione: v, passoClima: 1, passoCoorti: 14});
+    const e = economiaIdro(c2, s, voci), C = e.scenari.centrale;
+    const valore = (C.sostituzione + C.ricavo) * fPrezzo, amm = cap / e.vita;
+    corse.push({kg: C.kgUtili, kwh: s.kwh, costoKg: C.kgUtili > 0 ? (C.opex + amm) / C.kgUtili : Infinity, margine: valore - C.opex, utile: valore - C.opex - amm});
+  }
+  const q = (chiave, p) => { const l = corse.map(x => x[chiave]).filter(isFinite).sort((a, b) => a - b); return l.length ? l[Math.min(l.length - 1, Math.floor(p * (l.length - 1) + 0.5))] : NaN; };
+  const r = {n, corse};
+  for (const k of ["kg", "kwh", "costoKg", "margine", "utile"]) r[k] = {p10: q(k, 0.1), p50: q(k, 0.5), p90: q(k, 0.9)};
+  r.probRipaga = corse.filter(x => x.utile > 0).length / n;
+  return r;
 }
 
 // ---------- lavoro ----------
@@ -764,4 +808,4 @@ function pinMappaIdro(c) {
   if (A.prese_smart) righe.push(["Luci, estrattore, stufetta, deumidificatore", "Wi-Fi", "prese smart comandate via rete"]);
   return righe;
 }
-if (typeof module !== "undefined") module.exports = {misureImpianto, sceltaTenda, posizionaImpianto, TENDE, mappaLuce, idraulicaIdro, dimensioniPiano, FONTI, DATI_COLTURE, fTemp, coorte, calibraCrescita, vpd, simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};
+if (typeof module !== "undefined") module.exports = {incertezzaIdro, lueIncidente, variaPianta, ACCLIMATAZIONE, misureImpianto, sceltaTenda, posizionaImpianto, TENDE, mappaLuce, idraulicaIdro, dimensioniPiano, FONTI, DATI_COLTURE, fTemp, coorte, calibraCrescita, vpd, simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};

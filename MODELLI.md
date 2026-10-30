@@ -60,6 +60,20 @@ Nessun modello è stato ancora confrontato con un raccolto vero: la calibrazione
     LAR = LARrif × (DLIrif/DLI)^0,7;
   - f(T) = funzione beta delle temperature cardinali (Yan e Hunt 1999) sulla temperatura media del giorno in tenda;
   - massa fresca = massa secca ÷ sostanza secca (4,7% lattuga, 8% basilico).
+- **Cosa misura la LUE**: è riferita alla luce **intercettata** dalla chioma (c'è il termine 1 − e^(−k·LAI)), in grammi
+  di sostanza **secca** per mole di fotoni.
+  - Sulla luce **incidente** il caso Cornell dà 0,47 g/mol (`lueIncidente`), nello stesso ordine del valore medio
+    pubblicato di circa 0,55 g/mol per le vertical farm (test: ±40%).
+  - Non è una costante universale: cambia con varietà, CO₂ e clima.
+- **Acclimatazione limitata**: le foglie diventano al massimo 1,6 volte più larghe (o 0,7 volte più strette) di
+  quelle di riferimento. Senza limiti la relazione empirica darebbe superfici irrealistiche con poca luce.
+- **Saturazione**: oltre il DLI massimo della coltura la resa non cresce. Alcune prove mostrano anche un calo, per
+  esempio nella lattuga iceberg tra DLI 11,5 e 14,4 in quelle condizioni: dipende dalla varietà, non è nel modello.
+- **Incertezza (Monte Carlo, 40 simulazioni con seme fisso)**:
+  - parametri variati: LUE ×N(1; 0,15), temperature cardinali ±N(0; 1) °C, piante perse 2-10%, prezzi ×N(1; 0,15),
+    kWh ×N(1; 0,1), materiale uniforme tra minimo e massimo;
+  - risultati: P10 / P50 / P90 di raccolto, corrente, costo al kg, margine, e probabilità di ripagarsi;
+  - le distribuzioni sono ipotesi dichiarate.
 - **Calibrazione**:
   - LUE si calcola all'avvio in modo che la lattuga faccia **150 g a 35 giorni dalla semina** con DLI 17 e 22,3 °C
     medi (Both 1995, Cornell): risulta circa 0,6 g secchi per mole di luce;

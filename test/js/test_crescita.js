@@ -62,3 +62,24 @@ test("ogni dato del database ha una fonte esistente e un livello di affidabilit�
     assert.ok(r[0] === "tutte" || G.IDRO_PIANTE[r[0]], r[0]);
   }
 });
+
+test("acclimatazione all'ombra limitata: con pochissima luce le foglie non si allargano senza fine", () => {
+  const molto = pesoA(L, 35, 22.3, 2), poco = pesoA(L, 35, 22.3, 4);
+  assert.ok(molto < poco && molto > 0);
+  // con il limite la crescita a DLI 2 è al massimo quella che avrebbe con foglie 1,6 volte più larghe
+  assert.ok(molto / pesoA(L, 35, 22.3, 17) < 0.2);
+});
+
+test("LUE sulla luce incidente nello stesso ordine dei valori pubblicati (~0,55 g/mol nelle vertical farm)", () => {
+  const r = G.lueIncidente(L, 35, 17, 22.3, 20);
+  assert.ok(Math.abs(r.secco - 7) < 0.1);
+  assert.ok(r.lue > 0.33 && r.lue < 0.77, String(r.lue));          // ±40% attorno a 0,55
+});
+
+test("incertezza Monte Carlo: riproducibile, quantili ordinati, probabilità tra 0 e 1", () => {
+  const a = G.incertezzaIdro(config(G), 20, 7), b = G.incertezzaIdro(config(G), 20, 7);
+  assert.equal(a.kg.p50, b.kg.p50);
+  for (const k of ["kg", "costoKg", "margine"]) assert.ok(a[k].p10 <= a[k].p50 && a[k].p50 <= a[k].p90, k);
+  assert.ok(a.probRipaga >= 0 && a.probRipaga <= 1);
+  assert.ok(a.kg.p90 > a.kg.p10);
+});
