@@ -112,3 +112,27 @@ test("blackout di 5 ore senza UPS su NFT fa perdere piante, con DWC no", () => {
   assert.ok(nft.s.perse > 0);
   assert.equal(dwc.s.perse, 0);
 });
+
+test("nucleo fisico dell'orto: il browser dà gli stessi numeri di Python sui casi del contratto", () => {
+  const fs = require("fs"), path = require("path"), vm = require("vm");
+  const ctx = vm.createContext({Math, Object, JSON, Array, Number});
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "..", "gemello", "sim.js"), "utf8").match(/function etGiorno[\s\S]*?\n}\n/)[0] + "globalThis.f = etGiorno;", ctx);
+  const casi = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "contratti", "bilancio_idrico.json"), "utf8")).casi;
+  assert.ok(casi.length > 100);
+  for (const c of casi) {
+    const r = ctx.f(c.u, c.et0, c.kc, c.capacita);
+    assert.ok(Math.abs(r.u - c.u_fine) < 1e-12 && Math.abs(r.et - c.et_mm) < 1e-9, JSON.stringify(c));
+  }
+});
+
+test("VAN e TIR: definizioni verificate (al TIR il VAN è zero)", () => {
+  const vendo = anno({sistema: "vassoi", disposizione: "scaffale", piani: 3, colture: [{coltura: "microgreens", quota: 100}], economia: {quota_vendita: 90, prezzo_vendita: 70}});
+  const C = vendo.e.scenari.centrale, vita = vendo.e.vita;
+  assert.ok(Math.abs(C.van - (-C.capex + C.margine * (1 - Math.pow(1.03, -vita)) / 0.03)) < 1e-6);
+  assert.ok(C.tir > 0);
+  const vanAlTir = -C.capex + C.margine * (1 - Math.pow(1 + C.tir, -vita)) / C.tir;
+  assert.ok(Math.abs(vanAlTir) < 0.01 * C.capex);
+  const casa = anno({colture: [{coltura: "lattuga", quota: 100}]}).e.scenari.centrale;
+  assert.equal(casa.tir, null);
+  assert.ok(casa.van < 0);
+});

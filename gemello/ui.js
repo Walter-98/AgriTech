@@ -217,7 +217,8 @@ function editorProgettoIdro(box) {
           const aggiornaSup = () => { I.superficie_piano = st.lung_cm * st.prof_cm / 10000; aggiorna(true); };
           return [campoNum("Lunghezza del ripiano", st.lung_cm, 30, 400, 5, v => { st.lung_cm = v; aggiornaSup(); }, "cm"),
             campoNum("Profondità del ripiano", st.prof_cm, 30, 200, 5, v => { st.prof_cm = v; aggiornaSup(); }, "cm"),
-            ...(I.disposizione === "scaffale" ? [campoNum("Distanza tra i ripiani", st.h_piano_cm, 30, 100, 5, v => { st.h_piano_cm = v; aggiorna(true); }, "cm")] : [])]; })(),
+            ...(I.disposizione === "scaffale" ? [campoNum("Distanza tra i ripiani", st.h_piano_cm, 30, 100, 5, v => { st.h_piano_cm = v; aggiorna(true); }, "cm")] : []),
+            campoNum("Portata dichiarata per ripiano (0 = non la so)", st.portata_kg || 0, 0, 500, 5, v => { st.portata_kg = v || null; aggiorna(false); }, "kg")]; })(),
         ...(I.sistema === "bucket" ? [campoNum("Secchi", I.secchi, 1, 16, 1, v => set(I, "secchi", v))] : I.sistema === "goccia" ? [campoNum("Lastre da 100 cm", I.secchi, 1, 12, 1, v => set(I, "secchi", v), "3 piante ciascuna")] : []))));
   const Lc = I.locale = Object.assign({lung: 5, larg: 3, alt: 2.4, auto: true}, I.locale || {}), pos = posizionaImpianto(cfg);
   box.append(riquadro("Il locale", el("div", {id: "ed-locale"}), el("div", {id: "ed-struttura"}),
@@ -551,6 +552,7 @@ function bilancioIdro(box) {
       riga("Mangiato in casa", fmt(C.casa, 1) + " kg"), riga("Venduto", fmt(C.venduti, 1) + " kg"), riga("In più (regalato o buttato)", fmt(C.eccedenza, 1) + " kg"),
       riga("Valore in casa (prezzo del negozio)", euro(C.sostituzione)), riga("Ricavo dalle vendite", euro(C.ricavo)),
       riga("Margine di ogni anno (senza ammortamento)", euro(C.margine), true), riga("Si ripaga in", anni(C.pareggioAnni), true),
+      riga("Valore attuale netto (VAN, tasso 3%, " + ECO.vita + " anni)", euro(C.van)), riga("Tasso interno di rendimento (TIR)", C.tir == null ? "non esiste (non si ripaga)" : fmt(C.tir * 100, 1) + "%"),
       riga("Lavoro", fmt(ECO.ore) + " ore all'anno"))))),
     riquadro("Caso peggiore, normale e migliore", el("p", {class: "piccolo", text: "Pessimistico: prezzi alti del materiale, resa -30%, corrente +15%, prezzi -20%. Ottimistico: prezzi bassi, resa +10%, corrente -5%. Sono prove di robustezza, non probabilità."}),
       el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["", "Pessimistico", "Centrale", "Ottimistico"].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
@@ -640,7 +642,10 @@ function schedaStruttura(box) {
   if (idro()) { const idr = idraulicaIdro(cfg);
     if (idr) box.append(riquadro("Idraulica: canali, portate e pompa", el("p", {class: "piccolo", text: "Calcolo: portata per canale ~1 L/min (da 0,5 a 2), pendenza 1:40, perdite nel tubo con Hazen-Williams, pompa con curva lineare e margine del 50% sulla prevalenza. Fonti e limiti in MODELLI.md."}),
       el("div", {class: "scorri"}, el("table", null, el("tbody", null, ...idr.righe.map(r => el("tr", null, el("th", {text: r[0]}), el("td", {text: r[1]})))))))); }
-  if (idro()) box.append(piantaUI());
+  if (idro()) { const car = caricoScaffale(cfg);
+    if (car) box.append(riquadro("Pesi sui ripiani (verifica preliminare)", tabella(["Per ripiano", "kg"], [["Acqua", fmt(car.acqua, 1)], ["Canali, vasche, substrato", fmt(car.struttura, 1)], ["Piante adulte", fmt(car.piante, 1)], ["Lampada", fmt(car.lampada, 1)], ["Totale per ripiano", fmt(car.perPiano, 1)], ["Totale scaffale", fmt(car.totale, 1)]], [1]),
+      el("p", {class: "piccolo", text: (car.portata ? "Portata dichiarata " + car.portata + " kg per ripiano: " + {ok: "margine sufficiente (sotto l'80%).", "al limite": "al limite (oltre l'80%).", no: "SUPERATA."}[car.verifica] : "Verifica non disponibile: serve la portata dichiarata dal costruttore dello scaffale.") + (car.ribaltamento ? " Scaffale alto e stretto: fissalo al muro." : "") + " Non è un calcolo strutturale: il peso va distribuito su tutto il ripiano e la portata vale per carico distribuito."})));
+    box.append(piantaUI()); }
   if (idro() && micro === "nessuno") return;
   box.append(riquadro("Collegamenti di " + CATALOGO.micro.opzioni[micro].nome, el("p", {class: "piccolo", text: "Software: " + CATALOGO.micro.opzioni[micro].firmware + "."}),
       el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, el("th", {text: "Cosa"}), el("th", {text: "Pin"}), el("th", {text: "Note"}))), el("tbody", null, ...pin.map(p => el("tr", null, el("td", {text: p[0]}), el("td", {class: "dati", text: p[1]}), el("td", {text: p[2]}))))))));

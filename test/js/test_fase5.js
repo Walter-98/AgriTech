@@ -58,3 +58,14 @@ test("le lunghezze dei tubi seguono le misure", () => {
   const m = s => +s.nome.match(/16 mm \((\d+) m\)/)[1];
   assert.ok(m(lungo) > m(corto));
 });
+
+test("pesi sui ripiani: DWC pesa molto più di NFT; senza portata dichiarata la verifica non è disponibile", () => {
+  const nft = G.caricoScaffale(conMisure(120, 60)), dwc = G.caricoScaffale(conMisure(120, 60, {sistema: "dwc"}));
+  assert.ok(dwc.acqua > 10 * nft.acqua);
+  assert.ok(Math.abs(dwc.acqua - 1.2 * 0.6 * 200) < 1e-9);                    // 20 cm d'acqua = 200 kg/m²
+  assert.equal(nft.verifica, "non disponibile");
+  const sotto = G.caricoScaffale(conMisure(120, 60, {sistema: "dwc", struttura: {lung_cm: 120, prof_cm: 60, h_piano_cm: 45, portata_kg: 100}}));
+  assert.equal(sotto.verifica, "no");
+  assert.ok(G.compatibilitaIdro(conMisure(120, 60, {sistema: "dwc", struttura: {lung_cm: 120, prof_cm: 60, h_piano_cm: 45, portata_kg: 100}})).some(m => /sovraccarichi/.test(m.titolo)));
+  assert.equal(G.caricoScaffale(conMisure(120, 60, {struttura: {lung_cm: 120, prof_cm: 60, h_piano_cm: 45, portata_kg: 150}})).verifica, "ok");
+});

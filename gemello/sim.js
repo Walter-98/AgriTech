@@ -36,6 +36,17 @@ function completaAnno(giorni, fonte) {
   return {fonte, dal: giorni[0].data, al: giorni[giorni.length - 1].data, giorni: anno};
 }
 
+// Nucleo fisico condiviso con sistema/nucleo.py (stesse formule, stessi casi di test in test/contratti/):
+// du/dt = -r·min(1, u/0,5), r = et0·kc/capacità; lineare fino a u = 0,5 poi esponenziale.
+function etGiorno(u, et0, kc, cap) {
+  if (cap <= 0 || et0 <= 0 || kc <= 0 || u <= 0) return {u: Math.max(u, 0), et: 0};
+  const r = et0 * kc / cap;
+  let fine;
+  if (u >= 0.5) { const t1 = (u - 0.5) / r; fine = t1 >= 1 ? u - r : 0.5 * Math.exp(-(r / 0.5) * (1 - t1)); }
+  else fine = u * Math.exp(-2 * r);
+  return {u: fine, et: (u - fine) * cap};
+}
+
 function meteo(c) {
   if (c.meteoReale && c.meteoReale.giorni && c.meteoReale.giorni.length >= 365) {
     const giorni = c.meteoReale.giorni.slice(0, 365).map((g, d) => ({m: meseDi(d), et0: g.et0, pioggia: g.pioggia, nuvoloso: g.pioggia > 1, t: (g.tmin + g.tmax) / 2, tmin: g.tmin, tmax: g.tmax}));
@@ -180,8 +191,8 @@ function simula(c, opz = {}) {
     const piano = [];
     for (const s of zone) {
       const on = attiva(s.z, d);
-      const et = (on ? et0 * s.kc : et0 * 0.25) * Math.min(1, s.u / 0.5);
-      s.u = Math.max(0, s.u - et / s.cap);
+      // nucleo condiviso con il simulatore Python (sistema/nucleo.py): soluzione esatta del giorno
+      s.u = etGiorno(s.u, et0, on ? s.kc : 0.25, s.cap).u;
       s.eccesso = 0;
       s.u += pioggiaAiuole / s.cap;
       if (s.u > 1) { s.eccesso += (s.u - 1) * s.cap; s.u = 1; }

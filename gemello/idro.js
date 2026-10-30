@@ -182,6 +182,27 @@ function posizionaImpianto(c) {
   return {locale: Lc, ingombro, quadro, lavoro, passaggio, altezza, entra: !motivo, motivo, m2: (ingombro.lung + 0.7) * (ingombro.prof + lavoro.prof)};
 }
 
+// ---------- carichi sullo scaffale (verifica preliminare) ----------
+// Pesi per ripiano: acqua (canali NFT: velo + ristagno; vasche DWC/Kratky: 20 cm; flusso e riflusso: 5 cm allagato),
+// substrato bagnato, piante adulte, lampada. Confronto con la portata dichiarata dal costruttore per ripiano, se la
+// conosci; senza, la verifica NON è disponibile. Ribaltamento: scaffale alto e stretto con peso in alto → fissarlo
+// al muro. Non è un calcolo strutturale né una certificazione.
+function caricoScaffale(c) {
+  const I = c.idro, k = capacitaIdro(c), m = k.misure;
+  if (k.S.verticale || I.sistema === "bucket" || I.sistema === "goccia") return null;
+  const area = m.lung * m.prof, piante = k.piante / Math.max(1, k.piani);
+  const acqua = {nft: idraulicaIdro(c) ? idraulicaIdro(c).canali / k.piani * m.lung * 1.0 : 0, dwc: area * 200, kratky: area * 150, ebb: area * 50, vassoi: area * 4}[I.sistema] || 0;
+  const struttura = {nft: 2 * m.lung, dwc: 8 * area, kratky: 5 * area, ebb: 6 * area, vassoi: 3 * area}[I.sistema] || 0;
+  const pianteKg = piante * Math.max(...k.colture.map(x => x.P.resa)) / 1000 * 1.3;
+  const lampada = k.wLuci / Math.max(1, k.piani) * 0.02 + 1;
+  const perPiano = acqua + struttura + pianteKg + lampada;
+  const portata = (I.struttura || {}).portata_kg || null;
+  const snellezza = m.alt / Math.max(0.3, m.prof);
+  return {perPiano, acqua, struttura, piante: pianteKg, lampada, totale: perPiano * k.piani, portata,
+          verifica: portata ? (perPiano <= portata * 0.8 ? "ok" : perPiano <= portata ? "al limite" : "no") : "non disponibile",
+          ribaltamento: snellezza > 3 && k.piani > 1, snellezza};
+}
+
 // ---------- capacità e luce ----------
 function capacitaIdro(c) {
   const I = c.idro, S = SISTEMI_IDRO[I.sistema];
@@ -649,7 +670,12 @@ function economiaIdro(c, s, voci, costi) {
     const opex = energia * sc.energia + altro;
     const inv = capex[sc.capex], ammortamento = inv / E.vita_anni;
     const margine = sostituzione + ricavo - opex;                    // senza ammortamento: quello che resta in tasca ogni anno
-    scenari[kk] = {nome: sc.nome, kgUtili, venduti, casa, eccedenza, sostituzione, ricavo, opex, capex: inv, ammortamento, costoAnno: opex + ammortamento,
+    // flusso di cassa: −investimento all'anno 0, poi margine ogni anno per la vita dell'impianto; tasso del 3%
+    const van = -inv + margine * (1 - Math.pow(1.03, -E.vita_anni)) / 0.03;
+    let tir = null;
+    if (margine > 0 && margine * E.vita_anni > inv) { let lo = -0.99, hi = 10;
+      for (let i = 0; i < 80; i++) { const r = (lo + hi) / 2, v = -inv + margine * (1 - Math.pow(1 + r, -E.vita_anni)) / r; if (v > 0) lo = r; else hi = r; } tir = (lo + hi) / 2; }
+    scenari[kk] = {nome: sc.nome, kgUtili, venduti, casa, eccedenza, sostituzione, ricavo, opex, capex: inv, ammortamento, costoAnno: opex + ammortamento, van, tir,
                    costoKg: kgUtili > 0 ? (opex + ammortamento) / kgUtili : Infinity, margine, utile: margine - ammortamento,
                    pareggioAnni: margine > 0 ? inv / margine : Infinity};
   }
@@ -763,6 +789,11 @@ function compatibilitaIdro(c) {
   for (const x of k.colture) { const st = statoLuce(x.P, k.dli);
     if (st.stato === "poca") add("warn", x.P.nome + ": poca luce", "DLI " + n1(k.dli) + " contro " + x.P.dli.join("-") + " mol/m²/giorno: resa circa " + Math.round(st.fattore * 100) + "% di quella di riferimento.", "luce");
     if (st.stato === "troppa") add("warn", x.P.nome + ": luce oltre il necessario", "DLI " + n1(k.dli) + " sopra " + x.P.dli[1] + ": niente resa in più, solo corrente" + (x.coltura === "lattuga" ? " e rischio di bruciature ai bordi (tipburn)" : "") + ".", "luce"); }
+  const car = caricoScaffale(c);
+  if (car && car.verifica === "no") add("crit", "Ripiani sovraccarichi", "Circa " + Math.round(car.perPiano) + " kg per ripiano contro " + car.portata + " kg dichiarati dal costruttore.", "struttura");
+  if (car && car.verifica === "al limite") add("warn", "Ripiani al limite", "Circa " + Math.round(car.perPiano) + " kg per ripiano, oltre l'80% dei " + car.portata + " kg dichiarati.", "struttura");
+  if (car && car.verifica === "non disponibile" && car.perPiano > 30) add("warn", "Peso dei ripiani da verificare", "Circa " + Math.round(car.perPiano) + " kg per ripiano (" + Math.round(car.acqua) + " kg d'acqua): scrivi la portata dichiarata dello scaffale nella scheda Progetto.", "struttura");
+  if (car && car.ribaltamento) add("warn", "Scaffale da fissare al muro", "Alto " + Math.round(k.misure.alt * 100) + " cm e profondo " + Math.round(k.misure.prof * 100) + " cm con peso sui ripiani alti: può ribaltarsi.", "struttura");
   if (CL.tenda && k.misure.alt > k.tenda.alt + 0.001) add("crit", "Lo scaffale non entra nella tenda", "Scaffale alto " + Math.round(k.misure.alt * 100) + " cm, tenda " + Math.round(k.tenda.alt * 100) + " cm: meno piani o ripiani più bassi.", "struttura");
   if (CL.tenda && !k.tenda.basta) add("crit", "Nessuna tenda standard abbastanza grande", "Servono più tende o una stanza dedicata.", "struttura");
   const pos = posizionaImpianto(c);
@@ -815,4 +846,4 @@ function pinMappaIdro(c) {
   if (A.prese_smart) righe.push(["Luci, estrattore, stufetta, deumidificatore", "Wi-Fi", "prese smart comandate via rete"]);
   return righe;
 }
-if (typeof module !== "undefined") module.exports = {incertezzaIdro, lueIncidente, variaPianta, ACCLIMATAZIONE, misureImpianto, sceltaTenda, posizionaImpianto, TENDE, mappaLuce, idraulicaIdro, dimensioniPiano, FONTI, DATI_COLTURE, fTemp, coorte, calibraCrescita, vpd, simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};
+if (typeof module !== "undefined") module.exports = {caricoScaffale, incertezzaIdro, lueIncidente, variaPianta, ACCLIMATAZIONE, misureImpianto, sceltaTenda, posizionaImpianto, TENDE, mappaLuce, idraulicaIdro, dimensioniPiano, FONTI, DATI_COLTURE, fTemp, coorte, calibraCrescita, vpd, simulaIdro, capacitaIdro, materialiIdro, compatibilitaIdro, pinMappaIdro, costiAnnuiIdro, economiaIdro, rispostaLuce, statoLuce, oreSettimanaIdro};
