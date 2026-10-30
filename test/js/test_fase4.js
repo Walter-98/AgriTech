@@ -88,5 +88,7 @@ test("meteo vero da CSV: 365 giorni, il gemello lo usa al posto delle medie", ()
   const caldo = config(G); caldo.meteoReale = M;
   const sCaldo = G.simulaIdro(caldo), sMedio = G.simulaIdro(config(G));
   assert.ok(sCaldo.giorniCaldo > sMedio.giorniCaldo);
-  assert.ok(Math.abs(sCaldo.giorni[0].tGarage - (34 + 3)) < 1.01);
+  // modello dinamico: garage poco sopra la media esterna (34 °C), lampade e sole lo scaldano un po'
+  assert.ok(sCaldo.giorni[100].tGarage > 33 && sCaldo.giorni[100].tGarage < 40, String(sCaldo.giorni[100].tGarage));
+  assert.ok(Math.abs(sCaldo.giorni[100].tEst - (30 + 100 % 3 + 38) / 2) < 0.01);
 });

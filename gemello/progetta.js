@@ -78,7 +78,7 @@ function candidatiIdro(R) {
 }
 
 function valutaIdro(R, x) {
-  const c = x.c, s = simulaIdro(c), voci = materialiIdro(c), costi = costiAnnuiIdro(c, s), e = economiaIdro(c, s, voci, costi);
+  const c = x.c, s = simulaIdro(c, {passoClima: 1, passoCoorti: 14}), voci = materialiIdro(c), costi = costiAnnuiIdro(c, s), e = economiaIdro(c, s, voci, costi);
   const ing = ingombro(c), C = e.scenari.centrale, v = valutazioni(c);
   const vincoli = [];
   if (e.capex.medio > R.budget) vincoli.push("budget: servono circa " + Math.round(e.capex.medio) + " €");

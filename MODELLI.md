@@ -166,19 +166,56 @@ Nessun modello è stato ancora confrontato con un raccolto vero: la calibrazione
   2.070 kWh.
 - **Si verifica con**: una presa con misuratore di consumo (10-15 €) su ogni ciabatta per una settimana.
 
-## 4. Clima della tenda (C)
-- **Formule**:
-  - garage non isolato = media mensile esterna + 3 °C; garage isolato = 0,6 × esterna + 8 °C;
-  - escursione giorno/notte ±3 °C (±1,5 se isolato);
-  - tenda = garage + calore delle lampade ÷ UA, con UA = 4 W/K per m² di telo, più 55 W/K quando l'estrattore gira;
-  - la stufetta copre UA × (minima − tenda) fino a 1.000 W.
-- **Fonte**: bilancio termico stazionario. Coefficienti ipotizzati (**D**).
-- **Campo**: medie mensili. Ondate di calore e notti gelide non ci sono.
-- **Errori noti**:
-  - mancano l'inerzia del garage, il sole sulla saracinesca e il calore dell'auto;
-  - le temperature mensili sono medie per macro-zona (`REGIONI`), non per comune.
-- **Si verifica con**: un termometro con memoria nel garage e uno nella tenda per 2 settimane. È il primo dato da
-  misurare.
+## 4. Clima: modello dinamico a nodi termici (A come bilanci, C come parametri)
+`gemello/clima.js`. Sostituisce la vecchia regola "garage = esterno + 3 °C".
+- **Nodi**: Esterno → Locale (garage o serra) → Tenda → Serbatoio, più il terreno a temperatura costante (media annua
+  dell'aria).
+- **Passo**: 30 minuti (1 ora nel percorso guidato).
+  - Locale e serbatoio hanno inerzia: costanti di tempo di 4-6 ore, integrazione esplicita stabile. Con passo di 1 ora
+    i risultati restano entro 0,5 °C da quelli a 10 minuti (test).
+  - La tenda ha poca massa: si risolve in equilibrio a ogni passo.
+- **Bilanci**:
+  - locale: C·dT/dt = Σ U·A·(T_est − T) + H_inf·(T_est − T) + U_pav·A·(T_suolo − T) + sole + calore che esce dalla
+    tenda;
+  - tenda: lampade − calore latente + stufetta = (UA_tenda + H_ricambio + H_estrattore)·(T_tenda − T_locale) +
+    H_acqua·(T_tenda − T_serbatoio);
+  - serbatoio: C_acqua·dT/dt = H_acqua·(T_tenda − T) + pompa + riscaldatore da acquario.
+- **Parametri**:
+  - **U della tenda**: 1/(Rsi + R_telo + Rsi) con Rsi = 0,13 m²K/W (EN ISO 6946, ambienti interni), cioè 3,7 W/m²K
+    per un telo sottile; −10% per il riflettente (stima). Il valore 7,5-8,5 W/m²K delle serre a film singolo vale
+    con vento e cielo all'esterno, non per una tenda dentro un garage. Alternative: tessuto normale, pannelli
+    isolanti.
+  - **Locali** (U pareti / tetto / porta, ricambi d'aria): garage non isolato 1,8 / 2,0 / 5,8 W/m²K, 1 ricambio/h;
+    isolato 0,45 / 0,35 / 1,5, 0,4 ricambi/h; serra a film singolo U 8 (doppio 4,5).
+  - **Capacità termica**: 165 kJ/m²K di pavimento (EN ISO 13790, costruzione media); serra 60 kJ/m²K.
+  - **Sole** (kWh/m²/giorno per zona) con profilo sinusoidale. Al garage arriva il 4% dell'irraggiamento sulla sua
+    superficie (2% se isolato); alla serra il 35% (30% doppio film) come calore sensibile, perché circa metà va in
+    evapotraspirazione.
+  - **Serra**: sopra 25 °C apre le finestre (40 ricambi/h).
+  - **Calore latente**: l'acqua traspirata (2,45 MJ/kg) toglie calore alle lampade fino al 60%; resta almeno il 40%
+    sensibile (ordine di grandezza da Graamans et al. 2018, Agricultural Systems 160).
+  - **Estrattore**: 0,34 × portata (m³/h) W/K quando la tenda supera la massima delle colture − 1 °C.
+  - **Temperatura esterna** oraria con una sinusoide tra minima e massima del giorno (massima alle 15). Senza meteo
+    vero: escursione tipica per mese, 6-12 °C (C).
+- **Controlli** (`test/js/test_clima.js`):
+  - energia entrata = uscita + accumulo entro 0,1% in 4 configurazioni;
+  - il garage isolato oscilla meno;
+  - la stufetta tiene la minima;
+  - la serra è più fredda di notte e più calda di giorno;
+  - la calibrazione ritrova un fattore noto.
+- **Calibrazione**: con almeno 7 giorni di minime e massime misurate in tenda, una ricerca a griglia adatta due
+  fattori (dispersioni ×0,5-2, sole ×0,5-2). Va fatta senza stufetta accesa, perché il termostato nasconde le
+  dispersioni.
+- **Limiti**:
+  - non modellati: raggiamento notturno della serra verso il cielo (minime vere più basse), apertura della porta del
+    garage, umidità e condensa come bilancio (l'umidità resta il modello semplice del §4b), effetto dei guasti sul
+    clima;
+  - i parametri dei materiali sono tipici, non misurati sul tuo garage.
+
+## 4b. Umidità (C)
+- Umidità della tenda = umidità del garage (65%, 55% se isolato) + 20 punti × acqua traspirata ÷ capacità del ricambio
+  d'aria di togliere vapore.
+- È una stima semplice, non un bilancio del vapore.
 
 ## 5. Fattori di stress (C)
 - **Fattori sulla resa**:

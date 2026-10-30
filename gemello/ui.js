@@ -256,9 +256,12 @@ function editorProgettoIdro(box) {
   // clima
   const CL = I.clima;
   box.append(riquadro("Clima del garage", el("div", {id: "ed-clima"}), el("div", {id: "ed-tenda"}),
-    griglia(campoSel("Garage", CL.garage, [["non_isolato", "Non isolato (segue il clima di fuori)"], ["isolato", "Isolato o interrato"]], v => set(CL, "garage", v)),
+    griglia(campoSel("Locale", CL.garage, Object.entries(LOCALI).map(([kk, l]) => [kk, l.nome]), v => set(CL, "garage", v)),
+      campoSel("Materiale della tenda", CL.tenda_materiale || "mylar", Object.entries(MATERIALI_TENDA).map(([kk, m]) => [kk, m.nome + " (U " + fmt(m.u, 1) + " W/m²K)"]), v => set(CL, "tenda_materiale", v)),
+      campoNum("Portata dell'estrattore", CL.estrattore_m3h || 150, 50, 800, 10, v => set(CL, "estrattore_m3h", v), "m³/h"),
       campoSel("Riscaldamento", CL.riscaldamento, [["nessuno", "Nessuno"], ["tappetino", "Riscaldatore per l'acqua (100 W)"], ["stufetta", "Termoventilatore 1000 W con termostato"]], v => set(CL, "riscaldamento", v)),
       campoNum("Temperatura minima", CL.t_min, 5, 25, 1, v => set(CL, "t_min", v), "°C")),
+    confrontoAmbientiUI(),
     spunta("Tenda da coltivazione", CL.tenda, v => set(CL, "tenda", v)), spunta("Estrattore con termostato", CL.estrattore, v => set(CL, "estrattore", v)),
     spunta("Ventilatore di circolazione", CL.circolazione, v => set(CL, "circolazione", v)), spunta("Deumidificatore", CL.deumidificatore, v => set(CL, "deumidificatore", v))));
   // acqua e nutrienti
@@ -425,9 +428,9 @@ function schedaSimulazione(box) {
       el("div", {class: "due"}, riquadro("Raccolto mese per mese (kg)", gP), riquadro("Acqua mese per mese (L)", gA)));
     legenda(lE, serieE, true);
     barChart(gE, {titolo: "Corrente per mese", categorie: MESI, serie: serieE, fmt: v => fmt(v), fmtTip: v => fmt(v, 1) + " kWh"});
-    const serieT = [{nome: "Garage", colore: "var(--s4)", valori: S.giorni.map(g => g.tGarage)}, {nome: "Tenda con luci", colore: "var(--s2)", valori: S.giorni.map(g => g.tLuci)}, {nome: "Tenda al buio", colore: "var(--s1)", valori: S.giorni.map(g => g.tBuio)}];
+    const serieT = [{nome: "Fuori", colore: "var(--s3)", valori: S.giorni.map(g => g.tEst)}, {nome: "Garage", colore: "var(--s4)", valori: S.giorni.map(g => g.tGarage)}, {nome: "Tenda con luci", colore: "var(--s2)", valori: S.giorni.map(g => g.tLuci)}, {nome: "Tenda al buio", colore: "var(--s1)", valori: S.giorni.map(g => g.tBuio)}];
     legenda(lT, serieT);
-    const tmin = Math.floor(Math.min(...S.giorni.map(g => Math.min(g.tGarage, g.tBuio))) / 5) * 5, tmax = Math.ceil(Math.max(...S.giorni.map(g => g.tLuci)) / 5) * 5;
+    const tmin = Math.floor(Math.min(...S.giorni.map(g => Math.min(g.tGarage, g.tBuio, g.tEst))) / 5) * 5, tmax = Math.ceil(Math.max(...S.giorni.map(g => g.tLuci)) / 5) * 5;
     const ticks = []; for (let t = tmin; t <= tmax; t += 5) ticks.push(t);
     lineChart(gT, {titolo: "Temperature", n: 365, yMin: tmin, yMax: tmax, ticks, fmt: t => t + "°", serie: serieT, etichettaX: etGiorno, fmtTip: v => fmt(v, 1) + " °C"});
     barChart(gP, {larghezza: 520, largo: 0.8, titolo: "Raccolto per mese", categorie: MESI, serie: [{nome: "Raccolto", colore: "var(--s3)", valori: S.mesi.map(m => m.kg)}], fmt: v => fmt(v, v < 10 ? 1 : 0), fmtTip: v => fmt(v, 1) + " kg"});
@@ -816,6 +819,18 @@ function ricettaUI(I, k) {
     ...r.avvisi.map(t => el("p", {class: "piccolo", text: "• " + t})))];
 }
 
+// ---------- clima: confronto di ambienti ----------
+function confrontoAmbientiUI() {
+  const det = el("details", null, el("summary", {text: "Confronta 6 ambienti con le stesse piante e lampade (garage, garage isolato, tenda, serra fredda, serra riscaldata)"}));
+  det.addEventListener("toggle", () => { if (!det.open || det.dataset.fatto) return; det.dataset.fatto = "1";
+    const r = confrontoAmbienti(cfg);
+    det.append(el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Ambiente", "Minima", "Massima", "Ore sotto 1 °C", "Ore troppo calde", "Giorni adatti", "Riscaldamento kWh"].map((t, i) => el("th", {class: i ? "n" : "", text: t})))),
+      el("tbody", null, ...r.map(x => el("tr", null, el("td", {text: x.nome}), el("td", {class: "n", text: fmt(x.tMin, 1) + " °C"}), el("td", {class: "n", text: fmt(x.tMax, 1) + " °C"}),
+        el("td", {class: "n", text: fmt(x.oreGelo)}), el("td", {class: "n", text: fmt(x.oreCaldo)}), el("td", {class: "n", text: x.giorniBuoni + "/365"}), el("td", {class: "n", text: fmt(x.kwhRiscaldamento)})))))),
+      el("p", {class: "piccolo", text: "Modello a nodi termici ora per ora (clima.js): involucri con U da EN ISO 6946 e valori tipici, serra in film singolo U ≈ 8 W/m²K. Il raggiamento notturno della serra verso il cielo non è modellato: le minime vere in serra possono essere più basse. Da calibrare con un termometro."})); });
+  return det;
+}
+
 // ---------- mappa della luce ----------
 function mappaLuceUI(I, set) {
   const m = mappaLuce(cfg);
@@ -972,6 +987,18 @@ function schedaRegistro(box) {
   const indietro = el("button", {class: "az sec", type: "button", text: "Torna alla versione precedente"});
   indietro.disabled = !(I.calibrazioni && I.calibrazioni.length);
   indietro.addEventListener("click", () => { tornaIndietro(I); aggiorna(false); });
+  const cc = el("div");
+  const bcal = el("button", {class: "az sec", type: "button", text: "Calibra il clima con le misure"});
+  bcal.disabled = I.misure.length < 7;
+  bcal.addEventListener("click", () => { const r = calibraClima(cfg, I.misure);
+    if (!r.ok) { cc.replaceChildren(el("p", {class: "piccolo", text: r.motivo})); return; }
+    cc.replaceChildren(el("p", {class: "piccolo", text: "Su " + r.giorni + " giorni: errore sulle minime e massime della tenda da " + fmt(r.rmsePrima, 1) + " a " + fmt(r.rmseDopo, 1) + " °C con dispersioni ×" + fmt(r.fUA, 2) + " e sole ×" + fmt(r.fSole, 1) + "."}),
+      (() => { const b = el("button", {class: "az", type: "button", text: "Usa questa calibrazione"}); b.addEventListener("click", () => { I.clima.calibrazione = {fUA: r.fUA, fSole: r.fSole, data: new Date().toISOString().slice(0, 10), rmse: r.rmseDopo}; aggiorna(false); }); return b; })()); });
+  const togliCal = el("button", {class: "az sec", type: "button", text: "Togli la calibrazione del clima"});
+  togliCal.disabled = !I.clima.calibrazione;
+  togliCal.addEventListener("click", () => { delete I.clima.calibrazione; aggiorna(false); });
+  box.append(riquadro("Calibrazione del clima", el("p", {class: "piccolo", text: I.clima.calibrazione ? "In uso dal " + I.clima.calibrazione.data + ": dispersioni ×" + fmt(I.clima.calibrazione.fUA, 2) + ", sole ×" + fmt(I.clima.calibrazione.fSole, 1) + "." : "Con almeno 7 giorni di temperature misurate in tenda (min e max) il gemello adatta dispersioni e sole del modello termico. Meglio senza stufetta accesa: il termostato nasconde le dispersioni."}),
+    el("div", null, bcal, document.createTextNode(" "), togliCal), cc));
   box.append(riquadro("Calibrazione del modello",
     cf.statistiche.length ? el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Coltura", "Cicli", "Errore medio ora", "Correzione proposta (95%)", "Errore dopo", ""].map((t, i) => el("th", {class: i ? "n" : "", text: t})))), el("tbody", null, ...righeSt))) : el("p", {class: "piccolo", text: "Servono almeno 2 cicli registrati per coltura."}),
     el("p", {class: "piccolo", text: "L'errore \"dopo\" è calcolato sugli stessi cicli: dice che la correzione è coerente, non che è giusta. Verificala sui prossimi raccolti."}),

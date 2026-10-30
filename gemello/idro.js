@@ -288,9 +288,7 @@ function simulaIdro(c, opz = {}) {
   const D = DUREZZE[I.acqua.durezza];
   const ecBase = I.acqua.osmosi ? 0.02 : I.acqua.piovana ? (D.ec + 0.05) / 2 : D.ec;
   const ecNutr = Math.max(0, k.ec - ecBase);
-  const UA = CL.tenda ? 4 * k.superficieTenda : 20 * k.footprint + 40;   // W/K verso il garage
-  const UAvent = CL.estrattore ? 55 : 8;                                  // ricambio d'aria quando fa caldo
-  const stufaW = {nessuno: 0, tappetino: 0, stufetta: 1000}[CL.riscaldamento];
+  const UA = CL.tenda ? 4 * k.superficieTenda : 20 * k.footprint + 40;   // solo per compatibilità dei risultati (out.UA)
   const senzaElettronica = A.micro === "nessuno";
   const microW = senzaElettronica ? 0 : (CATALOGO.micro.opzioni[A.micro] || CATALOGO.micro.opzioni.esp32).w;
   const sensW = 0.2 * [A.ph, A.ec, A.temp_acqua, A.aria, A.co2, A.livello, A.perdita, A.flusso, A.luce_sens].filter(Boolean).length;
@@ -298,6 +296,8 @@ function simulaIdro(c, opz = {}) {
   const idr = idraulicaIdro(cc);
   const pompaW = idr ? idr.wPompa : 0;
   const pompaOre = {nft: 24, torre: 12, dwc: 0, kratky: 0, bucket: 1.5, ebb: 1, goccia: 1.5, vassoi: 0}[I.sistema];
+  // clima: motore dinamico a nodi termici (clima.js), ora per ora; i guasti (lampada, blackout) non ne cambiano il calcolo
+  const clima = simulaClimaIdro(cc, k, {pompaW: pompaW * pompaOre / 24, passoOre: opz.passoClima});
   const ariaW = I.sistema === "dwc" ? 3 + k.superficie * 3 : I.sistema === "bucket" ? 3 : 0;
   const guasti = (I.guasti || []).map(g => Object.assign({}, g));
   const reaz = A.connessione !== "nessuna" && A.centrale !== "nessuna" ? 0.2 : 2;     // giorni per accorgersi
@@ -315,13 +315,7 @@ function simulaIdro(c, opz = {}) {
   const vive = 1 - PR.mortalita / 100, fermo = PR.fermo_giorni;
   for (let d = 0; d < 365; d++) {
     const m = meseDi(d);
-    const vero = c.meteoReale && c.meteoReale.giorni && c.meteoReale.giorni[d];
-    const tEst = vero ? (vero.tmin + vero.tmax) / 2 : R.t[m] + gaussDa(rnd) * 1.5;
-    const tGarage = CL.garage === "isolato" ? 0.6 * tEst + 8 : tEst + 3;
-    // escursione nel garage: con il meteo vero metà (non isolato) o un quarto (isolato) di quella esterna
-    const escursione = vero ? (vero.tmax - vero.tmin) / 2 * (CL.garage === "isolato" ? 0.25 : 0.5) : CL.garage === "isolato" ? 1.5 : 3;
-    const tGarageLuci = I.luce.notte ? tGarage - escursione : tGarage + escursione;
-    const tGarageBuio = I.luce.notte ? tGarage + escursione : tGarage - escursione;
+    const CG = clima.giorni[d], tGarage = CG.tGarage;
     // guasti del giorno
     let oreSenzaCorrente = 0, luceFattore = 1, phFattore = 1;
     for (const g of guasti) {
@@ -355,15 +349,8 @@ function simulaIdro(c, opz = {}) {
     else if (oreSenzaCorrente > 0 && A.ups) evento(d, "ok", "Blackout di " + oreSenzaCorrente + " ore coperto dall'UPS");
     // clima della tenda
     const qLuci = k.wLuci * luceFattore;
-    let tLuci = tGarageLuci + qLuci / UA;
     const tMax = Math.min(...k.colture.map(x => x.P.t[1])), tMin = Math.max(...k.colture.map(x => x.P.t[0]));
-    if (tLuci > tMax - 1) tLuci = Math.max(tGarageLuci, tGarageLuci + qLuci / (UA + UAvent));
-    let tBuio = tGarageBuio;
-    let whStufa = 0;
-    const set = CL.t_min;
-    if (stufaW && tBuio < set) { const p = Math.min(stufaW, UA * (set - tBuio)); whStufa += p * (24 - k.ore); tBuio += p / UA; }
-    if (stufaW && tLuci < set) { const p = Math.min(stufaW, UA * (set - tLuci)); whStufa += p * k.ore; tLuci += p / UA; }
-    const tAcqua = (tLuci * k.ore + tBuio * (24 - k.ore)) / 24 + (CL.riscaldamento === "tappetino" ? Math.max(0, 19 - ((tLuci * k.ore + tBuio * (24 - k.ore)) / 24)) : 0);
+    const tLuci = CG.tLuci, tBuio = CG.tBuio, whStufa = CG.whStufa, tAcqua = CG.tAcqua;
     const caldo = tLuci > tMax + 2, freddo = tBuio < tMin - 4;
     if (caldo) out.giorniCaldo++;
     if (freddo) out.giorniFreddo++;
@@ -408,7 +395,7 @@ function simulaIdro(c, opz = {}) {
     const oreOn = 24 - blackoutEff;
     const whLuci = qLuci * k.ore * (oreOn / 24);
     const whPompe = (pompaW * pompaOre + ariaW * 24) * (oreOn / 24);
-    const whClima = whStufa + whDeum + (CL.estrattore ? 25 * (tLuci > tMax - 1 ? k.ore : 3) : 0) + (CL.circolazione ? 10 * 24 : 0);
+    const whClima = whStufa + whDeum + (CL.estrattore ? 25 * CG.oreEstrattore : 0) + (CL.circolazione ? 10 * 24 : 0);
     const whEl = elettronicaW * 24;
     const wh = whLuci + whPompe + whClima + whEl;
     out.kwh += wh / 1000; out.kwhLuci += whLuci / 1000; out.kwhClima += whClima / 1000; out.kwhPompe += whPompe / 1000; out.kwhElettronica += whEl / 1000;
@@ -420,7 +407,7 @@ function simulaIdro(c, opz = {}) {
     if (caldo) allarmi.push("CALDO"); if (freddo) allarmi.push("FREDDO"); if (acquaCalda) allarmi.push("ACQUA_CALDA"); if (umido) allarmi.push("UMIDITA_ALTA");
     if (d < phFino) allarmi.push(A.ph ? "PH_FUORI (sonda da tarare)" : "PH_FUORI"); if (d < lampadaFino) allarmi.push("LUCE_ASSENTE");
     const tMedia = (tLuci * k.ore + tBuio * (24 - k.ore)) / 24;
-    out.giorni.push({d, tGarage, tLuci, tBuio, tAcqua, tMedia, vpd: vpd(tLuci, ur), ur, kg: kgGiorno, acqua, wh, allarmi, luce: fattoreLuce, dli: k.dli * luceFattore, fattori, perse: perditaKgStock, blackout: blackoutEff});
+    out.giorni.push({d, tEst: CG.tEst, tGarageMin: CG.tGarageMin, tGarageMax: CG.tGarageMax, tMinTenda: CG.tMinTenda, tMaxTenda: CG.tMaxTenda, tGarage, tLuci, tBuio, tAcqua, tMedia, vpd: vpd(tLuci, ur), ur, kg: kgGiorno, acqua, wh, allarmi, luce: fattoreLuce, dli: k.dli * luceFattore, fattori, perse: perditaKgStock, blackout: blackoutEff});
   }
   // colture con modello di crescita: una coorte seminata ogni giorno, cresce con il clima e la luce dei giorni
   // seguenti fino al peso di raccolta; produzione del giorno = piante ÷ (durata del ciclo + giorni fermi) × peso
@@ -445,6 +432,8 @@ function simulaIdro(c, opz = {}) {
             raccolti: x.piante / (giorniCiclo + fermo) * 365, giorniCiclo, luce: statoLuce(x.P, k.dli), modello: !!x.P.crescita};
   });
   out.valore = out.perColtura.reduce((a, x) => a + x.valore, 0);
+  out.clima = {parametri: clima.parametri, bilancio: clima.bilancio, latenteW: clima.latenteW,
+               oreGelo: clima.giorni.reduce((a, g) => a + g.oreGelo, 0), oreCaldo: clima.giorni.reduce((a, g) => a + g.oreCaldo, 0)};
   out.eventi.sort((a, b) => a.d - b.d);
   return out;
 }
