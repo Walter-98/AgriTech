@@ -1067,6 +1067,7 @@ function schedaInizia(box) {
         campoSel("Zona d'Italia", R.regione, Object.entries(REGIONI).map(([kk, r]) => [kk, r.nome]), v => set("regione", v)),
         campoNum("Spazio utilizzabile", R.superficie, 1, 500, 1, v => set("superficie", v), "m²"),
         campoNum("Altezza utile", R.altezza, 1, 5, 0.1, v => set("altezza", v), "m"),
+        campoNum("Spazio all'aperto per un orto o una serra", R.spazio_esterno || 0, 0, 500, 1, v => set("spazio_esterno", v), "m², 0 se non c'è"),
         campoNum("Budget per partire", R.budget, 0, 20000, 10, v => set("budget", v), "€"),
         campoNum("Spesa massima al mese", R.budget_mese, 0, 2000, 5, v => set("budget_mese", v), "€"),
         campoNum("Tempo disponibile", R.ore_settimana, 0, 40, 0.5, v => set("ore_settimana", v), "ore a settimana"),
@@ -1077,7 +1078,7 @@ function schedaInizia(box) {
   const esito = el("div", {"aria-live": "polite"});
   const calcola = el("button", {class: "az", type: "button", text: PROPOSTE ? "Ricalcola" : "Calcola le proposte"});
   calcola.disabled = !R.colture.length && R.luogo !== "esterno";
-  calcola.addEventListener("click", () => { esito.replaceChildren(el("p", {class: "piccolo", text: "Sto provando tutte le combinazioni…"})); setTimeout(() => { PROPOSTE = progetta(R); disegnaScheda(); }, 30); });
+  calcola.addEventListener("click", () => { esito.replaceChildren(el("p", {class: "piccolo", text: "Sto provando tutte le combinazioni…"})); setTimeout(() => { PROPOSTE = progetta(R); PROPOSTE.confronto = R.luogo === "esterno" ? null : confrontaTecnologie(R, PROPOSTE); disegnaScheda(); }, 30); });
   box.append(el("div", {class: "blocco"}, calcola), esito);
   if (!PROPOSTE) return;
   const P = PROPOSTE;
@@ -1102,6 +1103,11 @@ function schedaInizia(box) {
       el("p", null, chip(r.giudizio === "conviene" ? "ok" : "warn", r.giudizio === "conviene" ? "si ripaga" : "non si ripaga")), usa);
   });
   esito.append(el("div", {class: "tre"}, ...carte));
+  if (P.confronto) { const T = P.confronto;
+    esito.append(riquadro("Confronto tra tecnologie",
+      el("p", {class: "piccolo", text: "La migliore configurazione di ogni tecnologia che rispetta i tuoi vincoli, ordinate per costo al kg. ★ = sul fronte di Pareto: nessun'altra è migliore insieme per investimento, costo al kg, rischio e lavoro. L'idroponica non è considerata migliore in partenza." + (T.senzaEsterno ? " Hai indicato 0 m² all'aperto: orto e serra non sono nel confronto." : "")}),
+      tabella(["Tecnologia", "Per iniziare", "Costo al kg", "Raccolto", "Rischio", "Ore/sett.", "", "Migliore per"], T.righe.map(x => x.r ? [x.tecnologia, euro(x.r.capex), isFinite(x.r.costoKg) ? euro(x.r.costoKg) : "-", fmt(x.r.kg) + " kg", x.rischio + "/5", fmt(x.r.ore, 1), x.pareto ? "★" : "", (x.motivi || []).join(", ")] : [x.tecnologia, x.nome, "", "", "", "", "", ""]), [1, 2, 3, 4, 5]),
+      el("p", {class: "piccolo", text: "Limite: il modello dell'orto stima la serra solo con +6 °C e niente pioggia, non con il bilancio termico della serra; la resa in serra fuori stagione è sottostimata. Il confronto termico completo della serra è nella scheda Progetto → Clima."}))); }
   if (P.motiviScarto && Object.keys(P.motiviScarto).length) esito.append(riquadro("Perché altre configurazioni sono state scartate",
     el("p", {class: "piccolo", text: Object.entries(P.motiviScarto).sort((a, b) => b[1] - a[1]).map(([k, n]) => n + " per " + k).join(", ") + ". Difficoltà, rischio e gestione sono giudizi da tecnico (scala 1-5), non misure."})));
 }

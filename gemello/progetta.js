@@ -4,7 +4,7 @@
 // A minimo investimento, B miglior rapporto costo/risultato, C maggiore automazione. Sa dire quando non conviene.
 
 const RISPOSTE_ESEMPIO = {
-  luogo: "garage", regione: "centro", superficie: 15, altezza: 2.4, budget: 500, budget_mese: 40, ore_settimana: 3,
+  luogo: "garage", regione: "centro", superficie: 15, altezza: 2.4, spazio_esterno: 0, budget: 500, budget_mese: 40, ore_settimana: 3,
   colture: ["lattuga", "basilico", "fragola"], obiettivo: "imparare", persone: 3, kwh: 0.28,
 };
 const OBIETTIVI = {
@@ -151,14 +151,14 @@ function giudizioGlobale(R, proposte, ok, tutti) {
 }
 
 // ---------- orto all'aperto: i tre pacchetti del gemello dimensionati sulla superficie ----------
-function progettaOrto(R) {
+function progettaOrto(R, ambiente = "esterno") {
   const adatte = R.colture.filter(x => PIANTE[x]);
   const colture = adatte.length ? adatte : ["pomodoro", "zucchina", "lattuga"];
-  const area = Math.max(2, Math.min(R.superficie * 0.7, 60));
+  const area = Math.max(2, Math.min((R.luogo === "esterno" ? R.superficie : R.spazio_esterno || R.superficie) * 0.7, 60));
   const zone = colture.slice(0, 4).map(k => ({coltura: k, area: Math.max(1, Math.round(area / Math.min(4, colture.length))), mese: PIANTE[k].mesi[0], cicli: PIANTE[k].giorni < 70 ? 2 : 1, pacciamatura: PIANTE[k].giorni > 70, rialzata: false}));
   const tutti = ["base", "sicuro", "completo"].map(p => {
     const c = JSON.parse(JSON.stringify(ESEMPIO));
-    Object.assign(c, {regione: R.regione, zone, preset: p, prezzi: {kwh: R.kwh, acqua_m3: 2}, modalita: "orto"});
+    Object.assign(c, {regione: R.regione, zone, preset: p, prezzi: {kwh: R.kwh, acqua_m3: 2}, modalita: "orto", ambiente});
     Object.assign(c.componenti, PRESET[p].componenti); Object.assign(c.extra, PRESET[p].extra);
     c.acqua = Object.assign({}, c.acqua, {cisterna_l: 500, tetto_m2: Math.min(15, R.superficie)});
     const M = meteo(c), s = simula(c, {meteo: M}), voci = materiali(c), costi = costiAnnui(c, s, voci);
@@ -172,15 +172,47 @@ function progettaOrto(R) {
         margine, utile: margine - capex / 5, pareggio: margine > 0 ? capex / margine : Infinity, acqua: s.litri / 1000, kwh: s.kwh, ore: Math.round((1 + area * 0.1) * 4) / 4, piante: zone.length, giudizio: margine - capex / 5 > 0 ? "conviene" : "non_conviene"}};
   });
   const nomi = {base: ["A", "Minimo investimento"], sicuro: ["B", "Miglior rapporto (consigliato)"], completo: ["C", "Maggiore automazione"]};
-  const proposte = tutti.filter(x => x.ok).map(x => ({lettera: nomi[x.livello][0], titolo: nomi[x.livello][1], x, nome: "Orto " + area.toFixed(0) + " m² a goccia · pacchetto " + PRESET[x.livello].nome.toLowerCase() + " · " + zone.map(z => PIANTE[z.coltura].nome.toLowerCase()).join(", ")}));
+  const proposte = tutti.filter(x => x.ok).map(x => ({lettera: nomi[x.livello][0], titolo: nomi[x.livello][1], x, nome: (ambiente === "serra" ? "Serra fredda a tunnel, " : "Orto ") + area.toFixed(0) + " m² a goccia · pacchetto " + PRESET[x.livello].nome.toLowerCase() + " · " + zone.map(z => PIANTE[z.coltura].nome.toLowerCase()).join(", ")}));
   const righe = [];
   if (!proposte.length) righe.push({tipo: "crit", testo: "Neanche il pacchetto base sta nel budget: servono circa " + Math.round(tutti[0].riassunto.capex) + " €. Si può partire con irrigazione a mano e un solo sensore."});
   else righe.push({tipo: "ok", testo: "All'aperto la luce è gratis: l'orto in terra costa molto meno al kg dell'idroponica in garage. Spesa principale: acqua e materiale."});
   return {tipo: "orto", proposte, tutti, ok: tutti.filter(x => x.ok), giudizio: {esito: proposte.length ? "possibile" : "impossibile", righe}};
 }
 
+// ---------- confronto tra tecnologie e fronte di Pareto ----------
+// Mette sullo stesso piano orto all'aperto, serra fredda e ogni sistema idroponico (la migliore configurazione di
+// ciascuno che rispetta i vincoli). Obiettivi da minimizzare: investimento, costo al kg, rischio, ore di lavoro.
+// Una soluzione è sul fronte di Pareto se nessun'altra è migliore o uguale in tutto e migliore in almeno una cosa.
+function paretiani(lista, obiettivi) {
+  return lista.filter(a => !lista.some(b => b !== a && obiettivi.every(f => f(b) <= f(a)) && obiettivi.some(f => f(b) < f(a))));
+}
+function confrontaTecnologie(R, idroCalcolato) {
+  R = Object.assign({}, RISPOSTE_ESEMPIO, R);
+  const righe = [];
+  const idro = idroCalcolato || progettaIdro(Object.assign({}, R, {luogo: "garage"}));
+  const perSistema = {};
+  for (const x of idro.ok) { const k = x.c.idro.sistema; if (!perSistema[k] || x.riassunto.costoKg < perSistema[k].riassunto.costoKg) perSistema[k] = x; }
+  for (const [sis, x] of Object.entries(perSistema)) righe.push({tecnologia: SISTEMI_IDRO[sis].nome.split(" (")[0] + " in garage", nome: nomeProposta(x), r: x.riassunto, rischio: x.v.rischio, x, tipo: "idro"});
+  if (R.spazio_esterno > 0 || R.luogo === "esterno") for (const amb of ["esterno", "serra"]) {
+    const o = progettaOrto(Object.assign({}, R, {luogo: "garage"}), amb);
+    const migliore = o.ok.length ? o.ok.reduce((a, b) => b.riassunto.costoKg < a.riassunto.costoKg ? b : a) : null;
+    if (migliore) righe.push({tecnologia: amb === "serra" ? "Serra fredda a tunnel" : "Orto all'aperto", nome: (o.proposte.find(p => p.x === migliore) || {}).nome || "", r: migliore.riassunto,
+                              rischio: amb === "serra" ? 2 : 2, x: migliore, tipo: "orto", ambiente: amb});
+    else righe.push({tecnologia: amb === "serra" ? "Serra fredda a tunnel" : "Orto all'aperto", nome: "non sta nel budget", r: null, tipo: "orto", ambiente: amb});
+  }
+  const valide = righe.filter(x => x.r);
+  const obiettivi = [x => x.r.capex, x => isFinite(x.r.costoKg) ? x.r.costoKg : 1e9, x => x.rischio, x => x.r.ore];
+  const fronte = paretiani(valide, obiettivi);
+  for (const x of valide) x.pareto = fronte.includes(x);
+  const migliorePer = {};
+  for (const [nome, f] of [["investimento più basso", obiettivi[0]], ["costo al kg più basso", obiettivi[1]], ["rischio più basso", obiettivi[2]], ["meno lavoro", obiettivi[3]]])
+    if (valide.length) { const m = valide.reduce((a, b) => f(b) < f(a) ? b : a); (m.motivi = m.motivi || []).push(nome); migliorePer[nome] = m; }
+  righe.sort((a, b) => (a.r ? a.r.costoKg : 1e9) - (b.r ? b.r.costoKg : 1e9));
+  return {righe, fronte, migliorePer, senzaEsterno: !(R.spazio_esterno > 0) && R.luogo !== "esterno"};
+}
+
 function progetta(R) {
   R = Object.assign({}, RISPOSTE_ESEMPIO, R);
   return R.luogo === "esterno" ? progettaOrto(R) : progettaIdro(R);
 }
-if (typeof module !== "undefined") module.exports = {progetta, progettaIdro, progettaOrto, RISPOSTE_ESEMPIO, LIVELLI_AUTO};
+if (typeof module !== "undefined") module.exports = {confrontaTecnologie, paretiani, progetta, progettaIdro, progettaOrto, RISPOSTE_ESEMPIO, LIVELLI_AUTO};

@@ -70,3 +70,25 @@ test("all'aperto: tre pacchetti dell'orto, costo al kg molto più basso dell'idr
   const migliorG = Math.min(...g.ok.map(x => x.riassunto.costoKg));
   assert.ok(o.proposte[0].x.riassunto.costoKg < migliorG / 3);
 });
+
+test("confronto tra tecnologie: orto, serra e idroponica sullo stesso piano, fronte di Pareto corretto", () => {
+  const T = G.confrontaTecnologie({spazio_esterno: 20, colture: ["lattuga", "basilico", "fragola"], obiettivo: "autoconsumo"});
+  const tec = T.righe.map(x => x.tecnologia);
+  assert.ok(tec.includes("Orto all'aperto") && tec.includes("Serra fredda a tunnel") && tec.some(t => /garage/.test(t)));
+  const v = T.righe.filter(x => x.r);
+  const ob = [x => x.r.capex, x => x.r.costoKg, x => x.rischio, x => x.r.ore];
+  for (const a of v) {
+    const dominata = v.some(b => b !== a && ob.every(f => f(b) <= f(a)) && ob.some(f => f(b) < f(a)));
+    assert.equal(a.pareto, !dominata, a.tecnologia);
+  }
+  // per l'autoconsumo l'orto all'aperto costa molto meno al kg di qualsiasi idroponica in garage
+  const orto = v.find(x => x.tecnologia === "Orto all'aperto"), idro = v.filter(x => x.tipo === "idro");
+  assert.ok(idro.every(x => orto.r.costoKg < x.r.costoKg / 3));
+  assert.ok(T.migliorePer["costo al kg più basso"] === orto);
+});
+
+test("senza spazio all'aperto il confronto lo dice e non inventa un orto", () => {
+  const T = G.confrontaTecnologie({colture: ["lattuga"]});
+  assert.ok(T.senzaEsterno);
+  assert.ok(T.righe.every(x => x.tipo === "idro"));
+});
