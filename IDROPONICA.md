@@ -35,13 +35,13 @@ non vale niente se nessuno lo compra. Modelli e limiti in [MODELLI.md](MODELLI.m
 
 | Impianto | Piante | Luci | Corrente/anno | Per iniziare | Spese/anno | Raccolto utile | Costo al kg | Valore/anno | Si ripaga in | Giudizio |
 |---|---|---|---|---|---|---|---|---|---|---|
-| NFT, scaffale 3 piani 110×55 (lattuga, basilico, rucola) | 65 | 230 W | 1779 kWh | 791–1401 € | 687 € | 51 kg | 17,8 € | 292 € | mai | **sconsigliato** |
-| Torri verticali ×2 | 71 | 560 W | 3692 kWh | 1046–1927 € | 1315 € | 66 kg | 24,4 € | 281 € | mai | **sconsigliato** |
-| DWC 120×120 (lattuga, basilico) | 35 | 190 W | 1990 kWh | 731–1255 € | 707 € | 38 kg | 23,8 € | 189 € | mai | **sconsigliato** |
-| Kratky 120×60, controllo a mano | 24 | 100 W | 1582 kWh | 449–771 € | 522 € | 19 kg | 33,8 € | 122 € | mai | **sconsigliato** |
-| Secchi: 6 tra pomodori e peperoncini | 9 | 700 W | 4643 kWh | 1316–2330 € | 1560 € | 37 kg | 52,2 € | 184 € | mai | **sconsigliato** |
-| Microgreens, scaffale 4 piani, in casa | 19 | 190 W | 2579 kWh | 836–1422 € | 1391 € | 122 kg | 13,3 € | 140 € | mai | **sconsigliato** |
-| Microgreens, scaffale 4 piani, 90% venduto al 70% del prezzo | 19 | 190 W | 2579 kWh | 836–1422 € | 1391 € | 122 kg | 13,3 € | 2443 € | 1,1 anni | fragile |
+| NFT, scaffale 3 piani 110×55 (lattuga, basilico, rucola) | 65 | 230 W | 1905 kWh | 844–1516 € | 724 € | 51 kg | 18,9 € | 290 € | mai | **sconsigliato** |
+| Torri verticali ×2 | 71 | 560 W | 3748 kWh | 1099–2042 € | 1332 € | 68 kg | 24,4 € | 282 € | mai | **sconsigliato** |
+| DWC 120×120 (lattuga, basilico) | 35 | 190 W | 2017 kWh | 784–1370 € | 714 € | 38 kg | 24,5 € | 184 € | mai | **sconsigliato** |
+| Kratky 120×60, controllo a mano | 24 | 100 W | 1494 kWh | 449–771 € | 495 € | 19 kg | 32,1 € | 121 € | mai | **sconsigliato** |
+| Secchi: 6 tra pomodori e peperoncini | 9 | 700 W | 4543 kWh | 1369–2445 € | 1530 € | 35 kg | 53,9 € | 179 € | mai | **sconsigliato** |
+| Microgreens, scaffale 4 piani, in casa | 19 | 190 W | 2268 kWh | 889–1537 € | 1298 € | 125 kg | 12,3 € | 140 € | mai | **sconsigliato** |
+| Microgreens, scaffale 4 piani, 90% venduto al 70% del prezzo | 19 | 190 W | 2268 kWh | 889–1537 € | 1298 € | 125 kg | 12,3 € | 2501 € | 1,0 anni | conviene |
 
 Cosa dicono i numeri:
 - Con i **LED viola economici** lo stesso impianto NFT consuma circa il 60% in più; con i **neon T5** più del doppio.
