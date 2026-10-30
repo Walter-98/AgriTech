@@ -21,7 +21,17 @@
 #   - dopo un'accensione o un blackout: niente dosi per 15 minuti e finché le letture non sono stabili;
 #   - penna di controllo (inserita a mano ogni settimana) diversa dalla sonda di più di 0,3 -> niente pH- fino a
 #     taratura: è l'unico modo di scoprire una sonda che deriva piano;
-#   - acqua troppo calda, aria fuori campo: allarme e estrattore/stufetta con isteresi.
+#   - acqua troppo calda, aria fuori campo: allarme e estrattore/stufetta con isteresi;
+#   - pulsante di arresto: tutto spento subito, prima di qualsiasi altra regola;
+#   - letture vecchie (sonda che non manda dati da più di 5 minuti) trattate come mancanti;
+#   - dosatore bloccato acceso (EC che sale o pH che crolla senza dosi né rabbocchi) -> taglio dell'alimentazione dei
+#     dosatori, un'uscita separata che nel quadro apre un relè in serie a tutti i dosatori.
+#
+# Macchina a stati del dosaggio (c["stato_dosaggio"]): DISABILITATO, ATTESA, VERIFICA_PREREQUISITI, PRONTO, DOSAGGIO,
+# MISCELAZIONE, VERIFICA_RISULTATO, BLOCCO_SICUREZZA, INTERVENTO_MANUALE.
+# Il modo "reale" richiede anche il collaudo documentato (parametro "collaudo", tutte le voci a True) e una taratura
+# del pH recente: altrimenti resta in ombra e dice cosa manca. Le sicurezze hardware indipendenti dal firmware sono
+# descritte in firmware/esp32-idroponica/LEGGIMI.md: nessuna di queste regole software le sostituisce.
 
 PARAMETRI_IDRO = {
     "modo": "simulazione",          # "simulazione", "ombra", "reale"
@@ -50,9 +60,18 @@ PARAMETRI_IDRO = {
     "t_acqua_max": 26.0,
     "t_aria_max": 26.0, "t_aria_min": 16.0, "isteresi": 1.0,
     "ur_max": 75.0,
+    "dosaggio_abilitato": True,     # False = nessuna dose automatica: il controllo propone, tu dosi a mano
+    "eta_max_s": 300,               # letture più vecchie di 5 minuti valgono come mancanti
+    "salto_bloccato_ec": 0.3, "salto_bloccato_ph": 0.5,   # in 10 minuti senza dosi né rabbocchi: dosatore bloccato
+    "taratura_ph_giorno": None,     # giorno (s // 86400) dell'ultima taratura del pH, per il modo reale
+    "taratura_max_giorni": 30,
+    "collaudo": {},                 # per il modo reale: tutte le voci di COLLAUDO_RICHIESTO a True
 }
+COLLAUDO_RICHIESTO = ("portata_dosatori_misurata", "settimana_in_ombra", "prova_perdita", "prova_galleggianti",
+                      "prova_flusso", "prova_blackout", "taglio_hardware_provato", "arresto_emergenza_provato")
 
-ALLARMI_FISSI = ("PERDITA", "FLUSSO_ASSENTE", "DOSAGGIO_INEFFICACE_EC", "DOSAGGIO_INEFFICACE_PH", "SONDA_PH_DA_TARARE")
+ALLARMI_FISSI = ("PERDITA", "FLUSSO_ASSENTE", "DOSAGGIO_INEFFICACE_EC", "DOSAGGIO_INEFFICACE_PH", "SONDA_PH_DA_TARARE",
+                 "ARRESTO_EMERGENZA", "DOSATORE_BLOCCATO")
 
 
 class ControlloIdro:
@@ -82,13 +101,30 @@ class ControlloIdro:
         self.rabbocco_da = None
         self.estrattore = False
         self.stufetta = False
+        self.stato_dosaggio = "ATTESA"
+        self.rif = None                 # (s, ec, ph) di 10 minuti fa per scoprire un dosatore bloccato
+        self.ultima_azione = -10 ** 9   # ultima dose o rabbocco
 
     def memoria(self):
         return {"fissi": list(self.fissi), "giorno": self.giorno, "dosato": dict(self.dosato)}
 
-    def modo_effettivo(self):
+    def prerequisiti_mancanti(self, s=None):
+        p, manca = self.p, []
+        if not p["conferma_reale"]:
+            manca.append("conferma_reale")
+        coll = p.get("collaudo") or {}
+        for k in COLLAUDO_RICHIESTO:
+            if not coll.get(k):
+                manca.append("collaudo:" + k)
+        if p.get("taratura_ph_giorno") is None:
+            manca.append("taratura_ph")
+        elif s is not None and s // 86400 - p["taratura_ph_giorno"] > p["taratura_max_giorni"]:
+            manca.append("taratura_ph_scaduta")
+        return manca
+
+    def modo_effettivo(self, s=None):
         m = self.p["modo"]
-        if m == "reale" and not self.p["conferma_reale"]:
+        if m == "reale" and self.prerequisiti_mancanti(s):
             return "ombra"
         return m
 
@@ -133,7 +169,7 @@ class ControlloIdro:
     def passo(self, l):
         p = self.p
         s = l["s"]
-        if l.get("reset"):
+        if l.get("reset") and not l.get("arresto"):
             self.reset()
         allarmi = []
         note = []
@@ -143,11 +179,21 @@ class ControlloIdro:
         if giorno != self.giorno:
             self.giorno = giorno
             self.dosato = {"a": 0.0, "b": 0.0, "ph": 0.0}
+        c["taglio_dosatori"] = False
+        # 0. arresto di emergenza: prima di tutto
+        if l.get("arresto"):
+            self._fisso("ARRESTO_EMERGENZA")
+        if "ARRESTO_EMERGENZA" in self.fissi:
+            c["taglio_dosatori"] = True
+            self.stato_dosaggio = "INTERVENTO_MANUALE"
+            return self._fine(c, allarmi, note, "arresto di emergenza: tutto spento", s)
         # 1. perdita: tutto spento, allarme fisso
         if l.get("perdita"):
             self._fisso("PERDITA")
         if "PERDITA" in self.fissi:
-            return self._fine(c, allarmi, note, "perdita: tutto spento")
+            c["taglio_dosatori"] = True
+            self.stato_dosaggio = "INTERVENTO_MANUALE"
+            return self._fine(c, allarmi, note, "perdita: tutto spento", s)
         livello_ok = l.get("livello_min", True)
         if not livello_ok:
             allarmi.append("LIVELLO_BASSO")
@@ -190,6 +236,7 @@ class ControlloIdro:
                 c["rabbocco"] = True
                 # acqua nuova durante l'attesa: la verifica dell'effetto della dose non vale
                 self.attesa_verifica = {"ec": None, "ph": None}
+                self.ultima_azione = s
             else:
                 allarmi.append("RABBOCCO_TROPPO_LUNGO")
         else:
@@ -218,6 +265,22 @@ class ControlloIdro:
         if tw is not None and p["t_acqua_valida"][0] <= tw <= p["t_acqua_valida"][1] and tw > p["t_acqua_max"]:
             allarmi.append("ACQUA_CALDA")
         # 6. dosaggio
+        for nome in ("ph", "ec"):                       # dati vecchi = mancanti
+            if l.get(nome + "_eta_s") is not None and l[nome + "_eta_s"] > p["eta_max_s"]:
+                note.append(nome.upper() + "_DATI_VECCHI")
+                l = dict(l)
+                l[nome] = None
+        # dosatore bloccato acceso: EC che sale di 0,3 o pH che scende di 0,5 rispetto a 10 minuti prima. Una dose
+        # permessa sposta molto meno (EC +0,02, pH -0,1) e il rabbocco va nel verso opposto (EC giù, pH su): nessuno
+        # dei due copre il controllo. Durante la manutenzione a mano (l["manutenzione"]) il controllo è sospeso.
+        ec_g, ph_g = l.get("ec"), l.get("ph")
+        if self.rif is not None and not l.get("manutenzione") and ec_g is not None and ph_g is not None and self.rif[1] is not None and self.rif[2] is not None:
+            if ec_g - self.rif[1] > p["salto_bloccato_ec"] or self.rif[2] - ph_g > p["salto_bloccato_ph"]:
+                self._fisso("DOSATORE_BLOCCATO")
+        if self.rif is None or s - self.rif[0] >= 600:
+            self.rif = (s, ec_g, ph_g)
+        if "DOSATORE_BLOCCATO" in self.fissi:
+            c["taglio_dosatori"] = True
         ph = self._sonda("ph", l.get("ph"), s, p["ph_valido"], p["salto_ph"], p["stabile_ph"], note)
         # controllo incrociato con la penna (lettura a mano inserita dall'utente): unica difesa contro la deriva lenta
         if l.get("ph_penna") is not None and self.ultimo["ph"] is not None and abs(self.ultimo["ph"] - l["ph_penna"]) > p["scarto_penna_ph"]:
@@ -225,7 +288,9 @@ class ControlloIdro:
         ec = self._sonda("ec", l.get("ec"), s, p["ec_valido"], p["salto_ec"], p["stabile_ec"], note)
         self._verifica_effetto("ec", ec, s, +1)
         self._verifica_effetto("ph", ph, s, -1)
-        puo = livello_ok and c["pompa"] and s - self.s_avvio >= p["attesa_avvio_s"]
+        avviato = s - self.s_avvio >= p["attesa_avvio_s"]
+        bloccanti = [a for a in self.fissi if a in ("FLUSSO_ASSENTE", "DOSAGGIO_INEFFICACE_EC", "DOSAGGIO_INEFFICACE_PH", "SONDA_PH_DA_TARARE", "DOSATORE_BLOCCATO")]
+        puo = livello_ok and c["pompa"] and avviato and p["dosaggio_abilitato"] and not c["taglio_dosatori"]
         if not puo:
             note.append("DOSAGGIO_IN_ATTESA")
         V = p["volume_l"]
@@ -239,6 +304,7 @@ class ControlloIdro:
                     self.dosato["b"] += ml
                     self.dose_s["ec"] = s
                     self.attesa_verifica["ec"] = (ec, s)
+                    self.ultima_azione = s
                 else:
                     allarmi.append("LIMITE_GIORNALIERO_NUTRIENTI")
         nutrienti_recenti = s - self.dose_s["ec"] < p["attesa_ph_dopo_ab_s"]
@@ -250,6 +316,7 @@ class ControlloIdro:
                     self.dosato["ph"] += ml
                     self.dose_s["ph"] = s
                     self.attesa_verifica["ph"] = (ph, s)
+                    self.ultima_azione = s
                 else:
                     allarmi.append("LIMITE_GIORNALIERO_PH")
         if isinstance(ph, float) and (ph < 5.0 or ph > 7.0):
@@ -257,9 +324,28 @@ class ControlloIdro:
         if isinstance(ec, float) and (ec < p["ec_obiettivo"] - 0.4 or ec > p["ec_obiettivo"] + 0.6):
             allarmi.append("EC_FUORI")
         for n in note:
-            if n.endswith("_BLOCCATA") or n.endswith("_FUORI_CAMPO"):
+            if n.endswith("_BLOCCATA") or n.endswith("_FUORI_CAMPO") or n.endswith("_DATI_VECCHI"):
                 allarmi.append("SONDA_" + n)
-        return self._fine(c, allarmi, note, None)
+        # macchina a stati: dice in che fase è il dosaggio (e perché non dosa)
+        if not p["dosaggio_abilitato"]:
+            self.stato_dosaggio = "DISABILITATO"
+        elif bloccanti or c["taglio_dosatori"]:
+            self.stato_dosaggio = "INTERVENTO_MANUALE"
+        elif not avviato:
+            self.stato_dosaggio = "ATTESA"
+        elif not livello_ok or not c["pompa"] or (ph is None and ec is None):
+            self.stato_dosaggio = "BLOCCO_SICUREZZA"
+        elif c["dose_a_ml"] or c["dose_ph_ml"]:
+            self.stato_dosaggio = "DOSAGGIO"
+        elif s - max(self.dose_s["ec"], self.dose_s["ph"]) < p["attesa_miscela_s"]:
+            self.stato_dosaggio = "MISCELAZIONE"
+        elif self.attesa_verifica["ec"] is not None or self.attesa_verifica["ph"] is not None:
+            self.stato_dosaggio = "VERIFICA_RISULTATO"
+        elif not isinstance(ph, float) or not isinstance(ec, float):
+            self.stato_dosaggio = "VERIFICA_PREREQUISITI"
+        else:
+            self.stato_dosaggio = "PRONTO"
+        return self._fine(c, allarmi, note, None, s)
 
     def _verifica_effetto(self, nome, v, s, verso):
         # dopo l'attesa di miscelazione la lettura deve essersi spostata nel verso giusto
@@ -275,18 +361,21 @@ class ControlloIdro:
                 self._fisso("DOSAGGIO_INEFFICACE_" + nome.upper())
         self.attesa_verifica[nome] = None
 
-    def _fine(self, c, allarmi, note, motivo):
+    def _fine(self, c, allarmi, note, motivo, s=None):
         for a in self.fissi:
             if a not in allarmi:
                 allarmi.append(a)
         c["allarmi"] = allarmi
         c["note"] = note
-        modo = self.modo_effettivo()
+        modo = self.modo_effettivo(s)
         c["modo"] = modo
+        c["stato_dosaggio"] = self.stato_dosaggio
+        if self.p["modo"] == "reale" and modo == "ombra":
+            c["note"].append("REALE_NON_ATTIVO: " + ", ".join(self.prerequisiti_mancanti(s)))
         if modo == "ombra":
             # niente esce davvero: si riporta cosa si farebbe
             proposti = {}
-            for k in ("pompa", "luci", "dose_a_ml", "dose_b_ml", "dose_ph_ml", "rabbocco", "estrattore", "stufetta"):
+            for k in ("pompa", "luci", "dose_a_ml", "dose_b_ml", "dose_ph_ml", "rabbocco", "estrattore", "stufetta", "taglio_dosatori"):
                 proposti[k] = c[k]
                 c[k] = 0.0 if k.startswith("dose") else False
             c["proposti"] = proposti

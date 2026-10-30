@@ -54,7 +54,9 @@ class Serbatoio:
     @property
     def ph(self):
         a = self.alc / max(1.0, self.v)
-        return 4.0 + 4.0 * a / (a + 0.8)
+        if a >= 0:
+            return 4.0 + 4.0 * a / (a + 0.8)
+        return max(1.5, 4.0 - 1.5 * math.log10(1 + (-a) / 0.1))      # acido in eccesso (alcalinità esaurita)
 
 
 def simula_idro(scenario=None, giorni=7, passo_s=60, parametri=None, seme=7):
@@ -121,6 +123,15 @@ def simula_idro(scenario=None, giorni=7, passo_s=60, parametri=None, seme=7):
             t.v += add
             t.sali += add * t.acqua_ec
             t.alc += add * t.acqua_alc
+        # dosatore del pH- con il MOSFET o il relè incollato: eroga 1,5 mL/s finché qualcosa non toglie la corrente.
+        # Con il relè temporizzato hardware (indipendente dall'ESP32) si ferma dopo 20 s; senza, solo quando il
+        # controllo apre il relè di taglio dei dosatori.
+        if "dosatore_bloccato" in sc and g >= sc["dosatore_bloccato"]:
+            bl = reg.setdefault("bloccato", {"s": 0, "ml": 0.0})
+            if not c.get("taglio_dosatori") and (not sc.get("timer_hw", True) or bl["s"] < 20):
+                durata = passo_s if not sc.get("timer_hw", True) else min(passo_s, 20 - bl["s"])
+                ml = min(1.5 * durata, flaconi["ph"]); flaconi["ph"] -= ml; bl["s"] += durata; bl["ml"] += ml
+                t.alc -= ml * 6.0
         for k, chiave in (("a", "dose_a_ml"), ("b", "dose_b_ml"), ("ph", "dose_ph_ml")):
             if c[chiave]:
                 reg.setdefault("dosi_t", []).append((s, k, c[chiave]))
@@ -160,4 +171,6 @@ SCENARI_IDRO = {
     "blackout": {"blackout": [2.0, 3.0]},
     "acqua_calda": {"acqua_calda": 7.0},
     "rete_chiusa": {"rete_chiusa": True},
+    "dosatore_bloccato_con_timer": {"dosatore_bloccato": 2.0, "timer_hw": True},
+    "dosatore_bloccato_senza_timer": {"dosatore_bloccato": 2.0, "timer_hw": False},
 }

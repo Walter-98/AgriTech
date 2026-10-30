@@ -150,6 +150,7 @@ class TestFirmwareIdro(unittest.TestCase):
     def test_perdita_spegne_tutto(self):
         ctrl = self.fw.ControlloIdro(dict(self.cfg.PARAMETRI, modo="reale", conferma_reale=True))
         PinFinto.stati[self.cfg.PIN_LIVELLO_MIN] = 0
+        PinFinto.stati[self.cfg.PIN_ARRESTO] = 0                     # fungo collegato e non premuto
         PinFinto.stati[self.cfg.PIN_PERDITA] = 0                     # acqua sul pavimento
         c = ctrl.passo(self.fw.leggi(self.hw, 1000))
         self.fw.scrivi(self.hw, c)
@@ -187,6 +188,37 @@ class TestFirmwareIdro(unittest.TestCase):
         self.fw.comando_da_rete(b'{"penna": 99}', rete)                        # fuori campo: ignorato
         self.assertIsNone(self.fw.leggi(self.hw, 60)["ph_penna"])
         self.fw.comando_da_rete(b'non json', rete)
+
+    def test_relè_di_abilitazione_dei_dosatori(self):
+        self.assertEqual(PinFinto.stati[self.cfg.PIN_ABILITA_DOSATORI], 0)            # spento all'accensione
+        PinFinto.storia = []
+        self.fw.dosa(self.hw, "a", 3.0)
+        mosse = [v for (n, v) in PinFinto.storia if n == self.cfg.PIN_ABILITA_DOSATORI]
+        self.assertEqual(mosse, [1, 0])                                             # chiuso solo durante la dose
+        c = {"modo": "reale", "pompa": True, "rabbocco": False, "dose_a_ml": 3.0, "dose_b_ml": 3.0, "dose_ph_ml": 1.0,
+             "luci": False, "estrattore": False, "stufetta": False, "taglio_dosatori": True}
+        PinFinto.storia = []
+        fatti = self.fw.scrivi(self.hw, c)
+        self.assertEqual(sum(fatti.values()), 0)                                    # taglio: nessuna dose
+        self.assertNotIn((self.cfg.PIN_ABILITA_DOSATORI, 1), PinFinto.storia)
+
+    def test_arresto_a_fungo_sicuro_per_guasto(self):
+        PinFinto.stati[self.cfg.PIN_ARRESTO] = 0                                     # contatto chiuso: tutto normale
+        self.assertFalse(self.fw.leggi(self.hw, 0)["arresto"])
+        PinFinto.stati[self.cfg.PIN_ARRESTO] = 1                                     # premuto o filo tagliato
+        self.assertTrue(self.fw.leggi(self.hw, 0)["arresto"])
+
+    def test_parametri_di_partenza_prudenti_e_taratura(self):
+        self.assertFalse(self.cfg.PARAMETRI["dosaggio_abilitato"])
+        self.assertEqual(self.cfg.PARAMETRI["modo"], "ombra")
+        self.assertFalse(any(self.cfg.PARAMETRI["collaudo"].values()))
+        vecchia = os.getcwd()
+        os.chdir(self.tmp.name)
+        try:
+            self.fw.tarato(20000)
+            self.assertEqual(self.fw.parametri_con_taratura()["taratura_ph_giorno"], 20000)
+        finally:
+            os.chdir(vecchia)
 
 
 if __name__ == "__main__":

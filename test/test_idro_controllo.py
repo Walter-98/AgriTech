@@ -1,7 +1,7 @@
 """Fase 6: logica di controllo dell'idroponica provata sul serbatoio simulato, guasto per guasto."""
 import unittest
 
-from sistema.idro_controllo import ControlloIdro
+from sistema.idro_controllo import ControlloIdro, COLLAUDO_RICHIESTO
 from sistema.idro_modello import simula_idro, SCENARI_IDRO
 
 
@@ -93,7 +93,51 @@ class TestControlloIdro(unittest.TestCase):
 
     def test_reale_senza_conferma_resta_in_ombra(self):
         self.assertEqual(ControlloIdro({"modo": "reale"}).modo_effettivo(), "ombra")
-        self.assertEqual(ControlloIdro({"modo": "reale", "conferma_reale": True}).modo_effettivo(), "reale")
+        # la sola conferma non basta: servono collaudo documentato e taratura recente
+        self.assertEqual(ControlloIdro({"modo": "reale", "conferma_reale": True}).modo_effettivo(), "ombra")
+        tutto = {k: True for k in COLLAUDO_RICHIESTO}
+        c = ControlloIdro({"modo": "reale", "conferma_reale": True, "collaudo": tutto, "taratura_ph_giorno": 0})
+        self.assertEqual(c.modo_effettivo(0), "reale")
+        self.assertEqual(c.modo_effettivo(40 * 86400), "ombra")            # taratura scaduta dopo 30 giorni
+        manca = dict(tutto, prova_blackout=False)
+        r = ControlloIdro({"modo": "reale", "conferma_reale": True, "collaudo": manca, "taratura_ph_giorno": 0})
+        self.assertIn("collaudo:prova_blackout", r.prerequisiti_mancanti(0))
+        out = r.passo({"s": 0, "livello_min": True})
+        self.assertEqual(out["modo"], "ombra")
+        self.assertTrue(any(n.startswith("REALE_NON_ATTIVO") for n in out["note"]))
+
+    def test_arresto_di_emergenza_prima_di_tutto(self):
+        c = ControlloIdro()
+        out = c.passo({"s": 2000, "arresto": True, "livello_min": True, "ph": 6.0, "ec": 1.2})
+        self.assertFalse(out["pompa"] or out["luci"] or out["rabbocco"] or out["dose_ph_ml"])
+        self.assertTrue(out["taglio_dosatori"])
+        out = c.passo({"s": 2060, "reset": True, "arresto": True, "livello_min": True})   # reset ignorato col fungo premuto
+        self.assertIn("ARRESTO_EMERGENZA", out["allarmi"])
+
+    def test_dati_vecchi_valgono_come_mancanti(self):
+        c = ControlloIdro()
+        for i in range(20):
+            out = c.passo({"s": 1000 + i * 60, "livello_min": True, "flusso_l_min": 6, "ph": 6.8, "ph_eta_s": 900, "ec": 1.2})
+        self.assertIn("SONDA_PH_DATI_VECCHI", out["allarmi"])
+        self.assertEqual(out["dose_ph_ml"], 0)
+
+    def test_macchina_a_stati_del_dosaggio(self):
+        r = simula_idro(SCENARI_IDRO["normale"], giorni=1)
+        self.assertIn(r["controllo"].stato_dosaggio, ("PRONTO", "MISCELAZIONE", "VERIFICA_RISULTATO", "DOSAGGIO"))
+        c = ControlloIdro({"dosaggio_abilitato": False})
+        out = c.passo({"s": 5000, "livello_min": True, "ph": 7.0, "ec": 0.5})
+        self.assertEqual(out["stato_dosaggio"], "DISABILITATO")
+        self.assertEqual(out["dose_ph_ml"] + out["dose_a_ml"], 0)
+        self.assertEqual(ControlloIdro().passo({"s": 10, "livello_min": True})["stato_dosaggio"], "ATTESA")
+
+    def test_dosatore_bloccato_doppia_difesa(self):
+        con = prova("dosatore_bloccato_con_timer")
+        senza = prova("dosatore_bloccato_senza_timer")
+        self.assertIn("DOSATORE_BLOCCATO", con["controllo"].fissi)
+        self.assertIn("DOSATORE_BLOCCATO", senza["controllo"].fissi)
+        self.assertLessEqual(con["bloccato"]["ml"], 30.0 + 1e-9)          # il relè temporizzato hardware ferma a 20 s
+        self.assertLessEqual(senza["bloccato"]["s"], 3 * 60)             # senza timer: il taglio del controllo entro 3 minuti
+        self.assertGreater(senza["bloccato"]["ml"], con["bloccato"]["ml"])
 
     def test_allarmi_fissi_sopravvivono_al_riavvio(self):
         c = ControlloIdro()

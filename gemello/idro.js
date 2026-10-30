@@ -733,6 +733,12 @@ function materialiIdro(c) {
   if (A.flusso && !senzaElettronica) add("Automazione", "4b", "Flussimetro sul ritorno", 1, [3, 6], "Sa se l'acqua scorre davvero nei canali.", "sensori");
   if (A.luce_sens && !senzaElettronica) add("Automazione", "4b", "Sensore di luce BH1750", 1, [2, 4], "Controlla che le lampade si accendano.", "sensori");
   if (A.dosaggio && !senzaElettronica) add("Automazione", "4b", "Pompe peristaltiche 12 V (A, B, pH-) + driver", 3, [8, 13], "Dosano da sole nutrienti e acido a piccole dosi.", "dosaggio");
+  if (A.dosaggio && !senzaElettronica) {
+    add("Sicurezza", "4b", "Pulsante di emergenza a fungo con 2 contatti NC", 1, [12, 25], "Toglie fisicamente i 12 V ai dosatori e avvisa l'ESP32; premuto o filo tagliato = arresto.", "dosaggio");
+    add("Sicurezza", "4b", "Relè temporizzato (delay off) per i 12 V dei dosatori", 1, [8, 25], "Apre dopo 30 s anche se il comando resta attivo: un relè incollato non diventa una dose infinita.", "dosaggio");
+    add("Sicurezza", "4b", "Rilevatore di allagamento autonomo con uscita a relè", 1, [20, 40], "Apre i 12 V dei dosatori anche con l'ESP32 spento.", "dosaggio");
+    add("Sicurezza", "4b", "Relè di abilitazione dei dosatori + portafusibile 2 A", 1, [5, 10], "Secondo interruttore in serie, chiuso solo durante la dose.", "dosaggio");
+    add("Sicurezza", "4b", "Vaschetta di contenimento per i flaconi", 1, [8, 15], "A, B e acido separati: una perdita non li mescola.", "dosaggio"); }
   if (A.rabbocco && !senzaElettronica) add("Automazione", "4b", "Elettrovalvola o pompa di rabbocco", 1, [6, 12], "Rabbocca l'acqua che le piante bevono.", "dosaggio");
   add("Automazione", "4b", "Alimentatore 12 V 3 A + step-down + modulo relè per pompe 12 V", 1, [15, 25], "Bassa tensione per pompe e dosatori.", "alimentazione");
   }
@@ -773,7 +779,8 @@ function compatibilitaIdro(c) {
   if (I.acqua.osmosi) add("warn", "Osmosi: aggiungi calcio e magnesio", "L'acqua di osmosi è quasi pura: serve un cal-mag e la soluzione è meno tamponata (pH che si muove di più).", "acqua");
   if (!A.ph && !A.ec) add("warn", "Controllo manuale", "Misura pH ed EC con le penne 2-3 volte a settimana e correggi a mano: funziona, costa meno, rende un po' meno.", "sensori");
   if (A.dosaggio && (!A.ph || !A.ec)) add("crit", "Dosaggio automatico senza sonde", "I dosatori hanno bisogno delle sonde pH ed EC.", "dosaggio");
-  if (A.dosaggio) add("warn", "Dosaggio automatico: taratura", "Tara la sonda pH ogni " + A.taratura_giorni + " giorni e controlla con la penna ogni settimana: una sonda sbagliata manda il pH a picco (prova il guasto 'Sonda pH che deriva').", "dosaggio");
+  if (A.dosaggio) add("warn", "Primo impianto: dosaggio a mano", "Consigliato partire con il controllo che propone e tu che dosi. Il dosaggio automatico solo dopo il collaudo documentato e con le sicurezze hardware (fungo, relè temporizzato, rilevatore di allagamento autonomo): sono già nella lista dei materiali.", "dosaggio");
+    if (A.dosaggio) add("warn", "Dosaggio automatico: taratura", "Tara la sonda pH ogni " + A.taratura_giorni + " giorni e controlla con la penna ogni settimana: una sonda sbagliata manda il pH a picco (prova il guasto 'Sonda pH che deriva').", "dosaggio");
   if (!A.prese_smart && A.micro !== "nessuno") add("crit", "Carichi a 230 V", "Luci, stufetta e deumidificatore vanno comandati da prese smart certificate, non da relè fai da te.", "alimentazione");
   if (k.colture.some(x => x.coltura === "fragola" || x.coltura === "pomodoro" || x.coltura === "peperoncino")) add("warn", "Impollinazione", "Al chiuso non ci sono insetti: scuoti i fiori o usa un pennellino ogni giorno.", "colture");
   if (k.colture.some(x => x.coltura === "spinacio") && k.ore > 14) add("warn", "Spinacio e luce lunga", "Con più di 14 ore di luce lo spinacio va a seme.", "luce");

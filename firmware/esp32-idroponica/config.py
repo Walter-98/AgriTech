@@ -23,12 +23,17 @@ PIN_PERDITA = 33              # sensore di perdita a pavimento verso GND (bagnat
 PIN_FLUSSIMETRO = 19          # flussimetro sul ritorno (None se non c'è)
 IMPULSI_PER_LITRO = 450
 PIN_PULSANTE_RESET = 13
+# Pulsante di arresto a fungo, contatto NORMALMENTE CHIUSO verso GND: premuto o filo tagliato = arresto (sicuro per
+# guasto). Lo stesso fungo, con un secondo contatto, apre fisicamente i 12 V dei dosatori (vedi LEGGIMI.md).
+PIN_ARRESTO = 32
 
 # Uscite a bassa tensione (MOSFET o relè a 12 V): attive alte
 PIN_POMPA = 26
 PIN_DOSA_A, PIN_DOSA_B, PIN_DOSA_PH = 16, 17, 18
 PIN_RABBOCCO = 25             # elettrovalvola 12 V o pompa di rabbocco
-ML_AL_SECONDO = {"a": 1.5, "b": 1.5, "ph": 1.5}   # portata delle peristaltiche, misurata con un cilindro graduato
+PIN_ABILITA_DOSATORI = 23     # relè in serie all'alimentazione di TUTTI i dosatori: chiuso solo durante una dosa
+ML_AL_SECONDO = {"a": 1.5, "b": 1.5, "ph": 0.5}   # portata delle peristaltiche, misurata con un cilindro graduato
+                              # (pH-: pompa piccola e acido diluito 1:10, così un guasto fa pochi danni)
 MAX_SECONDI_DOSE = 20         # limite hardware indipendente dalla logica: nessuna dose dura di più
 
 # Carichi a 230 V SOLO tramite prese smart certificate (es. Shelly, API locale), mai relè fai da te.
@@ -51,10 +56,17 @@ MQTT_BASE = "agritech/idro"
 FILE_MEMORIA = "stato_idro.json"
 FILE_PENNA = "penna.json"     # lettura della penna pH inserita a mano: main.penna(6.1)
 SECONDI_PER_PASSO = 60
+FUSO_ORARIO_H = 1             # Italia: 1 d'inverno, 2 con l'ora legale (l'orario delle luci è in ora locale)
 
 PARAMETRI = {
     "modo": "ombra",          # si parte in ombra: una settimana a guardare cosa farebbe, poi "reale"
-    "conferma_reale": False,  # per comandare davvero servono modo "reale" E questo a True
+    "conferma_reale": False,  # per comandare davvero servono modo "reale", questo a True, collaudo e taratura
+    "dosaggio_abilitato": False,   # primo impianto: dosi a mano, il controllo propone; True solo dopo il collaudo
+    "taratura_ph_giorno": None,    # giorno della taratura (secondi da quando l'ESP32 conta ÷ 86400): main.tarato()
+    "collaudo": {                  # mettere True solo dopo aver FATTO la prova (COLLAUDO_DOSAGGIO.md)
+        "portata_dosatori_misurata": False, "settimana_in_ombra": False, "prova_perdita": False, "prova_galleggianti": False,
+        "prova_flusso": False, "prova_blackout": False, "taglio_hardware_provato": False, "arresto_emergenza_provato": False,
+    },
     "volume_l": 120,
     "ph_obiettivo": 5.9,
     "ec_obiettivo": 1.2,

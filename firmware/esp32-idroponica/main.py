@@ -15,8 +15,9 @@ from idro_controllo import ControlloIdro
 def crea_hw():
     hw = {}
     # le uscite per prime, spente: all'accensione nessuna pompa e nessun dosatore
-    for nome in ("pompa", "dosa_a", "dosa_b", "dosa_ph", "rabbocco"):
+    for nome in ("pompa", "dosa_a", "dosa_b", "dosa_ph", "rabbocco", "abilita_dosatori"):
         hw[nome] = Pin(getattr(config, "PIN_" + nome.upper()), Pin.OUT, value=0)
+    hw["arresto"] = Pin(config.PIN_ARRESTO, Pin.IN, Pin.PULL_UP) if config.PIN_ARRESTO is not None else None
     hw["i2c"] = I2C(0, sda=Pin(config.I2C_SDA), scl=Pin(config.I2C_SCL)) if (config.SONDA_PH[0] == "ads" or config.PIN_SHT31) else None
     hw["adc"] = {}
     for nome, sonda in (("ph", config.SONDA_PH), ("ec", config.SONDA_EC)):
@@ -125,6 +126,12 @@ def leggi_penna():
         return None
 
 
+def tarato(giorno=None):
+    """Da REPL dopo la taratura del pH: scrive il giorno nel file di configurazione locale (taratura.json)."""
+    with open("taratura.json", "w") as f:
+        json.dump({"taratura_ph_giorno": giorno if giorno is not None else ora_locale() // 86400}, f)
+
+
 def penna(valore):
     """Da REPL o dall'app: main.penna(6.1) dopo aver misurato con la penna pH tarata."""
     with open(config.FILE_PENNA, "w") as f:
@@ -146,6 +153,8 @@ def leggi(hw, s):
         "flusso_l_min": leggi_flusso(hw),
         "ph_penna": leggi_penna(),
         "reset": hw["reset"] is not None and hw["reset"].value() == 0,
+        # fungo normalmente chiuso verso GND: 1 = premuto o filo interrotto = arresto
+        "arresto": hw["arresto"] is not None and hw["arresto"].value() == 1,
     }
 
 
@@ -154,11 +163,13 @@ def dosa(hw, nome, ml, wdt=None):
         return 0.0
     secondi = min(ml / config.ML_AL_SECONDO[nome], config.MAX_SECONDI_DOSE)
     pin = hw["dosa_" + nome]
+    hw["abilita_dosatori"].value(1)                   # secondo interruttore in serie: chiuso solo durante la dose
     pin.value(1)
     try:
         time.sleep(secondi)
     finally:
         pin.value(0)                                  # il dosatore si spegne anche se qualcosa va storto
+        hw["abilita_dosatori"].value(0)
     if wdt is not None:
         wdt.feed()
     return secondi * config.ML_AL_SECONDO[nome]
@@ -178,10 +189,15 @@ def presa(hw, nome, acceso):
 
 def scrivi(hw, c, wdt=None):
     # in ombra l'ESP32 non comanda niente: pompa e luci vanno collegate a presa/timer propri (LEGGIMI.md)
+    if c["modo"] == "ombra" or c.get("taglio_dosatori"):
+        for nome in ("dosa_a", "dosa_b", "dosa_ph", "abilita_dosatori"):
+            hw[nome].value(0)
     if c["modo"] == "ombra":
-        for nome in ("pompa", "dosa_a", "dosa_b", "dosa_ph", "rabbocco"):
+        for nome in ("pompa", "rabbocco"):
             hw[nome].value(0)
         return {"a": 0.0, "b": 0.0, "ph": 0.0}
+    if c.get("taglio_dosatori"):
+        c = dict(c, dose_a_ml=0.0, dose_b_ml=0.0, dose_ph_ml=0.0)
     # prima le uscite di sicurezza (spegnere), poi le accensioni; le dosi una alla volta
     hw["pompa"].value(1 if c["pompa"] else 0)
     hw["rabbocco"].value(1 if c["rabbocco"] else 0)
@@ -304,14 +320,40 @@ def taratura(secondi=20):
         time.sleep(1)
 
 
+def ora_locale():
+    """Secondi dell'ora locale. Con il Wi-Fi l'orologio si mette con NTP; senza, conta dall'accensione (le luci allora
+    devono avere l'orario nella presa smart, vedi LEGGIMI.md)."""
+    return int(time.time()) + config.FUSO_ORARIO_H * 3600
+
+
+def sincronizza_ora():
+    try:
+        import ntptime
+        ntptime.settime()
+        return True
+    except Exception:
+        return False
+
+
+def parametri_con_taratura():
+    p = dict(config.PARAMETRI)
+    try:
+        with open("taratura.json") as f:
+            p.update(json.load(f))
+    except (OSError, ValueError):
+        pass
+    return p
+
+
 def avvia():
     hw = crea_hw()
     collega_wifi()
-    ctrl = ControlloIdro(config.PARAMETRI, s_avvio=0, memoria=carica_memoria())
+    sincronizza_ora()
+    s = ora_locale()
+    ctrl = ControlloIdro(parametri_con_taratura(), s_avvio=s, memoria=carica_memoria())
     wdt = WDT(timeout=max(120000, (config.SECONDI_PER_PASSO + config.MAX_SECONDI_DOSE * 3) * 2000))
     rete = {"reset": False}
     mqtt = collega_mqtt(rete)
-    s = 0
     while True:
         if mqtt is not None:
             try:
@@ -334,7 +376,7 @@ def avvia():
                 mqtt = None
         wdt.feed()
         time.sleep(config.SECONDI_PER_PASSO)
-        s += config.SECONDI_PER_PASSO
+        s = ora_locale()
 
 
 if __name__ == "__main__":
