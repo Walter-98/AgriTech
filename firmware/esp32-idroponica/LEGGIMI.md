@@ -60,9 +60,13 @@ perché nessun dosatore possa girare:
 ```
 12 V ─ fusibile 2 A ─ fungo di emergenza (contatto NC) ─ galleggiante di minimo (chiuso solo con acqua)
      ─ relè del rilevatore di allagamento (NC, apre con acqua sul pavimento, apparecchio autonomo)
-     ─ relè temporizzato monostabile (apre dopo 30 s anche se il comando resta attivo)
+     ─ flussostato sul ricircolo (chiuso solo se l'acqua gira: senza miscelazione niente dosi)
+     ─ relè temporizzato monostabile (apre dopo il tempo massimo anche se il comando resta attivo)
      ─ relè di abilitazione (PIN_ABILITA_DOSATORI, chiuso dall'ESP32 solo durante una dose)
+       └─ optoaccoppiatore verso PIN_SENSO_DOSATORI (34): dice all'ESP32 se dopo il relè ci sono i 12 V
      ─ MOSFET del singolo dosatore (A, B, pH-)
+
+Interruttore a chiave tra 3,3 V e PIN_CHIAVE_REALE (35), con 10 kΩ verso GND: chiuso = modo reale permesso.
 ```
 
 - **Fungo di emergenza** a due contatti NC: uno apre la catena qui sopra, l'altro va al pin `PIN_ARRESTO`. Con il
@@ -71,10 +75,16 @@ perché nessun dosatore possa girare:
 - **Rilevatore di allagamento con uscita a relè**: un apparecchio autonomo, non il sensore letto dall'ESP32. Funziona
   anche se l'ESP32 è spento.
 - **Relè temporizzato**: un modulo "delay off" o un relè multifunzione da guida DIN. Si regola appena sopra la dose
-  più lunga, così un comando bloccato non diventa una dose infinita.
-- **Acido diluito e pompa piccola**: pH- diluito 1:10 e peristaltica da 0,5 mL/s per l'acido. Nel test
-  "dosatore bloccato" 20 secondi di acido concentrato bastano a portare il pH sotto 3: con acido diluito e pompa
-  piccola lo stesso guasto fa un decimo dei danni.
+  più lunga, ma **non oltre il tempo massimo calcolato** da `verifica_installazione` (sistema/sicurezza_dosaggio.py)
+  per il tuo serbatoio, così un comando bloccato non diventa una dose che fa danni.
+- **Acido diluito e pompa piccola** aiutano, ma non sono "sicuri" di per sé: con 20 L e acido non diluito anche 20 s a
+  0,5 mL/s portano il pH sotto 2. Il limite si calcola sull'impianto vero, con la titolazione della tua soluzione
+  (SICUREZZA_DOSAGGIO.md, sezioni 3 e 5).
+- **Autotest del taglio**: all'accensione e ogni 24 ore il firmware apre e chiude il relè di abilitazione con i dosatori
+  spenti e controlla che l'optoaccoppiatore lo segua. Se il relè è incollato o il sensore non risponde, il modo reale
+  non si attiva.
+- **Chiave**: il modo reale richiede l'interruttore a chiave chiuso, letto a ogni passo. Un parametro da solo
+  (anche da rete) non basta.
 - **Flaconi**: A, B e acido in contenitori separati e distanti, in una vaschetta di contenimento. Mai mescolare A e B
   concentrati, mai l'acido con i nutrienti concentrati.
 

@@ -13,6 +13,7 @@ RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 class PinFinto:
     OUT, IN, PULL_UP, IRQ_RISING = "out", "in", "pull_up", "rising"
     stati, gestori, storia = {}, {}, []
+    collegamenti = {}                                # pin d'ingresso -> pin d'uscita che lo comanda (cablaggio finto)
 
     def __init__(self, n, modo=None, pull=None, value=None):
         self.n = n
@@ -25,6 +26,8 @@ class PinFinto:
 
     def value(self, v=None):
         if v is None:
+            if self.n in PinFinto.collegamenti:
+                return PinFinto.stati[PinFinto.collegamenti[self.n]]
             return PinFinto.stati[self.n]
         PinFinto.stati[self.n] = v
         PinFinto.storia.append((self.n, v))
@@ -82,7 +85,7 @@ def carica_firmware():
 
 class TestFirmwareIdro(unittest.TestCase):
     def setUp(self):
-        PinFinto.stati, PinFinto.gestori, PinFinto.storia = {}, {}, []
+        PinFinto.stati, PinFinto.gestori, PinFinto.storia, PinFinto.collegamenti = {}, {}, [], {}
         I2CFinto.volt = {0: 1.50, 1: 1.10}
         self.fw, self.ureq = carica_firmware()
         self.cfg = self.fw.config
@@ -201,6 +204,36 @@ class TestFirmwareIdro(unittest.TestCase):
         fatti = self.fw.scrivi(self.hw, c)
         self.assertEqual(sum(fatti.values()), 0)                                    # taglio: nessuna dose
         self.assertNotIn((self.cfg.PIN_ABILITA_DOSATORI, 1), PinFinto.storia)
+
+    def test_autotest_del_taglio_e_chiave_fisica(self):
+        hw = self.fw.crea_hw()
+        PinFinto.collegamenti = {self.cfg.PIN_SENSO_DOSATORI: self.cfg.PIN_ABILITA_DOSATORI}   # cablaggio giusto
+        self.assertTrue(self.fw.autotest_taglio(hw))
+        self.assertEqual(PinFinto.stati[self.cfg.PIN_ABILITA_DOSATORI], 0, "dopo la prova il relè resta aperto")
+        for n in (self.cfg.PIN_DOSA_A, self.cfg.PIN_DOSA_B, self.cfg.PIN_DOSA_PH):
+            self.assertNotIn((n, 1), PinFinto.storia, "durante la prova nessun dosatore si accende")
+        PinFinto.collegamenti = {}
+        PinFinto.stati[self.cfg.PIN_SENSO_DOSATORI] = 1                          # relè incollato: tensione sempre
+        self.assertFalse(self.fw.autotest_taglio(hw))
+        PinFinto.stati[self.cfg.PIN_SENSO_DOSATORI] = 0                          # sensore staccato: mai tensione
+        self.assertFalse(self.fw.autotest_taglio(hw))
+        self.cfg.PIN_SENSO_DOSATORI = None
+        self.assertFalse(self.fw.autotest_taglio(self.fw.crea_hw()), "senza sensore niente autotest, niente reale")
+        # chiave: solo il contatto chiuso conta
+        PinFinto.stati[self.cfg.PIN_CHIAVE_REALE] = 0
+        self.assertFalse(self.fw.leggi(hw, 0)["chiave_reale"])
+        PinFinto.stati[self.cfg.PIN_CHIAVE_REALE] = 1
+        self.assertTrue(self.fw.leggi(hw, 0)["chiave_reale"])
+
+    def test_config_del_prototipo_non_permette_il_reale(self):
+        """Con la configurazione del repository (nessun collaudo, nessuna verifica della dose) il modo reale non parte
+        nemmeno con la chiave chiusa e l'autotest riuscito."""
+        ctrl = self.fw.ControlloIdro(dict(self.cfg.PARAMETRI, modo="reale", conferma_reale=True))
+        ctrl.passo({"s": 0, "livello_min": True, "chiave_reale": True, "autotest_taglio_s": 0})
+        manca = ctrl.prerequisiti_mancanti(0)
+        self.assertEqual(ctrl.modo_effettivo(0), "ombra")
+        self.assertIn("verifica_installazione", manca)
+        self.assertTrue(any(m.startswith("collaudo:") for m in manca))
 
     def test_arresto_a_fungo_sicuro_per_guasto(self):
         PinFinto.stati[self.cfg.PIN_ARRESTO] = 0                                     # contatto chiuso: tutto normale

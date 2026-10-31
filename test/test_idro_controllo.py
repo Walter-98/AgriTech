@@ -96,15 +96,39 @@ class TestControlloIdro(unittest.TestCase):
         # la sola conferma non basta: servono collaudo documentato e taratura recente
         self.assertEqual(ControlloIdro({"modo": "reale", "conferma_reale": True}).modo_effettivo(), "ombra")
         tutto = {k: True for k in COLLAUDO_RICHIESTO}
-        c = ControlloIdro({"modo": "reale", "conferma_reale": True, "collaudo": tutto, "taratura_ph_giorno": 0})
+        sicuro = {"esito": "sicuro"}
+        par = {"modo": "reale", "conferma_reale": True, "collaudo": tutto, "taratura_ph_giorno": 0, "verifica_installazione": sicuro}
+        c = ControlloIdro(par)
+        # tutti i parametri a posto ma nessuna prova fisica: resta in ombra
+        self.assertEqual(c.modo_effettivo(0), "ombra")
+        self.assertEqual(set(c.prerequisiti_mancanti(0)), {"chiave_fisica", "autotest_taglio"})
+        c.passo({"s": 0, "livello_min": True, "chiave_reale": True, "autotest_taglio_s": 0})
         self.assertEqual(c.modo_effettivo(0), "reale")
         self.assertEqual(c.modo_effettivo(40 * 86400), "ombra")            # taratura scaduta dopo 30 giorni
+        c.passo({"s": 2 * 86400, "livello_min": True, "chiave_reale": True, "autotest_taglio_s": 0})
+        self.assertIn("autotest_taglio", c.prerequisiti_mancanti(2 * 86400))   # autotest più vecchio di 24 ore
+        c.passo({"s": 2 * 86400 + 60, "livello_min": True, "chiave_reale": False, "autotest_taglio_s": 2 * 86400})
+        self.assertEqual(c.prerequisiti_mancanti(2 * 86400 + 60), ["chiave_fisica"])   # chiave girata: subito ombra
+        nv = ControlloIdro(dict(par, verifica_installazione={"esito": "non_sicuro"}))
+        nv.passo({"s": 0, "livello_min": True, "chiave_reale": True, "autotest_taglio_s": 0})
+        self.assertEqual(nv.prerequisiti_mancanti(0), ["verifica_installazione"])
         manca = dict(tutto, prova_blackout=False)
         r = ControlloIdro({"modo": "reale", "conferma_reale": True, "collaudo": manca, "taratura_ph_giorno": 0})
         self.assertIn("collaudo:prova_blackout", r.prerequisiti_mancanti(0))
         out = r.passo({"s": 0, "livello_min": True})
         self.assertEqual(out["modo"], "ombra")
         self.assertTrue(any(n.startswith("REALE_NON_ATTIVO") for n in out["note"]))
+
+    def test_reale_mai_con_un_parametro_solo(self):
+        """Qualunque combinazione di soli parametri lascia il modo in OMBRA: servono gli ingressi fisici."""
+        tutto = {k: True for k in COLLAUDO_RICHIESTO}
+        for extra in ({}, {"chiave_reale": True}, {"autotest_taglio_s": 0}, {"dosaggio_abilitato": True}):
+            par = dict({"modo": "reale", "conferma_reale": True, "collaudo": tutto, "taratura_ph_giorno": 0,
+                        "verifica_installazione": {"esito": "sicuro"}}, **extra)
+            c = ControlloIdro(par)
+            out = c.passo({"s": 0, "livello_min": True, "ph": 7.5, "ec": 0.5})
+            self.assertEqual(out["modo"], "ombra", extra)
+            self.assertEqual(out["dose_ph_ml"] + out["dose_a_ml"], 0)
 
     def test_arresto_di_emergenza_prima_di_tutto(self):
         c = ControlloIdro()

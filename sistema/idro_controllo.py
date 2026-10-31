@@ -64,11 +64,14 @@ PARAMETRI_IDRO = {
     "eta_max_s": 300,               # letture più vecchie di 5 minuti valgono come mancanti
     "salto_bloccato_ec": 0.3, "salto_bloccato_ph": 0.5,   # in 10 minuti senza dosi né rabbocchi: dosatore bloccato
     "taratura_ph_giorno": None,     # giorno (s // 86400) dell'ultima taratura del pH, per il modo reale
+    "autotest_max_s": 86400,        # modo reale: autotest del taglio hardware riuscito da non più di tanto
+    "verifica_installazione": None, # modo reale: risultato di sistema/sicurezza_dosaggio.verifica_installazione (esito "sicuro")
     "taratura_max_giorni": 30,
     "collaudo": {},                 # per il modo reale: tutte le voci di COLLAUDO_RICHIESTO a True
 }
 COLLAUDO_RICHIESTO = ("portata_dosatori_misurata", "settimana_in_ombra", "prova_perdita", "prova_galleggianti",
-                      "prova_flusso", "prova_blackout", "taglio_hardware_provato", "arresto_emergenza_provato")
+                      "prova_flusso", "prova_blackout", "taglio_hardware_provato", "arresto_emergenza_provato",
+                      "titolazione_fatta", "flussostato_provato", "timer_hardware_provato")
 
 ALLARMI_FISSI = ("PERDITA", "FLUSSO_ASSENTE", "DOSAGGIO_INEFFICACE_EC", "DOSAGGIO_INEFFICACE_PH", "SONDA_PH_DA_TARARE",
                  "ARRESTO_EMERGENZA", "DOSATORE_BLOCCATO")
@@ -84,6 +87,8 @@ class ControlloIdro:
                 p[k] = parametri[k]
         self.p = p
         self.s_avvio = s_avvio
+        self.chiave_fisica = False      # ingressi fisici per il modo reale (aggiornati da passo)
+        self.ultimo_autotest = None
         # memoria che sopravvive ai riavvii (il firmware la salva su file): allarmi fissi e dosi del giorno
         m = memoria or {}
         self.fissi = list(m.get("fissi", []))
@@ -109,7 +114,17 @@ class ControlloIdro:
         return {"fissi": list(self.fissi), "giorno": self.giorno, "dosato": dict(self.dosato)}
 
     def prerequisiti_mancanti(self, s=None):
+        """Il modo reale non si accende con un parametro: servono anche due prove FISICHE lette dagli ingressi
+        (chiave a interruttore chiusa e autotest recente del taglio dell'alimentazione dei dosatori) e la verifica
+        della dose massima sull'impianto vero (sicurezza_dosaggio.py)."""
         p, manca = self.p, []
+        if not self.chiave_fisica:
+            manca.append("chiave_fisica")
+        if self.ultimo_autotest is None or (s is not None and s - self.ultimo_autotest > p["autotest_max_s"]):
+            manca.append("autotest_taglio")
+        vi = p.get("verifica_installazione")
+        if not (isinstance(vi, dict) and vi.get("esito") == "sicuro"):
+            manca.append("verifica_installazione")
         if not p["conferma_reale"]:
             manca.append("conferma_reale")
         coll = p.get("collaudo") or {}
@@ -169,6 +184,9 @@ class ControlloIdro:
     def passo(self, l):
         p = self.p
         s = l["s"]
+        # prove fisiche per il modo reale: vengono dagli ingressi a ogni passo, non dai parametri
+        self.chiave_fisica = l.get("chiave_reale") is True
+        self.ultimo_autotest = l.get("autotest_taglio_s")
         if l.get("reset") and not l.get("arresto"):
             self.reset()
         allarmi = []

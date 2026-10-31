@@ -18,6 +18,9 @@ def crea_hw():
     for nome in ("pompa", "dosa_a", "dosa_b", "dosa_ph", "rabbocco", "abilita_dosatori"):
         hw[nome] = Pin(getattr(config, "PIN_" + nome.upper()), Pin.OUT, value=0)
     hw["arresto"] = Pin(config.PIN_ARRESTO, Pin.IN, Pin.PULL_UP) if config.PIN_ARRESTO is not None else None
+    chiave, senso = getattr(config, "PIN_CHIAVE_REALE", None), getattr(config, "PIN_SENSO_DOSATORI", None)
+    hw["chiave"] = Pin(chiave, Pin.IN) if chiave is not None else None
+    hw["senso"] = Pin(senso, Pin.IN) if senso is not None else None
     hw["i2c"] = I2C(0, sda=Pin(config.I2C_SDA), scl=Pin(config.I2C_SCL)) if (config.SONDA_PH[0] == "ads" or config.PIN_SHT31) else None
     hw["adc"] = {}
     for nome, sonda in (("ph", config.SONDA_PH), ("ec", config.SONDA_EC)):
@@ -155,7 +158,26 @@ def leggi(hw, s):
         "reset": hw["reset"] is not None and hw["reset"].value() == 0,
         # fungo normalmente chiuso verso GND: 1 = premuto o filo interrotto = arresto
         "arresto": hw["arresto"] is not None and hw["arresto"].value() == 1,
+        # chiave del modo reale: solo un contatto chiuso a mano conta (assente = mai reale)
+        "chiave_reale": hw.get("chiave") is not None and hw["chiave"].value() == 1,
     }
+
+
+def autotest_taglio(hw):
+    """Prova che il relè di abilitazione taglia davvero i 12 V dei dosatori, con TUTTI i dosatori spenti:
+    relè aperto -> niente tensione; relè chiuso -> tensione (il sensore funziona); relè aperto -> di nuovo niente.
+    Un relè incollato o un sensore guasto fanno fallire la prova e il modo reale resta spento."""
+    if hw.get("senso") is None:
+        return False
+    for nome in ("dosa_a", "dosa_b", "dosa_ph"):
+        hw[nome].value(0)
+    esiti = []
+    for stato in (0, 1, 0):
+        hw["abilita_dosatori"].value(stato)
+        time.sleep_ms(200)
+        esiti.append(hw["senso"].value() == stato)
+    hw["abilita_dosatori"].value(0)
+    return all(esiti)
 
 
 def dosa(hw, nome, ml, wdt=None):
@@ -354,13 +376,20 @@ def avvia():
     wdt = WDT(timeout=max(120000, (config.SECONDI_PER_PASSO + config.MAX_SECONDI_DOSE * 3) * 2000))
     rete = {"reset": False}
     mqtt = collega_mqtt(rete)
+    autotest_s, autotest_provato = None, None
     while True:
+        if autotest_provato is None or s - autotest_provato >= getattr(config, "AUTOTEST_OGNI_S", 86400):
+            autotest_provato = s
+            autotest_s = s if autotest_taglio(hw) else None
+            if autotest_s is None:
+                print("AUTOTEST_TAGLIO non riuscito: modo reale impossibile (relè, sensore o cablaggio)")
         if mqtt is not None:
             try:
                 mqtt.check_msg()
             except Exception:
                 mqtt = None
         l = leggi(hw, s)
+        l["autotest_taglio_s"] = autotest_s
         if rete["reset"]:
             l["reset"], rete["reset"] = True, False
         c = ctrl.passo(l)

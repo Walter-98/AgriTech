@@ -33,8 +33,15 @@ PIN_DOSA_A, PIN_DOSA_B, PIN_DOSA_PH = 16, 17, 18
 PIN_RABBOCCO = 25             # elettrovalvola 12 V o pompa di rabbocco
 PIN_ABILITA_DOSATORI = 23     # relè in serie all'alimentazione di TUTTI i dosatori: chiuso solo durante una dosa
 ML_AL_SECONDO = {"a": 1.5, "b": 1.5, "ph": 0.5}   # portata delle peristaltiche, misurata con un cilindro graduato
-                              # (pH-: pompa piccola e acido diluito 1:10, così un guasto fa pochi danni)
-MAX_SECONDI_DOSE = 20         # limite hardware indipendente dalla logica: nessuna dose dura di più
+                              # (prova F1). Pompa piccola e acido diluito AIUTANO ma non sono "sicuri" di per sé:
+                              # il caso peggiore dipende da volume e alcalinità -> sistema/sicurezza_dosaggio.py
+MAX_SECONDI_DOSE = 20         # limite del FIRMWARE per una dose. Se l'ESP32 si blocca non serve: il limite che conta è
+                              # il relè a tempo in serie (vedi LEGGIMI.md), dimensionato con verifica_installazione()
+
+# Modo REALE: due ingressi fisici, non parametri. Senza questi il controllo resta in OMBRA qualunque cosa dica la config.
+PIN_CHIAVE_REALE = 35         # interruttore a chiave verso 3,3 V, resistenza 10 kΩ verso GND: chiuso = 1 (None = assente)
+PIN_SENSO_DOSATORI = 34       # 12 V dopo il relè di abilitazione, tramite optoaccoppiatore: presenti = 1 (None = assente)
+AUTOTEST_OGNI_S = 86400       # autotest del taglio: all'accensione e poi ogni 24 ore
 
 # Carichi a 230 V SOLO tramite prese smart certificate (es. Shelly, API locale), mai relè fai da te.
 # Imposta anche nella presa un orario di riserva per le luci: se l'ESP32 si ferma, le luci continuano a orario.
