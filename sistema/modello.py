@@ -64,7 +64,8 @@ class Mondo:
     def __init__(self, zone, meteo, serbatoio_l=800.0, capacita_serbatoio_l=1000.0, galleggiante_l=50.0,
                  tetto_m2=10.0, portata_l_min=1.0, sensore_livello=True, flussimetro=False, sensore_pioggia=True,
                  escursione_c=10.0, seme=1, adc_secco=3000, adc_bagnato=1300, ritardo_sensore_min=5.0,
-                 quadro_altezza_mm=300.0, sensore_allagamento_mm=None, energia=None, guasti=None):
+                 quadro_altezza_mm=300.0, sensore_allagamento_mm=None, energia=None, guasti=None, rumore=1.0,
+                 pioggia_zone=True):
         self.zone = [dict(z) for z in zone]
         for z in self.zone:
             z.setdefault("capacita_mm", 60.0)     # acqua disponibile massima nello strato delle radici
@@ -72,6 +73,11 @@ class Mondo:
             z["acqua"] = z["capacita_mm"] * z.get("umidita", 0.6)
             z["superficie"] = 0.0                 # mm d'acqua ferma sopra il terreno saturo
             z["letta"] = 0.92 * z["acqua"] / z["capacita_mm"]
+            z.setdefault("efficienza", 1.0)       # quota dell'acqua erogata che arriva alle radici (goccia 0,9)
+            z.setdefault("bias", 0.0)             # errore del sensore (deriva), in frazione di umidità
+            z.setdefault("attiva", True)          # False = aiuola vuota: il controllore non la irriga
+            z.setdefault("portata_l_min", portata_l_min)
+            z["litri"] = z["persi"] = z["sprecati"] = 0.0   # per zona: arrivati, persi dai tubi, finiti in ristagno
         self.meteo = meteo
         self.serbatoio = serbatoio_l
         self.capacita = capacita_serbatoio_l
@@ -83,6 +89,8 @@ class Mondo:
         self.sensore_pioggia = sensore_pioggia
         self.escursione = escursione_c
         self.rnd = random.Random(seme)
+        self.rumore = rumore            # 0 = letture senza rumore (confronti esatti con il motore del browser)
+        self.pioggia_zone = pioggia_zone  # False = serra o garage: la pioggia va solo nella cisterna
         self.secco, self.bagnato = adc_secco, adc_bagnato
         self.tau = ritardo_sensore_min
         self.quadro_altezza = quadro_altezza_mm
@@ -101,6 +109,7 @@ class Mondo:
         self.pompa_minuti = 0
         self.litri_usati = 0.0          # usciti dalla cisterna
         self.litri_persi = 0.0          # usciti ma non arrivati alle piante (tubi rotti o scoppiati)
+        self.litri_dispersi = 0.0       # arrivati alla zona ma non alle radici (efficienza degli erogatori)
         self.troppo_pieno_l = 0.0       # pioggia che la cisterna non ha potuto tenere
         self.minuti_a_secco = 0         # pompa comandata con serbatoio vuoto: deve restare 0
         self.quadro_sommerso_min = 0    # acqua oltre il fondo del quadro: elettronica da buttare
@@ -142,28 +151,32 @@ class Mondo:
     def alimentato(self):
         return not (self.energia and self.energia["spento"])
 
+    def _gauss(self, sigma):
+        return self.rnd.gauss(0, sigma) if self.rumore else 0.0
+
     def letture(self, m):
         adc = []
         for i, z in enumerate(self.zone):
             if self._guasto("sensore_staccato", i, m):
-                adc.append(self.rnd.randint(0, 60))
+                adc.append(self.rnd.randint(0, 60) if self.rumore else 30)
             elif self._guasto("sensore_fuori_terra", i, m):
-                adc.append(int(self.secco + self.rnd.gauss(0, 15)))
+                adc.append(int(self.secco + self._gauss(15 * self.rumore)))
             else:
-                v = self.secco - z["letta"] * (self.secco - self.bagnato) + self.rnd.gauss(0, 15)
+                v = self.secco - (z["letta"] + z["bias"]) * (self.secco - self.bagnato) + self._gauss(15 * self.rumore)
                 adc.append(int(min(max(v, 0), 4095)))
         return {
             "minuto": m,
             "adc": adc,
             "serbatoio_basso": self.serbatoio < self.galleggiante_l,
-            "serbatoio_l": (self.serbatoio + self.rnd.gauss(0, 0.2)) if self.sensore_livello else None,
+            "serbatoio_l": (self.serbatoio + self._gauss(0.2 * self.rumore)) if self.sensore_livello else None,
             "temp_c": self.temperatura(m),
             "pioggia_prevista_mm": self.pioggia_prevista(m),
             "pioggia_in_corso": self.piove(m) if self.sensore_pioggia else None,
-            "flusso_l_min": max(0.0, self.flusso + self.rnd.gauss(0, 0.03)) if self.flussimetro else None,
+            "flusso_l_min": max(0.0, self.flusso + self._gauss(0.03 * self.rumore)) if self.flussimetro else None,
             "allagamento": (self.sensore_allagamento is not None
                             and self.livello_acqua_a_terra() >= self.sensore_allagamento),
             "batteria": self.batteria(),
+            "zone_attive": [z["attiva"] for z in self.zone],
         }
 
     def _energia(self, m, pompa):
@@ -200,24 +213,33 @@ class Mondo:
         self.flusso = 0.0
         if pompa and pompa_ok and aperte and self.serbatoio > 0:
             scoppiato = any(self._guasto("tubo_scoppiato", i, m) for i in aperte)
-            totale = self.portata * (2.0 if scoppiato else 1.0 + 0.5 * (len(aperte) - 1))
+            base = max(self.zone[i]["portata_l_min"] for i in aperte)
+            totale = base * (2.0 if scoppiato else 1.0 + 0.5 * (len(aperte) - 1))
             totale = min(totale, self.serbatoio)
             self.flusso = totale
             self.serbatoio -= totale
             self.litri_usati += totale
             for i in aperte:
                 parte = totale / len(aperte)
+                z = self.zone[i]
                 if self._guasto("tubo_rotto", i, m) or self._guasto("tubo_scoppiato", i, m):
                     self.litri_persi += parte
+                    z["persi"] += parte
                 else:
-                    self.zone[i]["acqua"] += parte / self.zone[i]["area_m2"]     # 1 L su 1 m² = 1 mm
+                    eff = z["efficienza"]
+                    self.litri_dispersi += parte * (1 - eff)
+                    z["litri"] += parte
+                    z["acqua"] += parte * eff / z["area_m2"]     # 1 L su 1 m² = 1 mm
+                    if z["acqua"] > z["capacita_mm"]:
+                        z["sprecati"] += min(parte * eff, (z["acqua"] - z["capacita_mm"]) * z["area_m2"])
         mm_pioggia = ore_pioggia(g).get(ora, 0.0) / 60.0
         for z in self.zone:
             u = z["acqua"] / z["capacita_mm"]
             if 7 <= ora < 19:
                 kc = z["kc"] * (0.8 if z.get("pacciamatura") else 1.0)
                 z["acqua"] -= g["et0"] * kc * min(1.0, u / 0.5) / (12 * 60)   # terreno secco: la pianta beve meno
-            z["acqua"] += mm_pioggia
+            if self.pioggia_zone:
+                z["acqua"] += mm_pioggia
             if z["acqua"] > z["capacita_mm"]:
                 z["superficie"] += z["acqua"] - z["capacita_mm"]
                 z["acqua"] = z["capacita_mm"]

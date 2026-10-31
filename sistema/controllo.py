@@ -173,6 +173,7 @@ class Controllore:
         flusso = letture.get("flusso_l_min")
         allagamento = letture.get("allagamento", False)
         batteria = letture.get("batteria")
+        attive = letture.get("zone_attive") or [True] * self.n   # aiuola vuota: niente acqua
         t = letture.get("temp_c")
         gelo = t is not None and t <= p["gelo_c"]
         pioggia = letture.get("pioggia_prevista_mm", 0.0) >= p["pioggia_salta_mm"]
@@ -221,7 +222,7 @@ class Controllore:
             elif self.emergenza:
                 if durata >= p["emergenza_durata_min"] or u[z] is not None:
                     self._ferma(m)
-            elif u[z] is None:
+            elif u[z] is None or not attive[z]:
                 self._ferma(m)
             elif u[z] >= soglia_off:
                 self._ferma(m)
@@ -264,7 +265,7 @@ class Controllore:
                 and m - self.avvio >= p["attesa_avvio_min"]):
             scelta = None
             for i in range(self.n):
-                if self.bloccata[i] or self.perdita[i] or self._in_pausa(i, m):
+                if self.bloccata[i] or self.perdita[i] or self._in_pausa(i, m) or not attive[i]:
                     continue
                 if u[i] is None:
                     if (p["emergenza_durata_min"] > 0 and not pioggia
@@ -342,3 +343,33 @@ class Controllore:
             "allarmi": allarmi,
             "stato": stato,
         }
+
+
+class ControlloreTimer:
+    """Programmatore a tempo (modo "manuale": nessun sensore di umidità). Ogni giorno alle ora_min irriga le zone
+    una dopo l'altra per durata_min ciascuna. Sicurezze rimaste: serbatoio basso e acqua nel quadro fermano la pompa.
+    Stessa interfaccia di Controllore.passo, così simulatore e firmware lo usano allo stesso modo."""
+
+    def __init__(self, n_zone, ora_min=420, durata_min=15):
+        self.n = n_zone
+        self.ora = ora_min
+        self.durata = durata_min
+
+    def passo(self, letture):
+        m = letture["minuto"]
+        dal = m % 1440 - self.ora
+        zona = None
+        if self.durata > 0 and 0 <= dal < self.durata * self.n:
+            zona = dal // self.durata
+        basso = letture.get("serbatoio_basso", False)
+        allagamento = letture.get("allagamento", False)
+        if basso or allagamento:
+            zona = None
+        allarmi = []
+        if basso:
+            allarmi.append("SERBATOIO_BASSO")
+        if allagamento:
+            allarmi.append("ALLAGAMENTO_QUADRO")
+        return {"pompa": zona is not None, "valvole": [i == zona for i in range(self.n)],
+                "umidita": [None] * self.n, "allarmi": allarmi,
+                "stato": ["irriga" if i == zona else "attesa" for i in range(self.n)]}
