@@ -228,3 +228,27 @@ test("prova Kratky: previsione congelata, diario, raccolta pianta per pianta e a
   assert.deepStrictEqual(errori, []);
   await context.close();
 });
+
+test("distinta: un prezzo controllato si salva, cambia la spesa e finisce nel CSV", async () => {
+  const {page, context, errori} = await apri();
+  await modo(page, "idro"); await livello(page, "esperto"); await scheda(page, "materiali");
+  assert.match(await page.locator("#contenuto").innerText(), /PROVVISORIO/);
+  const prima = await page.evaluate(() => somma(VOCI, "min"));
+  const voce = await page.evaluate(() => VOCI.find(v => v.q === 1 && v.max > 20).nome);
+  const riga = page.locator(".mat", {hasText: voce}).first();
+  await riga.locator("text=Aggiungi un prezzo controllato").click();
+  await riga.locator('input[data-off="fornitore"]').fill("Negozio di prova");
+  await riga.locator('input[data-off="url"]').fill("https://esempio.it/p");
+  await riga.locator('input[data-off="prezzo"]').fill("10");
+  await riga.locator("text=Salva il prezzo").click();
+  await page.waitForTimeout(500);
+  const v = await page.evaluate(n => VOCI.find(x => x.nome === n), voce);
+  assert.strictEqual(v.stato_prezzo, "verificato"); assert.strictEqual(v.min, 10);
+  assert.ok(await page.evaluate(() => somma(VOCI, "min")) !== prima, "la spesa non è cambiata");
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("text=Scarica la lista (CSV per Excel)")]);
+  const f = path.join(os.tmpdir(), "lista-" + process.pid + ".csv"); await dl.saveAs(f);
+  const testo = fs.readFileSync(f, "utf8"); fs.unlinkSync(f);
+  assert.match(testo, /PREZZO VERIFICATO/); assert.match(testo, /Negozio di prova/); assert.match(testo, /PREZZO STIMATO/);
+  assert.deepStrictEqual(errori, []);
+  await context.close();
+});

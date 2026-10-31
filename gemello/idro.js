@@ -805,7 +805,8 @@ function materialiIdro(c) {
   if (A.connessione === "g4") add("Automazione", "6", "Modulo 4G", 1, [25, 40], "", "connessione");
   if (A.centrale === "rpi" && !senzaElettronica) add("Automazione", "6", "Raspberry Pi 4 come centrale", 1, [45, 65], "Dati, pannello e avvisi.", "centrale");
   add("Sicurezza", "4b", "Ciabatta con interruttore e magnetotermico, sollevata da terra", 1, [15, 30], "Mai prese e ciabatte sul pavimento vicino all'acqua; l'impianto di casa deve avere il salvavita.", "sicurezza");
-  return voci;
+  // prezzi verificati dall'utente (catalogo.js): stato del prezzo su ogni voce, CAPEX ricalcolato
+  return typeof applicaPrezzi === "function" ? applicaPrezzi(voci, c.prezzi_verificati) : voci;
 }
 
 function compatibilitaIdro(c) {

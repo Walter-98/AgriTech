@@ -124,6 +124,9 @@ table.guida td { font-size: 0.85rem; }
 .mat:last-child { border-bottom: 0; }
 .mat .perche { grid-column: 1 / -1; font-size: 0.85rem; color: var(--ink-2); }
 .mat .link { grid-column: 1 / -1; }
+.prezzo-verificato { color: var(--ok-ink) !important; border-color: currentColor !important; }
+.prezzo-storico, .prezzo-non_disponibile { color: var(--warn-ink) !important; border-color: currentColor !important; }
+.prezzo-stimato { color: var(--muted) !important; border-color: currentColor !important; }
 .liv { white-space: nowrap; font-size: 0.7rem; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
 .lista { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 0.92rem; }
 .grafico { position: relative; } .grafico svg { width: 100%; height: auto; display: block; }
@@ -192,6 +195,7 @@ body.principiante .solo-esperto { display: none !important; }
 <script src="lib/three.min.js"></script>
 <script src="lib/OrbitControls.js"></script>
 <script src="dati.js"></script>
+<script src="catalogo.js"></script>
 <script src="progetto.js"></script>
 <script src="sim.js"></script>
 <script src="orto_minuti.js"></script>

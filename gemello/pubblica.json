@@ -5,6 +5,7 @@
     "lib/three.min.js",
     "lib/OrbitControls.js",
     "dati.js",
+    "catalogo.js",
     "progetto.js",
     "sim.js",
     "orto_minuti.js",

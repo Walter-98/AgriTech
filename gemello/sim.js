@@ -485,7 +485,8 @@ function materiali(c) {
     add("Corrente", "5", "Luci LED da coltivazione " + w + " W", 1, [w * 0.5, w * 0.9], "Accese " + c.interno.ore_luce + " ore al giorno: sono la spesa più grande di corrente.", "ambiente");
     add("Corrente", "5", "Ventola " + c.interno.ventola_w + " W", 1, [12, 25], "Ricambio d'aria e foglie più robuste.", "ambiente");
   }
-  return voci;
+  // prezzi verificati dall'utente (catalogo.js): stato del prezzo su ogni voce, CAPEX ricalcolato
+  return typeof applicaPrezzi === "function" ? applicaPrezzi(voci, c.prezzi_verificati) : voci;
 }
 const somma = (voci, k) => voci.reduce((a, v) => a + v[k], 0);
 

@@ -491,6 +491,7 @@ function schedaSimulazione(box) {
 // ---------- costi, materiali, struttura, gestione, guida, percorso ----------
 const TAPPE = [["4a", "Banco minimo"], ["4b", "Banco completo"], ["5", "Campo / montaggio"], ["6", "Dati e avvisi"]];
 function schedaCosti(box) {
+  { const rp = riepilogoPrezzi(VOCI); box.append(el("p", {class: "msg " + (rp.provvisorio ? "warn" : "ok"), text: rp.giudizio + (rp.provvisorio ? " Aggiungi i prezzi controllati nella scheda Materiali." : "")})); }
   const righe = [["0-3", "Strumenti, progetto, simulazione, collaudo virtuale", 0, 0]];
   TAPPE.forEach(([f, n]) => { const v = VOCI.filter(x => x.fase === f); if (v.length) righe.push([f, n, somma(v, "min"), somma(v, "max")]); });
   let cum = [0, 0]; const cumul = [];
@@ -580,10 +581,12 @@ function bilancioIdro(box) {
 }
 function distintaCsv() {
   const q = v => '"' + String(v).replace(/"/g, '""') + '"';
-  const righe = [["Categoria", "Fase", "Descrizione", "Quantità", "Prezzo min €", "Prezzo max €", "Stato del prezzo", "Data", "Perché"].map(q).join(";")];
+  const righe = [["Categoria", "Fase", "Descrizione", "Quantità", "Prezzo min €", "Prezzo max €", "Stato del prezzo", "Fornitore", "Link", "Codice", "Controllato il", "Perché"].map(q).join(";")];
   const oggi = new Date().toISOString().slice(0, 10);
-  for (const v of VOCI) righe.push([v.cat, v.fase, v.nome, v.q, v.min.toFixed(2).replace(".", ","), v.max.toFixed(2).replace(".", ","), "stima del gemello, da verificare", oggi, v.perche || ""].map(q).join(";"));
-  righe.push(["Totale", "", "", "", somma(VOCI, "min").toFixed(2).replace(".", ","), somma(VOCI, "max").toFixed(2).replace(".", ","), "", oggi, ""].map(q).join(";"));
+  for (const v of VOCI) { const o = v.offerta || {};
+    righe.push([v.cat, v.fase, v.nome, v.q, v.min.toFixed(2).replace(".", ","), v.max.toFixed(2).replace(".", ","), STATI_PREZZO[v.stato_prezzo || "stimato"].nome,
+                o.fornitore || "", o.url || "", o.codice || "", o.data || "", v.perche || ""].map(q).join(";")); }
+  righe.push(["Totale", "", "", "", somma(VOCI, "min").toFixed(2).replace(".", ","), somma(VOCI, "max").toFixed(2).replace(".", ","), riepilogoPrezzi(VOCI).giudizio, "", "", "", oggi, ""].map(q).join(";"));
   return "\ufeff" + righe.join("\r\n");
 }
 function schedaMateriali(box) {
@@ -594,11 +597,39 @@ function schedaMateriali(box) {
   const due = el("div", {class: "due"});
   for (const cat of cats) { const v = VOCI.filter(x => x.cat === cat);
     const r = el("div", {class: "riquadro blocco"}, el("div", {class: "testa-riga"}, el("h3", {text: cat}), el("span", {class: "num piccolo", text: forbice(somma(v, "min"), somma(v, "max"))})));
-    v.forEach(x => r.append(el("div", {class: "mat"}, el("span", null, document.createTextNode((x.q > 1 ? x.q + " × " : "") + x.nome), el("span", {class: "liv", text: "fase " + x.fase})),
-      el("span", {class: "num", text: x.max === 0 ? "0 €" : forbice(x.min, x.max)}), el("span", {class: "perche", text: x.perche}),
-      x.chiave ? el("button", {class: "link", type: "button", text: "Cambia", onclick: () => vaiA(x.chiave)}) : null)));
+    v.forEach(x => { const st = x.stato_prezzo || "stimato", o = x.offerta;
+      const prezzo = el("button", {class: "link", type: "button", text: "Aggiungi un prezzo controllato"});
+      const riga = el("div", {class: "mat"}, el("span", null, document.createTextNode((x.q > 1 ? x.q + " × " : "") + x.nome), el("span", {class: "liv", text: "fase " + x.fase}),
+          el("span", {class: "liv prezzo-" + st, text: STATI_PREZZO[st].breve})),
+        el("span", {class: "num", text: x.max === 0 ? "0 €" : forbice(x.min, x.max)}),
+        el("span", {class: "perche", text: (o ? o.fornitore + (o.codice ? ", cod. " + o.codice : "") + ", controllato il " + o.data + (x.stima ? " (stima del gemello " + forbice(x.stima[0], x.stima[1]) + ")" : "") + (x.offerte > 1 ? "; " + x.offerte + " offerte a confronto" : "") + ". " : "") + (x.perche || "")}),
+        x.chiave ? el("button", {class: "link", type: "button", text: "Cambia", onclick: () => vaiA(x.chiave)}) : null, prezzo);
+      prezzo.addEventListener("click", () => riga.append(moduloOfferta(x)));
+      r.append(riga); });
     due.append(r); }
-  box.append(el("p", {class: "piccolo", text: "Calcolata sui componenti che hai scelto. Prezzi indicativi da negozi online di elettronica, giardinaggio e coltivazione: verificali al momento."}), due);
+  const rp = riepilogoPrezzi(VOCI);
+  box.append(el("p", {class: "msg " + (rp.provvisorio ? "warn" : "ok"), text: rp.giudizio + " Verificati " + euro(rp.per.verificato) + ", storici " + euro(rp.per.storico) + ", stimati " + euro(rp.per.stimato) + (rp.per.non_disponibile ? ", non disponibili " + euro(rp.per.non_disponibile) : "") + "."}),
+    el("p", {class: "piccolo", text: "Calcolata sui componenti che hai scelto. I prezzi del gemello sono stime a forbice, senza fornitori né codici: aggiungi i prezzi che controlli (con il link e la data) e la spesa si ricalcola. Un prezzo controllato da più di " + GIORNI_VERIFICATO + " giorni diventa storico."}), due);
+}
+// offerta controllata dall'utente per una voce: fornitore, link, prezzo, IVA, spedizione, data, codice
+function moduloOfferta(v) {
+  const f = el("div", {class: "riquadro blocco"}), oggi = new Date().toISOString().slice(0, 10);
+  const campo = (k, n, tipo = "text", val = "") => el("label", {class: "campo"}, document.createTextNode(n), el("input", {type: tipo, "data-off": k, value: val, step: tipo === "number" ? "0.01" : null, "aria-label": n}));
+  const ivaIncl = el("input", {type: "checkbox", "data-off": "iva_inclusa"}); ivaIncl.checked = true;
+  const nd = el("input", {type: "checkbox", "data-off": "non_disponibile"});
+  const esito = el("span", {class: "piccolo", "aria-live": "polite"});
+  const ok = el("button", {class: "az", type: "button", text: "Salva il prezzo"});
+  ok.addEventListener("click", () => {
+    const o = {}; f.querySelectorAll("input[data-off]").forEach(i => { if (i.type === "checkbox") return; if (i.value !== "") o[i.dataset.off] = i.value; });
+    o.iva_inclusa = ivaIncl.checked; if (nd.checked) o.disponibilita = "non_disponibile";
+    try { aggiungiOfferta(cfg, v.nome, o); aggiorna(false); } catch (e) { esito.textContent = e.message; } });
+  const prima = (cfg.prezzi_verificati || {})[chiaveVoce(v.nome)] || [];
+  f.append(el("p", {class: "piccolo", text: "Prezzo per " + (v.q > 1 ? "un pezzo (" + v.q + " pezzi)" : "il pezzo") + " come lo vedi sul sito, il giorno in cui lo controlli."}),
+    el("div", {class: "campi"}, campo("fornitore", "Fornitore"), campo("url", "Link alla pagina", "url"), campo("prezzo", "Prezzo € per pezzo", "number"), campo("iva", "IVA %", "number", "22"),
+      campo("spedizione", "Spedizione €", "number", "0"), campo("data", "Controllato il", "date", oggi), campo("codice", "Codice prodotto"), campo("produttore", "Produttore"), campo("specifiche", "Specifiche")),
+    el("label", {class: "spunta"}, ivaIncl, el("span", {text: "Prezzo IVA inclusa"})), el("label", {class: "spunta"}, nd, el("span", {text: "Non disponibile"})), ok, esito,
+    prima.length ? tabella(["Fornitore", "Prezzo", "Spedizione", "Controllato il", "Stato"], confrontaOfferte(prima, v.q, oggi).map(o => [o.fornitore, euro(o.unitario), euro(o.spedizione), o.data, STATI_PREZZO[o.stato].breve]), [1, 2]) : null);
+  return f;
 }
 function schemaSvg(fila, ramiTitolo, rami, larg) {
   const bw = 150, gap = 22, y0 = 24;
