@@ -38,4 +38,10 @@ PARAMETRI = {
     "adc_bagnato": 1300,
     "portata_nominale_l_min": 1.0,   # con il flussimetro: L/min misurati sul banco (prova B12)
     "riserva_l": 300.0,              # con il sensore di livello: sotto questi litri soglie di risparmio
+    "livello_pieno_l": 998.0,        # con il sensore di livello: litri a cisterna piena meno 2 (al troppo pieno la
+                                     # pioggia rimpiazza quello che la pompa toglie e la verifica della pompa non vale)
+    # Con portate basse (goccia) tarare al collaudo: dopo 10 minuti di irrigazione l'umidità sale di X e la cisterna
+    # scende di Y litri in 8 minuti; mettere circa il 40% di questi valori (il gemello li calcola da solo).
+    # "aumento_minimo": 0.01,
+    # "calo_minimo_l": 0.6,
 }

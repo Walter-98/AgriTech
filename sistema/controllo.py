@@ -43,6 +43,9 @@ PARAMETRI_DEFAULT = {
     "aumento_minimo": 0.02,        # ...in cui l'umidità deve risultare salita almeno di tanto (il sensore è lento)
     "verifica_pompa_min": 8,       # minuti di pompa dopo cui il serbatoio (se misurato) deve essere sceso...
     "calo_minimo_l": 1.0,          # ...almeno di tanto
+    "conferma_pompa_min": 30,      # serbatoio che non scende: pompa ferma subito, allarme solo se in questi minuti...
+    "aumento_livello_pioggia_l": 2.0,  # ...il livello non sale di tanto da solo (pioggia dalla grondaia senza sensore)
+    "livello_pieno_l": None,       # litri a cisterna piena: lì la pioggia la tiene al troppo pieno e la verifica non vale
     "emergenza_ogni_min": 1440,    # zona con sensore guasto: un'irrigazione al giorno
     "emergenza_durata_min": 3,     # ...di 3 minuti (0 = nessuna irrigazione in emergenza)
     "gelo_c": 2.0,
@@ -95,6 +98,9 @@ class Controllore:
         self.acqua_inattesa = None     # zona che riceve acqua con la sua valvola chiusa (indice) o None
         self.fermo_riavvii = False
         self.ultima_pioggia = None
+        self.campioni_livello = []     # livello ogni 10 minuti (ultimi 40): se sale da solo, piove nella cisterna
+        self.ultima_grondaia = None
+        self.pompa_sospetta = None     # (minuto della verifica, inizio dell'irrigazione) in attesa di conferma
         self.con_memoria = memoria is not None
         self.pompa_in_corso = False    # salvato PRIMA di accendere la pompa: se al riavvio è True, si è spento pompando
         self.riavvii_pompa = 0
@@ -133,6 +139,7 @@ class Controllore:
         self.acqua_inattesa = None
         self.fermo_riavvii = False
         self.riavvii_pompa = 0
+        self.pompa_sospetta = None
         self.u_rif = [None] * self.n
         self.memoria_cambiata = True
 
@@ -181,6 +188,19 @@ class Controllore:
         if piove_ora:
             self.ultima_pioggia = m
         pioggia = pioggia or piove_ora
+        if litri is not None:
+            if m % 10 == 0:
+                self.campioni_livello = (self.campioni_livello + [litri])[-4:]
+            if self.campioni_livello and litri - min(self.campioni_livello) >= p["aumento_livello_pioggia_l"]:
+                self.ultima_grondaia = m
+        if self.pompa_sospetta is not None and m - self.pompa_sospetta[0] >= p["conferma_pompa_min"]:
+            inizio = self.pompa_sospetta[1]
+            self.pompa_sospetta = None
+            entrata = [x for x in (self.ultima_grondaia, self.ultima_pioggia)
+                       if x is not None and x >= inizio - p["conferma_pompa_min"]]
+            if not entrata:                  # nessuna pioggia: la pompa davvero non eroga
+                self.pompa_bloccata = True
+                self.memoria_cambiata = True
         batteria_bassa = batteria is not None and batteria < p["batteria_min_pompa"]
         riserva = p["riserva_l"] is not None and litri is not None and litri < p["riserva_l"]
         soglia_on = p["soglia_on_riserva"] if riserva else p["soglia_on"]
@@ -244,10 +264,10 @@ class Controllore:
                 self.verificato = True
                 # se nel frattempo il serbatoio è salito (pioggia dalla grondaia) la prova sulla pompa non vale
                 misura_valida = (litri is not None and self.l_inizio is not None and litri <= self.l_inizio + 0.5
-                                 and not (self.ultima_pioggia is not None and self.ultima_pioggia >= self.inizio))
+                                 and not (self.ultima_pioggia is not None and self.ultima_pioggia >= self.inizio)
+                                 and not (p["livello_pieno_l"] is not None and litri >= p["livello_pieno_l"]))
                 if flusso is None and misura_valida and self.l_inizio - litri < p["calo_minimo_l"]:
-                    self.pompa_bloccata = True
-                    self.memoria_cambiata = True
+                    self.pompa_sospetta = (m, self.inizio)   # si ferma subito, l'allarme dopo la conferma
                     self._ferma(m)
                     self.da_verificare = None
 
@@ -260,7 +280,8 @@ class Controllore:
                 self.memoria_cambiata = True
 
         # 2. avvio di una nuova irrigazione: la zona più secca tra quelle che ne hanno bisogno
-        if (self.zona is None and not basso and not self.pompa_bloccata and not allagamento and not batteria_bassa
+        if (self.zona is None and not basso and not self.pompa_bloccata and self.pompa_sospetta is None
+                and not allagamento and not batteria_bassa
                 and not troppo_bagnata and not self.fermo_riavvii and not (gelo and p["blocco_gelo"])
                 and m - self.avvio >= p["attesa_avvio_min"]):
             scelta = None
@@ -361,6 +382,9 @@ class ControlloreTimer:
         zona = None
         if self.durata > 0 and 0 <= dal < self.durata * self.n:
             zona = dal // self.durata
+            attive = letture.get("zone_attive")
+            if attive and not attive[zona]:
+                zona = None                    # aiuola vuota: il rubinetto della zona resta chiuso
         basso = letture.get("serbatoio_basso", False)
         allagamento = letture.get("allagamento", False)
         if basso or allagamento:

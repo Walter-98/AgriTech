@@ -40,3 +40,23 @@ test("orto: la sola logica di controllo dà le stesse decisioni sulle letture ru
   assert.strictEqual(diverse, 0);
   assert.ok(C.replay.some(r => r[7]), "nel replay la pompa deve partire almeno una volta");
 });
+
+test("gemello: simula() costruisce lo stesso orto del caso Python gemello_orto e dà gli stessi totali dell'anno", () => {
+  const caso = C.casi.find(x => x.nome === "gemello_orto"), a = caso.atteso;
+  const c = JSON.parse(JSON.stringify(G.ESEMPIO));
+  c.zone = [{coltura: "pomodoro", area: 4, mese: 1, cicli: 4, pacciamatura: false, rialzata: false},
+            {coltura: "lattuga", area: 2, mese: 1, cicli: 7, pacciamatura: false, rialzata: false}];
+  c.acqua.rete_riserva = false; c.componenti.sensore_suolo = "professionale";
+  const M = caso.meteo.map(g => ({m: g.mese - 1, et0: g.et0, pioggia: g.pioggia, nuvoloso: g.nuvoloso, t: g.t_media, escursione: g.escursione}));
+  const s = G.simula(c, {meteo: M, rumore: 0});
+  // 1. stessi ingressi del motore
+  for (const [k, v] of Object.entries(caso.parametri)) vicino(+s.motore.parametri[k], +v, "parametro " + k);
+  for (const [k, v] of Object.entries(caso.mondo)) assert.strictEqual(s.motore.mondo[k], v, "mondo " + k);
+  caso.zone.forEach((z, i) => { for (const k of ["area_m2", "kc", "efficienza", "portata_l_min"]) vicino(s.motore.zone[i][k], z[k], "zona " + i + " " + k); });
+  // 2. stessi risultati
+  vicino(s.litri, a.totali.litri, "litri dell'anno");
+  assert.strictEqual(s.minutiPompa, a.totali.pompa_minuti, "minuti di pompa");
+  vicino(s.troppoPieno, a.totali.troppo_pieno, "troppo pieno");
+  assert.deepStrictEqual(s.zone.map(z => z.oreStress), a.totali.ore_stress, "ore di sofferenza");
+  assert.deepStrictEqual(s.zone.map(z => z.ristagno), a.totali.ore_ristagno, "ore di ristagno");
+});

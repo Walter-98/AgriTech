@@ -65,7 +65,7 @@ class Mondo:
                  tetto_m2=10.0, portata_l_min=1.0, sensore_livello=True, flussimetro=False, sensore_pioggia=True,
                  escursione_c=10.0, seme=1, adc_secco=3000, adc_bagnato=1300, ritardo_sensore_min=5.0,
                  quadro_altezza_mm=300.0, sensore_allagamento_mm=None, energia=None, guasti=None, rumore=1.0,
-                 pioggia_zone=True):
+                 pioggia_zone=True, rumore_sensore=None):
         self.zone = [dict(z) for z in zone]
         for z in self.zone:
             z.setdefault("capacita_mm", 60.0)     # acqua disponibile massima nello strato delle radici
@@ -90,6 +90,7 @@ class Mondo:
         self.escursione = escursione_c
         self.rnd = random.Random(seme)
         self.rumore = rumore            # 0 = letture senza rumore (confronti esatti con il motore del browser)
+        self.rumore_sensore = rumore if rumore_sensore is None else rumore_sensore   # solo sensori di umidità
         self.pioggia_zone = pioggia_zone  # False = serra o garage: la pioggia va solo nella cisterna
         self.secco, self.bagnato = adc_secco, adc_bagnato
         self.tau = ritardo_sensore_min
@@ -160,9 +161,9 @@ class Mondo:
             if self._guasto("sensore_staccato", i, m):
                 adc.append(self.rnd.randint(0, 60) if self.rumore else 30)
             elif self._guasto("sensore_fuori_terra", i, m):
-                adc.append(int(self.secco + self._gauss(15 * self.rumore)))
+                adc.append(int(self.secco + self._gauss(15 * self.rumore_sensore)))
             else:
-                v = self.secco - (z["letta"] + z["bias"]) * (self.secco - self.bagnato) + self._gauss(15 * self.rumore)
+                v = self.secco - (z["letta"] + z["bias"]) * (self.secco - self.bagnato) + self._gauss(15 * self.rumore_sensore)
                 adc.append(int(min(max(v, 0), 4095)))
         return {
             "minuto": m,

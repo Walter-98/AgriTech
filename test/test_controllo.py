@@ -87,14 +87,44 @@ class TestControllo(unittest.TestCase):
         for m in range(5, 13):
             c.passo(letture(m, [0.40 + (m - 5) * 0.01], serbatoio_l=500.0))
         out = c.passo(letture(13, [0.50], serbatoio_l=500.0))
+        self.assertFalse(out["pompa"])                           # si ferma subito
+        self.assertNotIn("POMPA_NON_EROGA", out["allarmi"])      # l'allarme aspetta la conferma
+        self.assertFalse(c.passo(letture(30, [0.30], serbatoio_l=500.0))["pompa"])   # nel frattempo non riparte
+        out = c.passo(letture(43, [0.30], serbatoio_l=500.0))    # 30 minuti senza pioggia: guasto confermato
         self.assertIn("POMPA_NON_EROGA", out["allarmi"])
-        self.assertFalse(out["pompa"])
+        self.assertFalse(c.passo(letture(200, [0.30], serbatoio_l=500.0))["pompa"])
+
+    def test_pioggia_dalla_grondaia_senza_sensore_non_e_guasto_pompa(self):
+        """Pioggia che inizia durante l'irrigazione, senza sensore di pioggia: la cisterna scende poco perché la
+        grondaia la riempie. Prima il controllore bloccava la pompa fino al reset (trovato con il gemello, 2.1)."""
+        c = self.avviato()
+        livello = 500.0
+        for m in range(5, 13):
+            livello += -0.19 + 0.12                            # pompa a goccia contro grondaia
+            c.passo(letture(m, [0.40], serbatoio_l=livello))
+        c.passo(letture(13, [0.40], serbatoio_l=livello))       # calo < 1 L: pompa ferma per prudenza
+        for m in range(14, 60):
+            livello += 0.12                                    # continua a piovere: il livello sale da solo
+            out = c.passo(letture(m, [0.40], serbatoio_l=livello))
+        self.assertNotIn("POMPA_NON_EROGA", out["allarmi"])
+        self.assertTrue(any(c.passo(letture(m, [0.40], serbatoio_l=livello))["pompa"] for m in range(60, 200)),
+                        "dopo la conferma mancata si torna a irrigare")
 
     def test_pioggia_nel_serbatoio_non_e_guasto_pompa(self):
         c = self.avviato()
         for m in range(5, 13):
             c.passo(letture(m, [0.40 + (m - 5) * 0.01], serbatoio_l=500.0 + (30 if m > 7 else 0)))
         out = c.passo(letture(13, [0.50], serbatoio_l=530.0))
+        self.assertNotIn("POMPA_NON_EROGA", out["allarmi"])
+
+    def test_cisterna_piena_che_trabocca_non_e_guasto_pompa(self):
+        """Piove con la cisterna piena: la grondaia rimpiazza quello che la pompa toglie e il livello resta fermo al
+        troppo pieno. Con livello_pieno_l la verifica non vale (trovato con il gemello, 2.1)."""
+        c = self.avviato(livello_pieno_l=998.0)
+        for m in range(5, 13):
+            c.passo(letture(m, [0.40], serbatoio_l=1000.0))
+        c.passo(letture(13, [0.40], serbatoio_l=1000.0))
+        out = c.passo(letture(60, [0.40], serbatoio_l=1000.0))
         self.assertNotIn("POMPA_NON_EROGA", out["allarmi"])
 
     def test_pioggia_prevista(self):

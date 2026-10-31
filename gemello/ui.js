@@ -395,7 +395,7 @@ function messaggi() {
     if (S.perse > 0) lista.push({tipo: "crit", titolo: "Piante perse per i guasti", testo: "Vedi gli eventi nella scheda Simulazione.", chiave: "ups"});
   } else {
     const comp = cfg.componenti;
-    if (S.stress > 0) lista.push({tipo: "crit", titolo: "Piante in sofferenza " + S.stress + " giorni-zona", testo: S.giorniSpento ? "L'impianto è rimasto spento " + S.giorniSpento + " giorni." : S.mancata > 0 ? "Manca acqua: vedi la cisterna." : "Controlla soglie, portata e guasti.", chiave: S.giorniSpento ? "alimentazione" : "logica"});
+    if (S.stress > 0) lista.push({tipo: "crit", titolo: "Piante in sofferenza " + fmt(S.stress, 1) + " giorni-zona", testo: S.giorniSpento ? "L'impianto è rimasto spento " + S.giorniSpento + " giorni." : S.mancata > 0 ? "Manca acqua: vedi la cisterna." : "Controlla soglie, portata e guasti.", chiave: S.giorniSpento ? "alimentazione" : "logica"});
     else lista.push({tipo: "ok", titolo: "Nessuna pianta in sofferenza", testo: "In tutto l'anno il terreno non scende mai sotto il 30% nelle zone coltivate."});
     if (S.drenati > 200) lista.push({tipo: "warn", titolo: fmt(S.drenati) + " L d'acqua sprecati in drenaggio", testo: "Il sensore legge più secco del vero o le soglie sono alte: l'acqua va sotto le radici.", chiave: "sensore_suolo"});
     if (S.sostituzioni > cfg.zone.length) lista.push({tipo: "warn", titolo: S.sostituzioni + " sensori da cambiare in un anno", testo: "Con " + opzione("sensore_suolo", comp.sensore_suolo).nome.toLowerCase() + " la manutenzione pesa.", chiave: "sensore_suolo"});
@@ -525,7 +525,7 @@ function schedaCosti(box) {
     ["Pacciamatura su tutto", {zone: true}],
   ];
   const tc = el("tbody");
-  for (const [nome, mod] of varianti) {
+  const riempi = () => { for (const [nome, mod] of varianti) {
     let r, cst, voci;
     if (idro()) { const c2 = Object.assign({}, cfg, {idro: Object.assign({}, cfg.idro, mod)}); r = simulaIdro(c2); cst = costiAnnuiIdro(c2, r); voci = materialiIdro(c2); const e2 = economiaIdro(c2, r, voci, cst), C2 = e2.scenari.centrale;
       tc.append(el("tr", null, el("td", {text: nome}), el("td", {class: "n", text: forbice(somma(voci, "min"), somma(voci, "max"))}), el("td", {class: "n", text: fmt(r.kwh)}), el("td", {class: "n", text: euro(cst.totale)}), el("td", {class: "n", text: fmt(r.kg)}),
@@ -534,10 +534,15 @@ function schedaCosti(box) {
       if (mod.componenti) Object.assign(c2.componenti, mod.componenti); if (mod.extra) Object.assign(c2.extra, mod.extra); if (mod.logica) Object.assign(c2.logica, mod.logica);
       if (mod.zone) c2.zone.forEach(z => z.pacciamatura = true);
       r = simula(c2, {meteo: M}); voci = materiali(c2); cst = costiAnnui(c2, r, voci);
-      tc.append(el("tr", null, el("td", {text: nome}), el("td", {class: "n", text: forbice(somma(voci, "min"), somma(voci, "max"))}), el("td", {class: "n", text: fmt(r.litri)}), el("td", {class: "n", text: euro(cst.totale)}), el("td", {class: "n", text: fmt(r.stress)}), el("td", {class: "n", text: fmt(r.drenati)}))); }
-  }
+      tc.append(el("tr", null, el("td", {text: nome}), el("td", {class: "n", text: forbice(somma(voci, "min"), somma(voci, "max"))}), el("td", {class: "n", text: fmt(r.litri)}), el("td", {class: "n", text: euro(cst.totale)}), el("td", {class: "n", text: fmt(r.stress, 1)}), el("td", {class: "n", text: fmt(r.drenati)}))); }
+  } };
+  // l'orto si simula minuto per minuto (circa un secondo per variante): i confronti partono a richiesta
+  let avvia = null;
+  if (idro()) riempi();
+  else { avvia = el("button", {type: "button", class: "secondario", text: "Calcola i confronti (qualche secondo)"});
+    avvia.addEventListener("click", () => { avvia.disabled = true; avvia.textContent = "Calcolo in corso…"; setTimeout(() => { riempi(); avvia.remove(); }, 30); }); }
   const intest = idro() ? ["Variante", "Per iniziare", "kWh/anno", "Spese/anno", "kg/anno", "€ al kg con ammortamento", "Si ripaga in"] : ["Variante", "Per iniziare", "Acqua L", "Spese/anno", "Sofferenza gg", "Drenata L"];
-  box.append(riquadro("Confronti rapidi", el("p", {class: "piccolo", text: "Stesso anno, una sola differenza per riga."}), el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...intest.map((t, i) => el("th", {class: i ? "n" : "", text: t})))), tc))));
+  box.append(riquadro("Confronti rapidi", el("p", {class: "piccolo", text: "Stesso anno, una sola differenza per riga."}), ...(avvia ? [avvia] : []), el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...intest.map((t, i) => el("th", {class: i ? "n" : "", text: t})))), tc))));
 }
 function bilancioIdro(box) {
   const SC = ECO.scenari, C = SC.centrale;

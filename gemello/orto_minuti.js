@@ -8,7 +8,8 @@
 const PARAMETRI_ORTO = {
   soglia_on: 0.45, soglia_off: 0.70, soglia_critica: 0.30, max_min: 10, pausa_min: 60, attesa_avvio_min: 2,
   adc_secco: 3000, adc_bagnato: 1300, adc_min_valido: 200, adc_max_valido: 4000, pioggia_salta_mm: 3.0, filtro: 0.3,
-  verifica_dopo_min: 8, aumento_minimo: 0.02, verifica_pompa_min: 8, calo_minimo_l: 1.0, emergenza_ogni_min: 1440,
+  verifica_dopo_min: 8, aumento_minimo: 0.02, verifica_pompa_min: 8, calo_minimo_l: 1.0,
+  conferma_pompa_min: 30, aumento_livello_pioggia_l: 2.0, livello_pieno_l: null, emergenza_ogni_min: 1440,
   emergenza_durata_min: 3, gelo_c: 2.0, caldo_c: 38.0, blocco_gelo: true, portata_nominale_l_min: 1.0,
   flusso_verifica_min: 2, flusso_min_rel: 0.3, flusso_max_rel: 1.6, acqua_inattesa: 0.08, inattesa_max: 0.85,
   allagata_ore: 6, soglia_allagata: 0.95, riserva_l: null, soglia_on_riserva: 0.35, soglia_off_riserva: 0.55,
@@ -26,6 +27,7 @@ class Controllore {
     this.ultima_fine = vuoto(null); this.ultimo_emergenza = vuoto(null); this.u_rif = vuoto(null); this.uf = vuoto(null);
     this.da_verificare = null; this.ore_bagnata = vuoto(0); this.bloccata = vuoto(false); this.perdita = vuoto(false);
     this.pompa_bloccata = false; this.acqua_inattesa = null; this.fermo_riavvii = false; this.ultima_pioggia = null;
+    this.campioni_livello = []; this.ultima_grondaia = null; this.pompa_sospetta = null;
     this.con_memoria = memoria != null; this.pompa_in_corso = false; this.riavvii_pompa = 0; this.memoria_cambiata = false;
     if (memoria != null) {
       const lista = (v, base) => { const a = (v || base).slice(0, nZone); while (a.length < nZone) a.push(false); return a; };
@@ -52,7 +54,7 @@ class Controllore {
   }
   reset() {
     const vuoto = v => Array(this.n).fill(v);
-    this.bloccata = vuoto(false); this.perdita = vuoto(false); this.pompa_bloccata = false; this.acqua_inattesa = null;
+    this.bloccata = vuoto(false); this.perdita = vuoto(false); this.pompa_bloccata = false; this.acqua_inattesa = null; this.pompa_sospetta = null;
     this.fermo_riavvii = false; this.riavvii_pompa = 0; this.u_rif = vuoto(null); this.memoria_cambiata = true;
   }
   _ferma(minuto) {
@@ -80,6 +82,16 @@ class Controllore {
     const piove_ora = !!L.pioggia_in_corso;
     if (piove_ora) this.ultima_pioggia = m;
     pioggia = pioggia || piove_ora;
+    if (litri != null) {
+      if (m % 10 === 0) this.campioni_livello = this.campioni_livello.concat([litri]).slice(-4);
+      if (this.campioni_livello.length && litri - Math.min(...this.campioni_livello) >= p.aumento_livello_pioggia_l) this.ultima_grondaia = m;
+    }
+    if (this.pompa_sospetta != null && m - this.pompa_sospetta[0] >= p.conferma_pompa_min) {
+      const inizio = this.pompa_sospetta[1];
+      this.pompa_sospetta = null;
+      const entrata = [this.ultima_grondaia, this.ultima_pioggia].filter(x => x != null && x >= inizio - p.conferma_pompa_min);
+      if (!entrata.length) { this.pompa_bloccata = true; this.memoria_cambiata = true; }
+    }
     const batteria_bassa = batteria != null && batteria < p.batteria_min_pompa;
     const riserva = p.riserva_l != null && litri != null && litri < p.riserva_l;
     const soglia_on = riserva ? p.soglia_on_riserva : p.soglia_on, soglia_off = riserva ? p.soglia_off_riserva : p.soglia_off;
@@ -116,9 +128,10 @@ class Controllore {
       if (this.zona != null && !this.verificato && durata >= p.verifica_pompa_min) {
         this.verificato = true;
         const misura_valida = litri != null && this.l_inizio != null && litri <= this.l_inizio + 0.5
-          && !(this.ultima_pioggia != null && this.ultima_pioggia >= this.inizio);
+          && !(this.ultima_pioggia != null && this.ultima_pioggia >= this.inizio)
+          && !(p.livello_pieno_l != null && litri >= p.livello_pieno_l);
         if (flusso == null && misura_valida && this.l_inizio - litri < p.calo_minimo_l) {
-          this.pompa_bloccata = true; this.memoria_cambiata = true; this._ferma(m); this.da_verificare = null;
+          this.pompa_sospetta = [m, this.inizio]; this._ferma(m); this.da_verificare = null;
         }
       }
     }
@@ -129,7 +142,7 @@ class Controllore {
       if (u[zv] != null && u[zv] - u0 < p.aumento_minimo) { this.bloccata[zv] = true; this.memoria_cambiata = true; }
     }
     // 2. avvio di una nuova irrigazione: la zona più secca tra quelle che ne hanno bisogno
-    if (this.zona == null && !basso && !this.pompa_bloccata && !allagamento && !batteria_bassa && !troppo_bagnata
+    if (this.zona == null && !basso && !this.pompa_bloccata && this.pompa_sospetta == null && !allagamento && !batteria_bassa && !troppo_bagnata
         && !this.fermo_riavvii && !(gelo && p.blocco_gelo) && m - this.avvio >= p.attesa_avvio_min) {
       let scelta = null;
       for (let i = 0; i < this.n; i++) {
@@ -170,7 +183,7 @@ class Controllore {
     if (gelo) allarmi.push("GELO");
     if (t != null && t >= p.caldo_c) allarmi.push("CALDO");
     const stato = [];
-    for (let i = 0; i < this.n; i++) {
+    for (let i = 0; i < this.n && !this.senza_stato; i++) {
       if (i === this.zona) stato.push(this.emergenza ? "emergenza" : "irriga");
       else if (this.bloccata[i] || this.perdita[i]) stato.push("bloccata");
       else if (u[i] == null) stato.push("sensore_guasto");
@@ -188,7 +201,10 @@ class ControlloreTimer {
   passo(L) {
     const m = L.minuto, dal = m % 1440 - this.ora;
     let zona = null;
-    if (this.durata > 0 && dal >= 0 && dal < this.durata * this.n) zona = Math.floor(dal / this.durata);
+    if (this.durata > 0 && dal >= 0 && dal < this.durata * this.n) {
+      zona = Math.floor(dal / this.durata);
+      if (L.zone_attive && !L.zone_attive[zona]) zona = null;
+    }
     const basso = L.serbatoio_basso || false, allagamento = L.allagamento || false;
     if (basso || allagamento) zona = null;
     const allarmi = [];
@@ -229,7 +245,7 @@ class MondoOrto {
     this.galleggiante_l = d("galleggiante_l", 50.0); this.tetto = d("tetto_m2", 10.0); this.portata = d("portata_l_min", 1.0);
     this.sensore_livello = d("sensore_livello", true); this.flussimetro = d("flussimetro", false);
     this.sensore_pioggia = d("sensore_pioggia", true); this.escursione = d("escursione_c", 10.0);
-    this.rumore = d("rumore", 1.0); this.pioggia_zone = d("pioggia_zone", true); this.rnd = mulberry32(d("seme", 1));
+    this.rumore = d("rumore", 1.0); this.rumore_sensore = d("rumore_sensore", this.rumore); this.pioggia_zone = d("pioggia_zone", true); this.rnd = mulberry32(d("seme", 1));
     this.secco = d("adc_secco", 3000); this.bagnato = d("adc_bagnato", 1300); this.tau = d("ritardo_sensore_min", 5.0);
     this.quadro_altezza = d("quadro_altezza_mm", 300.0); this.sensore_allagamento = d("sensore_allagamento_mm", null);
     this.energia = o.energia ? Object.assign({carica: 0.8, consumo_w: 0.6, pompa_w: 24.0}, o.energia, {spento: false}) : null;
@@ -238,7 +254,14 @@ class MondoOrto {
     this.troppo_pieno_l = 0.0; this.minuti_a_secco = 0; this.quadro_sommerso_min = 0; this.ore_spento = 0;
   }
   _guasto(nome, zona, m) { const g = this.guasti[nome]; if (!g) return false; const dal = g[zona]; return dal != null && m >= dal; }
-  _gauss(sigma) { return this.rumore ? sigma * gaussDa(this.rnd) : 0.0; }
+  // Box-Muller a coppie: il rumore non fa parte del confronto con Python (lì il caso è senza rumore)
+  _gauss(sigma) {
+    if (!this.rumore || !sigma) return 0.0;
+    if (this._g2 != null) { const v = this._g2; this._g2 = null; return sigma * v; }
+    const r = Math.sqrt(-2 * Math.log(this.rnd() + 1e-9)), a = 2 * Math.PI * this.rnd();
+    this._g2 = r * Math.sin(a);
+    return sigma * r * Math.cos(a);
+  }
   giorno(m) { return Math.min(Math.floor(m / 1440), this.meteo.length - 1); }
   temperatura(m) {
     const g = this.meteo[this.giorno(m)], ora = (m % 1440) / 60.0;
@@ -261,9 +284,9 @@ class MondoOrto {
     for (let i = 0; i < this.zone.length; i++) {
       const z = this.zone[i];
       if (this._guasto("sensore_staccato", i, m)) adc[i] = this.rumore ? Math.floor(this.rnd() * 61) : 30;
-      else if (this._guasto("sensore_fuori_terra", i, m)) adc[i] = Math.trunc(this.secco + this._gauss(15 * this.rumore));
+      else if (this._guasto("sensore_fuori_terra", i, m)) adc[i] = Math.trunc(this.secco + this._gauss(15 * this.rumore_sensore));
       else {
-        const v = this.secco - (z.letta + z.bias) * (this.secco - this.bagnato) + this._gauss(15 * this.rumore);
+        const v = this.secco - (z.letta + z.bias) * (this.secco - this.bagnato) + this._gauss(15 * this.rumore_sensore);
         adc[i] = Math.trunc(Math.min(Math.max(v, 0), 4095));
       }
     }

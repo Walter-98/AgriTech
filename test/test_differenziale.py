@@ -29,7 +29,7 @@ class TestContrattoIrrigazione(unittest.TestCase):
 
     def test_casi_significativi(self):
         """Ogni caso deve mettere alla prova quello che dice il suo nome."""
-        r = {c["nome"]: differenziale.esegui(c) for c in differenziale.casi() if c["nome"] != "anno_completo"}
+        r = {c["nome"]: differenziale.esegui(c) for c in differenziale.casi() if c["nome"] not in ("anno_completo", "gemello_orto")}
         allarmi = lambda n: {a[1] for a in r[n]["allarmi"]}
         self.assertGreater(r["giornata_asciutta"]["totali"]["litri"], 0)
         self.assertEqual(r["giornata_piovosa"]["totali"]["litri"], 0)

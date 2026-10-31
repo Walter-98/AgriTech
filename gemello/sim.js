@@ -111,8 +111,6 @@ function simula(c, opz = {}) {
   const battWh = (opz.batteria_ah || comp.batteria_ah) * 12 * batt.utile;
   const reaz = reazione(cc);
   const n = c.zone.length, nSens = Math.max(1, comp.sensori_zona);
-  const ciclo = Math.max(1, Math.floor(1440 / (L.max_min + L.pausa_min)));
-  const rnd = mulberry32(777);
   const inter = c.interno || {};
   const areaTot = c.zone.reduce((a, z) => a + z.area, 0);
   // consumo di base (W sempre accesi)
@@ -129,37 +127,72 @@ function simula(c, opz = {}) {
   const zone = c.zone.map((z, i) => {
     const P = PIANTE[z.coltura];
     return {i, z, P, kc: P.kc * (z.pacciamatura ? 0.8 : 1), cap: T.cap, dren: z.rialzata ? Math.max(T.dren, 15) : T.dren,
-            u: 0.6, ferma: 0, flusso: portataZona(cc, z), bias: 0, eta: 0, rotto: false, rottoDal: null, bloccata: false, bloccataDal: null,
-            litri: 0, persi: 0, stress: 0, ristagno: 0, attivi: 0, sostituzioni: 0};
+            flusso: portataZona(cc, z), bias: 0, eta: 0, rotto: false, rottoDal: null,
+            litri: 0, persi: 0, drenati: 0, stress: 0, ristagno: 0, attivi: 0, sostituzioni: 0};
   });
-  let cisterna = cap * 0.8, soc = battWh * 0.9, spento = false, quadroRotto = null, pompaBruciata = null, galleggiante = ex.galleggiante;
+  let soc = battWh * 0.9, spento = false, quadroRotto = null, pompaBruciata = null, galleggiante = ex.galleggiante;
   const out = {giorni: [], mesi: Array.from({length: 12}, () => ({pioggia: 0, usata: 0, cisterna: 0, rete: 0, raccolta: 0, wh: 0})),
                litri: 0, daCisterna: 0, daRete: 0, mancata: 0, raccolta: 0, troppoPieno: 0, wh: 0, whLed: 0, giorniSpento: 0,
                giorniBatteriaBassa: 0, persi: 0, eventi: [], domanda: [], entrate: [], pompeBruciate: 0, quadriDistrutti: 0,
-               minutiPompa: 0, giorniBloccoRiavvii: 0, drenati: 0};
+               minutiPompa: 0, giorniBloccoRiavvii: 0, drenati: 0, whGiorno: []};
   const evento = (d, tipo, testo) => out.eventi.push({d, tipo, testo});
   const attivo = (g, d) => d >= g.giorno && (g.fine == null || d < g.fine);
   const zonaG = (tipo, i, d) => guasti.find(g => g.tipo === tipo && g.zona === i && attivo(g, d));
   const globale = (tipo, d) => guasti.find(g => g.tipo === tipo && attivo(g, d));
   const ripara = (g, d, testo) => { if (g.rilevato == null) { g.rilevato = d; g.fine = d + reaz; evento(d, "warn", testo); } };
 
+  // Acqua nel terreno e decisioni di irrigazione: motore minuto per minuto condiviso con sistema/ (orto_minuti.js).
+  // Qui restano le cose che succedono a giorni: guasti e riparazioni, cisterna dal rubinetto, sole, quadro, costi.
+  const esterno = amb === "esterno", conTimer = L.strategia === "timer";
+  const giorniMondo = M.map(g => {
+    const exc = g.escursione != null ? g.escursione : g.tmin != null && g.tmax != null ? g.tmax - g.tmin : 12;
+    if (amb === "interno") return {et0: 0.6 + 0.018 * inter.led_w_m2 * inter.ore_luce / 16, pioggia: g.pioggia, t_media: inter.temp, escursione: 0, nuvoloso: g.nuvoloso, mese: g.m + 1};
+    if (amb === "serra") return {et0: g.et0 * 1.1 + 0.3, pioggia: g.pioggia, t_media: g.t + 6, escursione: exc / 2, nuvoloso: g.nuvoloso, mese: g.m + 1};
+    return {et0: g.et0, pioggia: g.pioggia, t_media: g.t, escursione: exc, nuvoloso: g.nuvoloso, mese: g.m + 1};
+  });
+  const galleggianteL = () => conCisterna && galleggiante ? cap * 0.05 : 0;
+  const mondo = new MondoOrto(zone.map(s => ({area_m2: s.z.area, kc: s.kc, capacita_mm: s.cap, drenaggio_mm_h: s.dren, umidita: 0.6,
+                                               efficienza: ero.efficienza, portata_l_min: s.flusso})), giorniMondo, {
+    serbatoio_l: conCisterna ? cap * 0.8 : 1e12, capacita_serbatoio_l: conCisterna ? cap : 1e12, galleggiante_l: galleggianteL(),
+    tetto_m2: conCisterna && amb !== "interno" ? c.acqua.tetto_m2 : 0, sensore_livello: conCisterna && comp.livello !== "nessuno",
+    flussimetro: !!ex.flussimetro, sensore_pioggia: esterno && !!ex.pioggia, pioggia_zone: esterno,
+    quadro_altezza_mm: amb === "interno" ? 1e9 : comp.quadro_cm * 10, sensore_allagamento_mm: ex.sonda_quadro && amb !== "interno" ? Math.max(5, comp.quadro_cm * 10 - 30) : null,
+    // rumore di ogni lettura: il capacitivo è il riferimento di sistema/modello.py (15 punti ADC), gli altri in proporzione
+    rumore_sensore: opz.rumore === 0 ? 0 : sens.rumore / 0.03 / Math.sqrt(nSens), rumore: opz.rumore === 0 ? 0 : 1, seme: 777});
+  const flussoMin = Math.min(...zone.map(s => s.flusso)), verificaPompa = Math.min(8, L.max_min - 1);
+  const flussoMax = Math.max(...zone.map(s => s.flusso));
+  // taratura al collaudo: dopo un'irrigazione completa il sensore deve salire almeno del 40% di quanto ci si aspetta
+  // con le portate vere (i valori di default di controllo.py sono per 1 L/min su 4 m²)
+  const salitaAttesa = Math.min(...zone.map(s => s.flusso * L.max_min * ero.efficienza / s.z.area / s.cap)) * 0.92;
+  const parCtrl = {soglia_on: L.soglia_on / 100, soglia_off: L.soglia_off / 100, soglia_critica: L.soglia_critica / 100,
+                   pioggia_salta_mm: esterno ? L.pioggia_salta_mm : 1e9, max_min: L.max_min, pausa_min: L.pausa_min,
+                   verifica_pompa_min: verificaPompa, calo_minimo_l: Math.min(1.0, 0.4 * flussoMin * verificaPompa), emergenza_durata_min: L.emergenza_min, blocco_gelo: !!L.blocco_gelo,
+                   acqua_inattesa: L.acqua_inattesa ? 0.08 : 0, portata_nominale_l_min: flussoMax,
+                   aumento_minimo: Math.min(0.02, 0.4 * salitaAttesa),
+                   riserva_l: conCisterna && comp.livello !== "nessuno" && L.riserva_l > 0 ? L.riserva_l : null,
+                   livello_pieno_l: conCisterna ? cap - 2 : null,
+                   soglia_on_riserva: (L.soglia_on - 10) / 100, soglia_off_riserva: (L.soglia_off - 15) / 100};
+  out.motore = {zone: mondo.zone.map(z => ({area_m2: z.area_m2, kc: z.kc, capacita_mm: z.capacita_mm, drenaggio_mm_h: z.drenaggio_mm_h,
+                                             efficienza: z.efficienza, portata_l_min: z.portata_l_min})),
+                mondo: {serbatoio_l: mondo.serbatoio, capacita_serbatoio_l: mondo.capacita, galleggiante_l: mondo.galleggiante_l, tetto_m2: mondo.tetto,
+                        sensore_livello: mondo.sensore_livello, flussimetro: mondo.flussimetro, sensore_pioggia: mondo.sensore_pioggia,
+                        pioggia_zone: mondo.pioggia_zone, quadro_altezza_mm: mondo.quadro_altezza, sensore_allagamento_mm: mondo.sensore_allagamento},
+                parametri: parCtrl};
+  const SPENTO_OUT = {pompa: false, valvole: Array(n).fill(false), umidita: Array(n).fill(null), allarmi: []};
+  let ctrl = null, memoria = {}, accesoPrima = false, pompaPrima = false, riavvioFino = -1, bloccoDal = null, ultimaUscita = SPENTO_OUT;
+  const BLOCCANTI = /_INEFFICACE|_PERDITA|POMPA_NON_EROGA|_ACQUA_INATTESA|RIAVVII_FREQUENTI/;
+
   for (let d = 0; d < 365; d++) {
-    const g = M[d], m = g.m, dom = M[(d + 1) % 365];
+    const g = M[d], m = g.m, gm = giorniMondo[d];
     const allarmi = [];
-    const pioggiaAiuole = amb === "esterno" ? g.pioggia : 0;
+    const pioggiaAiuole = esterno ? g.pioggia : 0;
     const pioggiaTetto = amb === "interno" ? 0 : g.pioggia;
-    let et0 = amb === "interno" ? 0.6 + 0.018 * inter.led_w_m2 * inter.ore_luce / 16 : g.et0 * (amb === "serra" ? 1.1 : 1) + (amb === "serra" ? 0.3 : 0);
-    const temp = amb === "interno" ? inter.temp : g.t + (amb === "serra" ? 6 : 0);
-    const minima = amb === "interno" ? temp : temp - (amb === "serra" ? 3 : 6);
-    const gelo = minima <= 2;
-    if (gelo) allarmi.push("GELO");
-    if (temp + 7 >= 38) allarmi.push("CALDO");
-    // cisterna
+    const temp = gm.t_media;
+    // cisterna: in casa si riempie a mano una volta alla settimana; fuori la riempie la pioggia (nel motore a minuti)
     let entrata = 0;
     if (conCisterna) {
-      entrata = amb === "interno" ? (d % 7 === 0 ? Math.max(0, cap - cisterna) : 0) : pioggiaTetto * c.acqua.tetto_m2 * 0.8;
-      cisterna += entrata;
-      if (cisterna > cap) { out.troppoPieno += cisterna - cap; cisterna = cap; }
+      if (amb === "interno") { if (d % 7 === 0) { entrata = Math.max(0, cap - mondo.serbatoio); mondo.serbatoio += entrata; } }
+      else entrata = pioggiaTetto * c.acqua.tetto_m2 * 0.8;
     }
     out.raccolta += entrata; out.mesi[m].raccolta += entrata; out.mesi[m].pioggia += pioggiaAiuole || pioggiaTetto; out.entrate.push(entrata);
     // corrente
@@ -172,134 +205,114 @@ function simula(c, opz = {}) {
     if (solare) {
       if (spento && soc > battWh * 0.25) spento = false;
       if (spento) acceso = false;
-      if (acceso && soc < battWh * 0.35) { pompaPermessa = false; out.giorniBatteriaBassa++; allarmi.push("BATTERIA_BASSA"); }
+      if (acceso && soc < battWh * 0.35) { pompaPermessa = false; out.giorniBatteriaBassa++; }
     }
     if (!acceso) out.giorniSpento++;
-    const debole = globale("alimentatore_debole", d);
-    if (debole && !ex.step_down && acceso) {
-      pompaPermessa = false; allarmi.push("RIAVVII_FREQUENTI"); out.giorniBloccoRiavvii++;
-      ripara(debole, d, "RIAVVII_FREQUENTI: il microcontrollore si riavvia quando parte la pompa; irrigazione ferma finché non sistemi l'alimentazione");
-    }
-    const pompaRotta = (pompa || !conCisterna) && (globale("pompa_guasta", d) || (pompaBruciata != null && d < pompaBruciata));
-    if (pompaBruciata != null && d >= pompaBruciata) { pompaBruciata = null; galleggiante = true; evento(d, "ok", "Pompa nuova montata, questa volta con il galleggiante"); }
+    const debole = globale("alimentatore_debole", d), brownout = debole && !ex.step_down;
+    if (pompaBruciata != null && d >= pompaBruciata) { pompaBruciata = null; galleggiante = true; mondo.galleggiante_l = galleggianteL(); evento(d, "ok", "Pompa nuova montata, questa volta con il galleggiante"); }
+    // guasti del giorno nel mondo a minuti (dal primo minuto del giorno, tolti quando sono riparati)
+    const G0 = d * 1440, gu = {};
+    const metti = (nome, i) => { (gu[nome] = gu[nome] || {})[i] = G0; };
     const pg = globale("pompa_guasta", d);
-    if (pg && acceso) {
-      allarmi.push(comp.livello !== "nessuno" || ex.flussimetro ? "POMPA_NON_EROGA" : "Z*_INEFFICACE");
-      ripara(pg, d, (comp.livello !== "nessuno" || ex.flussimetro ? "POMPA_NON_EROGA" : "Tutte le zone INEFFICACE") + ": pompa guasta, irrigazione ferma fino alla riparazione");
-    }
-    // zone: evapotraspirazione, pioggia, sensori
-    const piano = [];
+    if (pg || pompaBruciata != null) gu.pompa_guasta = G0;
+    const va = guasti.find(gg => gg.tipo === "valvola_aperta" && attivo(gg, d));
+    if (va && zone[va.zona]) metti("valvola_bloccata_aperta", va.zona);
     for (const s of zone) {
       const on = attiva(s.z, d);
-      // nucleo condiviso con il simulatore Python (sistema/nucleo.py): soluzione esatta del giorno
-      s.u = etGiorno(s.u, et0, on ? s.kc : 0.25, s.cap).u;
-      s.eccesso = 0;
-      s.u += pioggiaAiuole / s.cap;
-      if (s.u > 1) { s.eccesso += (s.u - 1) * s.cap; s.u = 1; }
+      if (on) s.attivi++;
       // sensore: età, deriva, sostituzioni
       s.eta++;
       if (comp.sostituzione_mesi > 0 && s.eta >= comp.sostituzione_mesi * 30) { s.eta = 0; s.bias = 0; s.rotto = false; s.sostituzioni += nSens; }
       s.bias -= sens.deriva;
       if (!s.rotto && s.eta > sens.vita) { s.rotto = true; s.rottoDal = d; evento(d, "warn", "Zona " + (s.i + 1) + ": sensore " + sens.nome.toLowerCase() + " a fine vita (Z" + (s.i + 1) + "_SENSORE)"); }
       if (s.rotto && d >= s.rottoDal + reaz) { s.rotto = false; s.eta = 0; s.bias = 0; s.sostituzioni += nSens; evento(d, "ok", "Zona " + (s.i + 1) + ": sensore sostituito"); }
-      const staccato = zonaG("sensore_staccato", s.i, d), fuori = zonaG("sensore_fuori_terra", s.i, d);
-      let letta = null;
-      if (!staccato && !s.rotto) letta = fuori ? 0.05 : Math.min(1, Math.max(0, s.u + s.bias + gaussDa(rnd) * sens.rumore / Math.sqrt(nSens)));
-      if (staccato) { allarmi.push("Z" + (s.i + 1) + "_SENSORE"); ripara(staccato, d, "Z" + (s.i + 1) + "_SENSORE: sensore staccato, la zona va a tempo (" + L.emergenza_min + " min al giorno)"); }
-      if (s.rotto) allarmi.push("Z" + (s.i + 1) + "_SENSORE");
-      if (s.bloccata && d >= s.bloccataDal + reaz) { s.bloccata = false; evento(d, "ok", "Zona " + (s.i + 1) + ": riparata e sbloccata"); }
-      if (s.bloccata) allarmi.push("Z" + (s.i + 1) + "_INEFFICACE");
-      // decisione
-      let litri = 0;
+      if (zonaG("sensore_staccato", s.i, d) || s.rotto) metti("sensore_staccato", s.i);
+      if (zonaG("sensore_fuori_terra", s.i, d)) metti("sensore_fuori_terra", s.i);
+      if (zonaG("tubo_rotto", s.i, d)) metti("tubo_rotto", s.i);
+      const mz = mondo.zone[s.i];
+      mz.kc = on ? s.kc : 0.25; mz.attiva = on; mz.bias = s.bias;
+      s.oreStress = 0; s.oreRistagno = 0; s.litri0 = mz.litri; s.persi0 = mz.persi;
+    }
+    mondo.guasti = gu;
+    // il tecnico arriva dopo i giorni di reazione e azzera i blocchi (reset manuale del controllore)
+    if (bloccoDal != null && d >= bloccoDal + reaz) { if (ctrl && ctrl.reset) { ctrl.reset(); memoria = ctrl.memoria(); } bloccoDal = null; evento(d, "ok", "Riparato e sbloccato: l'impianto riprende a irrigare"); }
+    // un giorno di minuti
+    const usati0 = mondo.litri_usati, pompa0 = mondo.pompa_minuti, secco0 = mondo.minuti_a_secco, sommerso0 = mondo.quadro_sommerso_min;
+    const visti = new Set();
+    let fermaMax = 0, daRete = 0;
+    for (let k = 0; k < 1440; k++) {
+      const mm = G0 + k;
+      const on = acceso && mm >= riavvioFino;
+      if (on && !accesoPrima) {
+        if (conTimer) ctrl = new ControlloreTimer(n, 420, L.timer_min);
+        else { ctrl = new Controllore(n, parCtrl, memoria); ctrl.senza_stato = true; memoria = ctrl.memoria(); }
+      }
+      // cisterna con riserva dal rubinetto: sotto il minimo si apre l'acqua di casa e si riempie un quinto della cisterna.
+      // (un rabbocco continuo mentre la pompa gira ingannerebbe la verifica sul livello: anche sull'impianto vero)
+      if (conCisterna && c.acqua.rete_riserva && mondo.serbatoio < mondo.galleggiante_l + 5) { const r = cap * 0.2; mondo.serbatoio += r; daRete += r; }
+      let o;
       if (on) {
-        s.attivi++;
-        if (L.strategia === "timer") litri = L.timer_min * s.flusso;
-        else if (letta == null) litri = L.emergenza_min * s.flusso;
-        else {
-          const riserva = conCisterna && comp.livello !== "nessuno" && L.riserva_l > 0 && cisterna < L.riserva_l;
-          const sOn = (riserva ? L.soglia_on - 10 : L.soglia_on) / 100, sOff = (riserva ? L.soglia_off - 15 : L.soglia_off) / 100;
-          const salta = dom.pioggia >= L.pioggia_salta_mm && amb === "esterno" && letta >= L.soglia_critica / 100;
-          if (letta < sOn && !salta) litri = Math.max(0, (sOff - letta) * s.cap * s.z.area / ero.efficienza);
-          if (riserva) allarmi.push("SERBATOIO_RISERVA");
-        }
-        litri = Math.min(litri, ciclo * L.max_min * s.flusso);
-        if (!acceso || !pompaPermessa || pompaRotta || s.bloccata || (gelo && L.blocco_gelo && amb !== "interno")) litri = 0;
+        const Lt = mondo.letture(mm);
+        if (solare) Lt.batteria = soc / battWh;
+        if (!esterno) { Lt.pioggia_in_corso = false; Lt.pioggia_prevista_mm = 0; }
+        o = ctrl.passo(Lt);
+        if (ctrl.memoria_cambiata) memoria = ctrl.memoria();
+        if (brownout && o.pompa && !pompaPrima) riavvioFino = mm + 2;      // la pompa parte, la tensione cede, si riavvia
+      } else o = SPENTO_OUT;
+      accesoPrima = on; pompaPrima = o.pompa;
+      mondo.avanza(mm, o, on);
+      for (const a of o.allarmi) visti.add(a);
+      if (o !== SPENTO_OUT) ultimaUscita = o;
+      if (k % 60 === 0) for (const s of zone) {
+        const mz = mondo.zone[s.i];
+        if (mz.attiva) { if (mz.acqua / mz.capacita_mm < 0.30) s.oreStress++; if (mz.superficie > 0) s.oreRistagno++; }
       }
-      piano.push(litri);
-      s.letta = letta;
+      const lv = mondo.livello_acqua_a_terra(); if (lv > fermaMax) fermaMax = lv;
     }
-    // valvola bloccata aperta: la zona riceve acqua quando la pompa gira per le altre
-    const va = guasti.find(gg => gg.tipo === "valvola_aperta" && attivo(gg, d));
-    if (va && zone[va.zona]) {
-      const k = zone[va.zona];
-      const rileva = L.acqua_inattesa && (ex.pioggia || amb !== "esterno");
-      const altri = piano.reduce((a, l, i) => a + (i === va.zona ? 0 : l), 0);
-      if (altri > 0) {
-        if (va.rilevato != null && rileva && k.u >= 0.85) piano.forEach((_, i) => { if (i !== va.zona) piano[i] = 0; });
-        else {
-          piano[va.zona] += altri * 0.5;
-          if (rileva && va.rilevato == null) ripara(va, d, "Z" + (va.zona + 1) + "_ACQUA_INATTESA: valvola bloccata aperta; si irriga solo finché la zona non è troppo bagnata");
-        }
-      }
-      if (!rileva && va.rilevato == null && d - va.giorno >= 14) { va.rilevato = d; va.fine = d; evento(d, "warn", "Valvola della zona " + (va.zona + 1) + " bloccata aperta: te ne accorgi a occhio dopo due settimane"); }
-      if (va.rilevato != null && rileva) allarmi.push("Z" + (va.zona + 1) + "_ACQUA_INATTESA");
+    // cosa è successo oggi
+    for (const a of visti) allarmi.push(a);
+    if (solare && !pompaPermessa && !visti.has("BATTERIA_BASSA")) allarmi.push("BATTERIA_BASSA");
+    if ([...visti].some(a => BLOCCANTI.test(a)) && bloccoDal == null) bloccoDal = d;
+    if (visti.has("RIAVVII_FREQUENTI")) out.giorniBloccoRiavvii++;
+    for (const gg of guasti) {
+      if (!attivo(gg, d) || gg.rilevato != null) continue;
+      const Z = gg.zona != null ? "Z" + (gg.zona + 1) : "";
+      if (gg.tipo === "sensore_staccato" && visti.has(Z + "_SENSORE")) ripara(gg, d, Z + "_SENSORE: sensore staccato, la zona va a tempo (" + L.emergenza_min + " min al giorno)");
+      else if (gg.tipo === "sensore_fuori_terra" && visti.has(Z + "_INEFFICACE")) ripara(gg, d, Z + "_INEFFICACE: sensore fuori dalla terra (legge sempre secco), zona bloccata");
+      else if (gg.tipo === "tubo_rotto" && (visti.has(Z + "_INEFFICACE") || visti.has(Z + "_PERDITA"))) ripara(gg, d, Z + (visti.has(Z + "_PERDITA") ? "_PERDITA" : "_INEFFICACE") + ": tubo staccato, zona bloccata");
+      else if (gg.tipo === "pompa_guasta" && (visti.has("POMPA_NON_EROGA") || [...visti].some(a => /_INEFFICACE/.test(a)))) ripara(gg, d, (visti.has("POMPA_NON_EROGA") ? "POMPA_NON_EROGA" : "Zone INEFFICACE") + ": pompa guasta, irrigazione ferma fino alla riparazione");
+      else if (gg.tipo === "valvola_aperta" && visti.has(Z + "_ACQUA_INATTESA")) ripara(gg, d, Z + "_ACQUA_INATTESA: valvola bloccata aperta; si irriga solo finché la zona non è troppo bagnata");
+      else if (gg.tipo === "valvola_aperta" && d - gg.giorno >= 14) { gg.rilevato = d; gg.fine = d; evento(d, "warn", "Valvola della zona " + (gg.zona + 1) + " bloccata aperta: te ne accorgi a occhio dopo due settimane"); }
+      else if (gg.tipo === "alimentatore_debole" && visti.has("RIAVVII_FREQUENTI")) ripara(gg, d, "RIAVVII_FREQUENTI: il microcontrollore si riavvia quando parte la pompa; irrigazione ferma finché non sistemi l'alimentazione");
     }
-    // erogazione
-    let litriGiorno = 0, minutiPompa = 0, minutiValvole = 0, domanda = 0;
-    zone.forEach((s, i) => {
-      let litri = piano[i];
-      domanda += litri;
-      if (litri <= 0) { s.oggi = 0; return; }
-      let dato = 0;
-      if (conCisterna) {
-        const minimo = galleggiante ? cap * 0.05 : 0;
-        dato = Math.min(litri, Math.max(0, cisterna - minimo));
-        cisterna -= dato; out.daCisterna += dato; out.mesi[m].cisterna += dato;
-        if (dato < litri) {
-          if (!galleggiante && cisterna <= 0 && pompaBruciata == null && pompa) {
-            pompaBruciata = d + reaz; out.pompeBruciate++;
-            evento(d, "crit", "Cisterna vuota senza galleggiante: la pompa gira a secco e si brucia");
-          }
-          if (galleggiante) allarmi.push("SERBATOIO_BASSO");
-          if (c.acqua.rete_riserva) { const r = litri - dato; dato += r; out.daRete += r; out.mesi[m].rete += r; }
-        }
-      } else { dato = litri; out.daRete += dato; out.mesi[m].rete += dato; }
-      if (dato < litri) out.mancata += litri - dato;
-      const minuti = dato / Math.max(0.05, s.flusso);
-      minutiValvole += minuti; minutiPompa += minuti;
-      litriGiorno += dato; s.litri += dato; s.oggi = dato;
-      const tubo = zonaG("tubo_rotto", i, d);
-      if (tubo) {
-        s.persi += dato; out.persi += dato;
-        if (!s.bloccata) { s.bloccata = true; s.bloccataDal = d; ripara(tubo, d, (ex.flussimetro ? "Z" + (i + 1) + "_PERDITA" : "Z" + (i + 1) + "_INEFFICACE") + ": tubo staccato, zona bloccata"); }
-      } else {
-        s.u += dato * ero.efficienza / s.z.area / s.cap;
-        if (s.u > 1) { const sprecati = (s.u - 1) * s.cap * s.z.area; s.drenati = (s.drenati || 0) + sprecati; out.drenati += sprecati; }
-      }
-      const fuori = zonaG("sensore_fuori_terra", i, d);
-      if (fuori && !s.bloccata) { s.bloccata = true; s.bloccataDal = d; ripara(fuori, d, "Z" + (i + 1) + "_INEFFICACE: sensore fuori dalla terra (legge sempre secco), zona bloccata"); }
-      if (s.u > 1) { s.eccesso += (s.u - 1) * s.cap; s.u = 1; }
-    });
-    // stato delle piante, acqua ferma, quadro
+    if (!galleggiante && conCisterna && mondo.minuti_a_secco > secco0 && pompaBruciata == null && pompa) {
+      pompaBruciata = d + reaz; out.pompeBruciate++;
+      evento(d, "crit", "Cisterna vuota senza galleggiante: la pompa gira a secco e si brucia");
+    }
+    // acqua del giorno
+    const litriGiorno = mondo.litri_usati - usati0, minutiPompa = mondo.pompa_minuti - pompa0, minutiValvole = minutiPompa;
+    if (conCisterna) { out.daCisterna += litriGiorno; out.mesi[m].cisterna += litriGiorno; out.daRete += daRete; out.mesi[m].rete += daRete; }
+    else { out.daRete += litriGiorno; out.mesi[m].rete += litriGiorno; }
+    const sOn = L.soglia_on / 100, sOff = L.soglia_off / 100;
     const umid = [], lette = [], acquaFerma = [], crescita = [], irrigata = [];
-    let fermaMax = 0;
     zone.forEach(s => {
-      const on = attiva(s.z, d);
-      s.ferma = Math.max(0, s.ferma * 0.5 + s.eccesso - s.dren * 24);
-      fermaMax = Math.max(fermaMax, s.ferma + s.eccesso * 0.6);
+      const mz = mondo.zone[s.i], on = mz.attiva, u = mz.acqua / mz.capacita_mm, oggi = mz.litri - s.litri0;
+      s.litri += oggi; s.persi += mz.persi - s.persi0; s.drenati = mz.sprecati; s.oggi = oggi;
       if (on) {
-        if (s.u < 0.30) s.stress++;
-        s.ristagno += Math.min(24, s.eccesso / s.dren);
-        if (s.eccesso / s.dren > 6) allarmi.push("Z" + (s.i + 1) + "_ALLAGATA");
+        s.stress += s.oreStress / 24; s.oreStressTot = (s.oreStressTot || 0) + s.oreStress; s.ristagno += s.oreRistagno;
+        if (visti.has("SERBATOIO_BASSO") && u < sOn) out.mancata += (sOff - u) * s.cap * s.z.area / ero.efficienza;
       }
-      umid.push(on ? s.u : null); lette.push(on ? s.letta : null);
-      acquaFerma.push(on ? Math.min(1, (s.ferma + s.eccesso) / 30) : 0);
+      umid.push(on ? u : null); lette.push(on ? ultimaUscita.umidita[s.i] : null);
+      acquaFerma.push(on ? Math.min(1, mz.superficie / 30) : 0);
       const dal = (d - INIZIO_MESE[s.z.mese - 1] + 365) % 365;
       crescita.push(on ? (dal % s.P.giorni) / s.P.giorni : 0);
-      irrigata.push(on && s.oggi > 0);
+      irrigata.push(on && oggi > 0);
     });
+    out.persi = zone.reduce((a, s) => a + s.persi, 0); out.drenati = zone.reduce((a, s) => a + s.drenati, 0);
+    out.domanda.push(litriGiorno);
+    const cisterna = conCisterna ? mondo.serbatoio : 0;
     if (amb !== "interno" && acceso && quadroRotto == null) {
-      const acquaQuadro = fermaMax > comp.quadro_cm * 10;
+      const acquaQuadro = mondo.quadro_sommerso_min > sommerso0;
       const infiltrazione = !opzione("quadro", comp.quadro).stagno && g.pioggia > 15;
       if (acquaQuadro || infiltrazione) {
         if (ex.sonda_quadro) allarmi.push("ALLAGAMENTO_QUADRO");
@@ -312,22 +325,25 @@ function simula(c, opz = {}) {
     const whAtt = minutiPompa / 60 * pompaW + minutiValvole / 60 * valv.w_aperta * (conCisterna ? 1 : 2) + (amb === "serra" && temp > 28 ? ventolaSerraW * 8 : 0);
     const whLed = acceso ? ledWhGiorno : 0;
     const wh = acceso ? baseW * 24 + whAtt + whLed : 0;
-    if (solare) {
+    out.whGiorno.push(wh);
+    if (solare && !opz.batteriaIllimitata) {
       const prod = pannelloW * R.sole[m] * reg.resa * (g.nuvoloso ? 0.25 : 1);
       soc = Math.min(battWh, soc + prod * 0.95 - wh);
       if (soc <= 0) { soc = 0; if (!spento) evento(d, "crit", "Batteria scarica: il microcontrollore si spegne"); spento = true; }
     }
     out.minutiPompa += minutiPompa;
-    out.wh += wh; out.whLed += whLed; out.mesi[m].wh += wh; out.litri += litriGiorno; out.mesi[m].usata += litriGiorno; out.domanda.push(domanda);
+    out.wh += wh; out.whLed += whLed; out.mesi[m].wh += wh; out.litri += litriGiorno; out.mesi[m].usata += litriGiorno;
     if (!acceso) allarmi.push(quadroRotto != null ? "QUADRO_DA_RIFARE" : "SPENTO");
     out.giorni.push({d, umid, lette, cisterna, soc: solare ? soc / battWh : null, litri: litriGiorno, pioggia: g.pioggia,
                      acquaFerma, crescita, irrigata, acceso, pompaPermessa, temp, allarmi: [...new Set(allarmi)], minutiPompa});
   }
+  out.troppoPieno = conCisterna ? mondo.troppo_pieno_l : 0;
   out.zone = zone.map(s => {
     const fattore = Math.max(0.3, 1 - 0.02 * s.stress - 0.002 * Math.max(0, s.ristagno - 24));
     const kg = s.P.resa * s.z.area * Math.max(1, s.z.cicli) * fattore * (c.ambiente === "interno" ? 0.85 : 1);
+    s.stress = Math.round(s.stress * 10) / 10;       // giorni equivalenti sotto il 30% (ore / 24)
     return {litri: s.litri, persi: s.persi, drenati: s.drenati || 0, stress: s.stress, ristagno: s.ristagno, kg, valore: kg * s.P.prezzo, attivi: s.attivi,
-            sostituzioni: s.sostituzioni, flusso: s.flusso};
+            sostituzioni: s.sostituzioni, flusso: s.flusso, oreStress: s.oreStressTot || 0};
   });
   out.kg = out.zone.reduce((a, z) => a + z.kg, 0);
   out.valore = out.zone.reduce((a, z) => a + z.valore, 0);
@@ -369,12 +385,24 @@ function cisternaIdeale(c, M) {
 }
 const PANNELLI = [10, 20, 30, 50, 80, 100, 150];
 const BATTERIE_AH = [7, 12, 18, 26, 40, 60, 100];
+// Pannello e batteria più economici senza nessun giorno spento o con la batteria bassa.
+// Una sola simulazione con batteria illimitata dà il consumo di ogni giorno: finché la batteria non scende sotto il 35%
+// l'irrigazione è identica, quindi per ogni coppia basta il bilancio giornaliero della batteria (stesse formule di simula).
 function solareIdeale(c, M) {
+  const base = simula(c, {meteo: M, componenti: {alimentazione: "solare"}, batteriaIllimitata: true});
+  if (!base.solare || base.giorniSpento > 0) return null;
+  const comp = c.componenti, b = opzione("batteria", comp.batteria), reg = opzione("regolatore", comp.regolatore), R = REGIONI[c.regione];
   let migliore = null;
   for (const w of PANNELLI) for (const ah of BATTERIE_AH) {
-    const s = simula(c, {meteo: M, pannello_w: w, batteria_ah: ah, componenti: {alimentazione: "solare"}});
-    if (s.giorniSpento === 0 && s.giorniBatteriaBassa === 0) {
-      const b = opzione("batteria", c.componenti.batteria);
+    const battWh = ah * 12 * b.utile;
+    let soc = battWh * 0.9, ok = true;
+    for (let d = 0; d < 365 && ok; d++) {
+      if (soc < battWh * 0.35) { ok = false; break; }
+      const g = M[d];
+      soc = Math.min(battWh, soc + w * R.sole[g.m] * reg.resa * (g.nuvoloso ? 0.25 : 1) * 0.95 - base.whGiorno[d]);
+      if (soc <= 0) ok = false;
+    }
+    if (ok) {
       const costo = w * 1.15 + ah * (b.euro_ah[0] + b.euro_ah[1]) / 2;
       if (!migliore || costo < migliore.costo) migliore = {w, ah, costo};
     }

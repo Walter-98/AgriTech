@@ -32,6 +32,17 @@ def _giorno(et0, pioggia, t_media, escursione=10.0, mese=7):
             "mese": mese}
 
 
+def _parametri_gemello(portate, aree, cap=60, eff=0.9):
+    """Parametri che il gemello passa al controllore (sim.js): soglie in %, verifiche tarate sulle portate vere."""
+    salita = min(q * 10 * eff / a / cap for q, a in zip(portate, aree)) * 0.92
+    return {"soglia_on": 45 / 100, "soglia_off": 70 / 100, "soglia_critica": 30 / 100, "pioggia_salta_mm": 3,
+            "max_min": 10, "pausa_min": 60, "verifica_pompa_min": min(8, 10 - 1),
+            "calo_minimo_l": min(1.0, 0.4 * min(portate) * min(8, 10 - 1)), "emergenza_durata_min": 3,
+            "blocco_gelo": True, "acqua_inattesa": 0.08, "portata_nominale_l_min": max(portate),
+            "aumento_minimo": min(0.02, 0.4 * salita), "riserva_l": 300, "livello_pieno_l": 1000 - 2,
+            "soglia_on_riserva": (45 - 10) / 100, "soglia_off_riserva": (70 - 15) / 100}
+
+
 def _pulisci(meteo):
     """Solo i campi che il motore usa, così il JSON è completo e piccolo."""
     campi = ("et0", "pioggia", "t_media", "escursione", "nuvoloso", "mese", "prevista")
@@ -63,6 +74,16 @@ def casi():
          "zone": [dict(ZONE[0], portata_l_min=0.76), dict(ZONE[1], portata_l_min=0.38, attiva=False)]},
         {"nome": "serra_pioggia_solo_in_cisterna", "meteo": inverno[:10] + estate, "zone": ZONE,
          "mondo": {"pioggia_zone": False, "sensore_pioggia": False}, "parametri": {"pioggia_salta_mm": 1e9}},
+        # lo stesso orto che il gemello costruisce da gemello/dati.js (ESEMPIO, pacchetto "sicuro", goccia, sensori
+        # professionali, senza riserva dal rubinetto): test/js/test_orto_differenziale.js controlla che simula() lo
+        # costruisca proprio così e che dia gli stessi totali dell'anno
+        {"nome": "gemello_orto", "meteo": _anno(20),
+         "zone": [{"nome": "pomodoro", "area_m2": 4, "kc": 1.1, "umidita": 0.6, "efficienza": 0.9, "portata_l_min": 4 * 0.19},
+                  {"nome": "lattuga", "area_m2": 2, "kc": 1.0, "umidita": 0.6, "efficienza": 0.9, "portata_l_min": 2 * 0.19}],
+         "mondo": {"serbatoio_l": 800.0, "capacita_serbatoio_l": 1000, "galleggiante_l": 1000 * 0.05, "tetto_m2": 15,
+                   "sensore_livello": True, "flussimetro": False, "sensore_pioggia": False, "pioggia_zone": True,
+                   "quadro_altezza_mm": 550, "sensore_allagamento_mm": 520},
+         "parametri": _parametri_gemello([4 * 0.19, 2 * 0.19], [4, 2])},
         {"nome": "goccia_efficienza_e_deriva", "meteo": estate,
          "zone": [dict(ZONE[0], efficienza=0.9, bias=-0.05), dict(ZONE[1], efficienza=0.9)]},
     ]
