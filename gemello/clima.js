@@ -34,9 +34,11 @@ const FONTI_CLIMA = [
 const ESCURSIONE_MESE = [7, 8, 9, 10, 11, 12, 12, 12, 10, 8, 7, 6];
 
 function meteoGiorno(c, d, rnd) {
+  // scostamento_t_esterna: per l'analisi di sensibilità (anno più caldo o più freddo della media)
+  const dt = c.scostamento_t_esterna || 0;
   const v = c.meteoReale && c.meteoReale.giorni && c.meteoReale.giorni[d];
-  if (v) return {tmin: v.tmin, tmax: v.tmax};
-  const m = meseDi(d), R = REGIONI[c.regione], t = R.t[m] + gaussDa(rnd) * 1.5, e = ESCURSIONE_MESE[m];
+  if (v) return {tmin: v.tmin + dt, tmax: v.tmax + dt};
+  const m = meseDi(d), R = REGIONI[c.regione], t = R.t[m] + gaussDa(rnd) * 1.5 + dt, e = ESCURSIONE_MESE[m];
   return {tmin: t - e / 2, tmax: t + e / 2};
 }
 function tEsternaOra(g, h) { return (g.tmin + g.tmax) / 2 + (g.tmax - g.tmin) / 2 * Math.cos(2 * Math.PI * (h - 15) / 24); }
@@ -68,7 +70,7 @@ function simulaClimaIdro(c, k, opz = {}) {
   const I = c.idro, CL = I.clima, P = parametriClima(c, k), R = REGIONI[c.regione];
   const rnd = mulberry32(4242), dt = opz.passoOre || 0.5;        // ore: 30 minuti, molto meno delle costanti di tempo (ore)
   // stessi ingressi → stesso risultato: il percorso guidato prova centinaia di varianti che spesso condividono il clima
-  const chiave = JSON.stringify([c.regione, c.meteoReale ? c.meteoReale.fonte + c.meteoReale.dal : "", P, CL, k.wLuci, k.ore, I.luce.notte, k.serbatoio,
+  const chiave = JSON.stringify([c.regione, c.scostamento_t_esterna || 0, c.meteoReale ? c.meteoReale.fonte + c.meteoReale.dal : "", P, CL, k.wLuci, k.ore, I.luce.notte, k.serbatoio,
     k.colture.map(x => [x.coltura, x.piante]), opz.pompaW || 0, dt]);
   if (CACHE_CLIMA.has(chiave)) return CACHE_CLIMA.get(chiave);
   if (CACHE_CLIMA.size > 300) CACHE_CLIMA.clear();

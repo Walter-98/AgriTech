@@ -252,3 +252,15 @@ test("distinta: un prezzo controllato si salva, cambia la spesa e finisce nel CS
   assert.deepStrictEqual(errori, []);
   await context.close();
 });
+
+test("sensibilità nella scheda Costi, per l'idroponica e per l'orto", async () => {
+  const {page, context, errori} = await apri();
+  for (const m of ["idro", "orto"]) {
+    await modo(page, m); await livello(page, "esperto"); await scheda(page, "costi");
+    await page.click("text=Calcola la sensibilità (qualche secondo)");
+    await page.waitForSelector("text=Rovescia il giudizio?", {timeout: 60000});
+    assert.ok(await page.locator("text=Prezzo dell'energia").count() >= 1);
+  }
+  assert.deepStrictEqual(errori, []);
+  await context.close();
+});

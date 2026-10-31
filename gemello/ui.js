@@ -507,6 +507,7 @@ function schedaCosti(box) {
     riquadro("Ogni anno", el("div", {class: "scorri"}, el("table", null, ta)), el("p", {class: "piccolo", text: rit}))));
   barChart(gT, {larghezza: 520, titolo: "Spesa cumulata", categorie: righe.map(r => "Fase " + r[0]), etichetteLunghe: righe.map(r => r[1]), serie: [{nome: "Totale fin qui (medio)", colore: "var(--accent)", valori: cumul}], fmt: v => fmt(v) + " €", fmtTip: v => fmt(v) + " €", altezza: 240, largo: 1.6});
   if (idro()) bilancioIdro(box);
+  sensibilitaUI(box);
   if (idro() && cfg.idro.colture.some(x => x.coltura === "microgreens")) microgreensUI(box);
   // confronti rapidi
   const varianti = idro() ? [
@@ -578,6 +579,20 @@ function bilancioIdro(box) {
   box.append(riquadro("Incertezza", el("p", {class: "piccolo", text: "I numeri sopra sono il caso centrale. Quanto possono cambiare?"}), el("div", null, binc), inc));
   box.append(riquadro(ECO.giudizio === "conviene" ? "Giudizio: conviene" : ECO.giudizio === "fragile" ? "Giudizio: si ripaga, ma fragile" : "Giudizio: sconsigliato",
     ...(ECO.motivi.length ? ECO.motivi : ["Nessun motivo per sconsigliarlo con queste ipotesi: verificale con un piccolo impianto di prova."]).map(t => el("p", {class: "piccolo", text: t}))));
+}
+// quanto cambia la convenienza se un'ipotesi è sbagliata (sensibilita.js)
+function sensibilitaUI(box) {
+  const out = el("div"), b = el("button", {class: "az sec", type: "button", text: "Calcola la sensibilità (qualche secondo)"});
+  b.addEventListener("click", () => { out.replaceChildren(el("p", {class: "piccolo", text: "Calcolo…"})); setTimeout(() => {
+    const r = idro() ? sensibilitaIdro(cfg) : sensibilitaOrto(cfg, M, S);
+    const v = (x, u) => (Math.abs(x) < 10 && x % 1 ? fmt(x, 2) : fmt(x)) + " " + u;
+    const es = e => euro(e.utile) + " · " + (e.conviene ? "conviene" : "non conviene");
+    out.replaceChildren(el("p", {class: "msg " + (r.rischio === "alto" ? "crit" : "ok"), text: r.messaggio}),
+      tabella(["Ipotesi", "Valore basso", "Utile all'anno", "Valore alto", "Utile all'anno", "Rovescia il giudizio?"],
+        r.righe.map(x => [x.nome, v(x.basso.valore, x.unita), x.nonIncide ? "non incide (niente vendita)" : es(x.basso.esito), v(x.alto.valore, x.unita), x.nonIncide ? "" : es(x.alto.esito), x.ribalta ? "SÌ" : "no"]), []),
+      el("p", {class: "piccolo", text: "Caso di partenza: utile " + euro(r.base.utile) + " all'anno (dopo l'ammortamento). Ogni riga cambia una sola ipotesi; le righe in alto pesano di più. \"Rovescia\" = con quel valore il giudizio passa da conviene a non conviene o viceversa."}));
+  }, 30); });
+  box.append(riquadro("Sensibilità: quanto contano le ipotesi", el("div", null, b), out));
 }
 function distintaCsv() {
   const q = v => '"' + String(v).replace(/"/g, '""') + '"';

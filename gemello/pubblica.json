@@ -16,6 +16,7 @@
     "registro.js",
     "calibrazione.js",
     "esperimento.js",
+    "sensibilita.js",
     "documenti.js",
     "grafici.js",
     "vista3d.js",
