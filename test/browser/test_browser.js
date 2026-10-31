@@ -264,3 +264,16 @@ test("sensibilità nella scheda Costi, per l'idroponica e per l'orto", async () 
   assert.deepStrictEqual(errori, []);
   await context.close();
 });
+
+test("quanto posso fidarmi: nella Simulazione e nella relazione, NON VALIDATO senza misure", async () => {
+  const {page, context, errori} = await apri();
+  for (const m of ["orto", "idro"]) {
+    await modo(page, m); await scheda(page, "simulazione");
+    await page.click("text=Quanto posso fidarmi di questa previsione?");
+    await page.waitForSelector("text=NON VALIDATO con dati reali");
+    await livello(page, "esperto"); await scheda(page, "documenti");
+    assert.match(await page.locator("#contenuto").innerText(), /Quanto posso fidarmi di queste previsioni\?[\s\S]*NON VALIDATO/);
+  }
+  assert.deepStrictEqual(errori, []);
+  await context.close();
+});

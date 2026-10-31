@@ -17,6 +17,7 @@
     "calibrazione.js",
     "esperimento.js",
     "sensibilita.js",
+    "affidabilita.js",
     "documenti.js",
     "grafici.js",
     "vista3d.js",

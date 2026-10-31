@@ -416,7 +416,19 @@ function messaggi() {
 }
 
 // ---------- simulazione: grafici ----------
+// ---------- quanto posso fidarmi di questa previsione? (affidabilita.js) ----------
+function affidabilitaTabella() {
+  const r = rapportoAffidabilita(cfg, S, VOCI), lista = v => v && v.length ? v.join("; ") : "nessuno";
+  return el("div", null, ...r.map(x => el("div", {class: "riquadro blocco"},
+    el("p", {class: "msg " + (x.stato === "verificato" ? "ok" : x.stato === "calibrato" ? "warn" : "crit")}, el("strong", {text: x.risultato + ": "}), document.createTextNode(STATO_VALIDAZIONE[x.stato] + (x.nota ? ". " + x.nota : "."))),
+    tabella(["", ""], [["Modello e versione", x.modello], ["Fonte dei dati", x.fonte], ["Parametri ipotizzati", lista(x.ipotizzati)], ["Parametri misurati", lista(x.misurati)],
+      ["Prove automatiche", x.prove], ["Calibrazione", x.calibrazione], ["Errori misurati", x.errori || "nessuno: mancano misure vere"], ["Incertezza", x.incertezza], ["Limiti", x.limiti]]))),
+    el("p", {class: "piccolo", text: "Le prove automatiche controllano che il codice faccia quello che dichiara, non che la previsione sia giusta per il tuo impianto. Un risultato diventa \"verificato\" solo con misure vere su dati mai usati per correggerlo (scheda Calibrazione per il clima; almeno 3 raccolti di validazione nel Registro per la crescita)."}));
+}
 function schedaSimulazione(box) {
+  const fid = el("details", {class: "blocco"}, el("summary", {text: "Quanto posso fidarmi di questa previsione?"}));
+  fid.addEventListener("toggle", () => { if (fid.open && fid.children.length < 2) fid.append(affidabilitaTabella()); });
+  box.append(fid);
   if (idro()) {
     const k = S.k;
     const serieE = [{nome: "Luci", colore: "var(--s1)", valori: S.mesi.map(m => m.luci)}, {nome: "Clima", colore: "var(--s2)", valori: S.mesi.map(m => m.clima)},
@@ -984,6 +996,7 @@ function schedaDocumenti(box) {
     sez("Costi", dentro(schedaCosti));
     sez("Schemi e collegamenti", dentro(schedaStruttura));
     sez("Manutenzione", dentro(schedaGestione));
+    sez("Quanto posso fidarmi di queste previsioni?", affidabilitaTabella());
     sez("Ipotesi e limiti", ...ipotesiELimiti(cfg).map(t => el("p", {class: "piccolo", text: "• " + t})));
     sez("Regole per vendere", ...normativaUI());
     return;
@@ -1017,6 +1030,7 @@ function schedaDocumenti(box) {
   sez("Report di simulazione", tabella(["Grandezza", "Valore"], [["Raccolto", fmt(S.kg) + " kg"], ["Corrente", fmt(S.kwh) + " kWh (luci " + fmt(S.kwhLuci) + ", clima " + fmt(S.kwhClima) + ", pompe " + fmt(S.kwhPompe) + ")"],
     ["Acqua", fmt(S.acqua) + " L"], ["Giorni troppo caldi / freddi", S.giorniCaldo + " / " + S.giorniFreddo], ["Giorni con acqua sopra 24 °C", S.giorniAcquaCalda], ["Giorni con umidità alta", S.giorniUmido],
     ["Clima usato", cfg.meteoReale ? cfg.meteoReale.fonte : "medie della zona"], ["Calibrazione attiva", (I.calibrazioni || []).length ? "versione " + I.calibrazioni[I.calibrazioni.length - 1].versione : "nessuna"]]));
+  sez("Quanto posso fidarmi di queste previsioni?", affidabilitaTabella());
   sez("Ipotesi e limiti del modello", ...ipotesiELimiti(cfg).map(t => el("p", {class: "piccolo", text: "• " + t})));
   sez("Regole per vendere (Italia)", ...normativaUI());
 }
