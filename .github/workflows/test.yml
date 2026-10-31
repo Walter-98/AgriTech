@@ -32,7 +32,8 @@ jobs:
   browser:
     # La pagina vera in Chromium, senza rete: fallisce se il gemello non si apre o non si usa,
     # anche quando i test numerici passano (es. due script con lo stesso nome, file mancanti, errori dell'interfaccia)
-    runs-on: ubuntu-latest
+    # Playwright 1.56 non supporta ancora Ubuntu 26.04 (ubuntu-latest): sistema fisso finché non lo supporta
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
