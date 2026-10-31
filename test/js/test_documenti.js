@@ -39,3 +39,10 @@ test("ipotesi, limiti e regole per vendere sono sempre dichiarati", () => {
   assert.ok(G.NORMATIVA.some(n => /210\/2013/.test(n.testo)));
   assert.ok(G.NORMATIVA.some(n => /228\/2001/.test(n.testo)));
 });
+
+test("l'impronta del progetto non dipende dall'ordine delle chiavi (stesso progetto dopo salva e riapri)", () => {
+  const a = {idro: {sistema: "nft", luce: {tipo: "led", w: 100}, colture: [{coltura: "lattuga", quota: 100}]}};
+  const b = {idro: {colture: [{quota: 100, coltura: "lattuga"}], luce: {w: 100, tipo: "led"}, sistema: "nft"}};
+  assert.strictEqual(G.versioneConfig(a), G.versioneConfig(b));
+  assert.notStrictEqual(G.versioneConfig(a), G.versioneConfig({idro: {sistema: "dwc", luce: {tipo: "led", w: 100}, colture: []}}));
+});

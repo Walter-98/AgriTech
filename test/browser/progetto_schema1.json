@@ -1,0 +1,16 @@
+{
+  "formato": "agritech-progetto",
+  "versione_schema": 1,
+  "salvato": "2026-09-15T10:00:00.000Z",
+  "impronta": "",
+  "configurazione": {
+    "modalita": "idro",
+    "regione": "centro",
+    "idro": {
+      "sistema": "nft",
+      "colture": [{"coltura": "lattuga", "quota": 70}, {"coltura": "basilico", "quota": 30}],
+      "piani": 2
+    }
+  },
+  "risultati": null
+}

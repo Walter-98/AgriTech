@@ -1,0 +1,22 @@
+{
+  "descrizione": "File da pubblicare insieme a index.html (Artifact o sito statico). Controllato da test/browser/test_browser.js.",
+  "pagina": "index.html",
+  "file": [
+    "lib/three.min.js",
+    "lib/OrbitControls.js",
+    "dati.js",
+    "progetto.js",
+    "sim.js",
+    "orto_minuti.js",
+    "idro.js",
+    "clima.js",
+    "ricetta.js",
+    "progetta.js",
+    "registro.js",
+    "documenti.js",
+    "grafici.js",
+    "vista3d.js",
+    "ui.js",
+    "lib/xlsx.full.min.js"
+  ]
+}

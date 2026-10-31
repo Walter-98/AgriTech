@@ -14,7 +14,9 @@ function unisci(base, sopra) {
   }
   return out;
 }
-cfg = migra(cfg && Array.isArray(cfg.zone) ? unisci(DEFAULT, cfg) : JSON.parse(JSON.stringify(DEFAULT)));
+// un salvataggio con l'orto o con l'idroponica si completa con i valori di partenza: mai buttato via in silenzio
+const salvataggioValido = c => c && typeof c === "object" && !Array.isArray(c) && (Array.isArray(c.zone) || (c.idro && typeof c.idro === "object"));
+cfg = migra(salvataggioValido(cfg) ? unisci(DEFAULT, cfg) : JSON.parse(JSON.stringify(DEFAULT)));
 function salva() { try { localStorage.setItem(CHIAVE, JSON.stringify(cfg)); } catch (e) {} }
 const idro = () => cfg.modalita === "idro";
 const etichettaGiorno = d => { const m = meseDi(d); return (d - INIZIO_MESE[m] + 1) + " " + MESI[m]; };
@@ -400,8 +402,7 @@ function messaggi() {
     if (S.drenati > 200) lista.push({tipo: "warn", titolo: fmt(S.drenati) + " L d'acqua sprecati in drenaggio", testo: "Il sensore legge più secco del vero o le soglie sono alte: l'acqua va sotto le radici.", chiave: "sensore_suolo"});
     if (S.sostituzioni > cfg.zone.length) lista.push({tipo: "warn", titolo: S.sostituzioni + " sensori da cambiare in un anno", testo: "Con " + opzione("sensore_suolo", comp.sensore_suolo).nome.toLowerCase() + " la manutenzione pesa.", chiave: "sensore_suolo"});
     if (cfg.acqua.fonte === "cisterna" && cfg.ambiente !== "interno") {
-      const id = cisternaIdeale(cfg, M);
-      if (S.daRete > 0 || S.mancata > 0) lista.push({tipo: S.mancata > 0 ? "crit" : "warn", titolo: "La cisterna non basta tutto l'anno", testo: (S.mancata > 0 ? fmt(S.mancata) + " L che le piante non ricevono. " : fmt(S.daRete) + " L dal rubinetto. ") + "Per non usare mai il rubinetto: cisterna da circa " + fmt(Math.ceil(id.litri / 100) * 100) + " L" + (id.entrata < id.domanda ? " e più tetto (il tetto raccoglie " + fmt(id.entrata) + " L contro " + fmt(id.domanda) + " L)." : "."), chiave: "cisterna"});
+      if (S.daRete > 0 || S.mancata > 0) { const id = cisternaIdeale(cfg, M); lista.push({tipo: S.mancata > 0 ? "crit" : "warn", titolo: "La cisterna non basta tutto l'anno", testo: (S.mancata > 0 ? fmt(S.mancata) + " L che le piante non ricevono. " : fmt(S.daRete) + " L dal rubinetto. ") + "Per non usare mai il rubinetto: cisterna da circa " + fmt(Math.ceil(id.litri / 100) * 100) + " L" + (id.entrata < id.domanda ? " e più tetto (il tetto raccoglie " + fmt(id.entrata) + " L contro " + fmt(id.domanda) + " L)." : "."), chiave: "cisterna"}); }
       else lista.push({tipo: "ok", titolo: "La cisterna basta", testo: "Non serve mai il rubinetto in questo anno."});
     }
     if (S.solare) { const id = solareIdeale(cfg, M);
@@ -907,17 +908,21 @@ function tabella(intest, righe, numeriche = []) {
   return el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...intest.map((t, i) => el("th", {class: numeriche.includes(i) ? "n" : "", text: t})))),
     el("tbody", null, ...righe.map(r => el("tr", null, ...r.map((v, i) => el("td", {class: numeriche.includes(i) ? "n" : "", text: String(v)})))))));
 }
+let esitoDocumenti = "";
 function schedaDocumenti(box) {
   const oggi = new Date().toISOString().slice(0, 10), ver = versioneConfig(cfg);
   const barra = el("div", {class: "blocco no-stampa"});
   const stampa = el("button", {class: "az", type: "button", text: "Stampa o salva in PDF"}); stampa.addEventListener("click", () => window.print());
-  const xlsx = el("button", {class: "az sec", type: "button", text: "Scarica Excel (.xlsx)"}), esito = el("span", {class: "piccolo", "aria-live": "polite"});
+  const xlsx = el("button", {class: "az sec", type: "button", text: "Scarica Excel (.xlsx)"}), esito = el("span", {class: "piccolo", "aria-live": "polite", text: esitoDocumenti});
+  esitoDocumenti = "";
   xlsx.addEventListener("click", () => esportaXlsx(esito));
   const csv = el("button", {class: "az sec", type: "button", text: "Lista materiali (CSV)"}); csv.addEventListener("click", () => scarica("lista-materiali.csv", "text/csv;charset=utf-8", distintaCsv()));
   const js = el("button", {class: "az sec", type: "button", text: "Salva il progetto (JSON)"});
   js.addEventListener("click", () => scarica("progetto-agritech-" + versioneConfig(cfg) + ".json", "application/json", esportaProgetto(cfg, idro() ? {kg: S.kg, kwh: S.kwh, acqua_l: S.acqua} : {kg: S.kg, kwh: S.kwh})));
   const apriJs = el("input", {type: "file", accept: ".json,application/json", "aria-label": "Apri un progetto"});
-  apriJs.addEventListener("change", () => { const f = apriJs.files[0]; if (!f) return; f.text().then(t => { try { const r = importaProgetto(t); cfg = unisci(DEFAULT, r.cfg); aggiorna(true); esito.textContent = "Progetto caricato (salvato il " + (r.salvato || "?").slice(0, 10) + ")."; } catch (e) { esito.textContent = e.message; } }); });
+  apriJs.addEventListener("change", () => { const f = apriJs.files[0]; if (!f) return; f.text().then(t => { try { const r = importaProgetto(t); cfg = unisci(DEFAULT, r.cfg);
+    // la scheda viene ridisegnata: l'esito va nella scheda nuova, non in quella vecchia che sparisce
+    esitoDocumenti = "Progetto caricato (salvato il " + (r.salvato || "?").slice(0, 10) + ")."; aggiorna(true); } catch (e) { esito.textContent = e.message; } }); });
   barra.append(el("p", {class: "piccolo", text: "Tutti i documenti del progetto in un'unica relazione: stampala o salvala in PDF dal browser (Stampa → Salva come PDF). Ogni documento riporta data, versione della configurazione, ipotesi e limiti."}), stampa, document.createTextNode(" "), xlsx, document.createTextNode(" "), csv, document.createTextNode(" "), js, document.createTextNode(" "),
     el("label", {class: "piccolo"}, document.createTextNode("Apri un progetto salvato: "), apriJs), document.createTextNode(" "), esito);
   box.append(barra);
@@ -991,8 +996,8 @@ function esportaXlsx(esito) {
   if (typeof XLSX !== "undefined") return fai();
   esito.textContent = "Carico la libreria per Excel…";
   const sc = document.createElement("script");
-  sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-  sc.onload = fai; sc.onerror = () => { esito.textContent = "Libreria per Excel non raggiungibile: usa il CSV (si apre in Excel)."; };
+  sc.src = "lib/xlsx.full.min.js";             // copia locale di SheetJS 0.18.5: funziona anche senza rete
+  sc.onload = fai; sc.onerror = () => { esito.textContent = "Libreria per Excel non caricata: usa il CSV (si apre in Excel)."; };
   document.head.append(sc);
 }
 

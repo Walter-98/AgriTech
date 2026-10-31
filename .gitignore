@@ -6,3 +6,4 @@ registro*.csv
 secrets.yaml
 __pycache__/
 *.pyc
+node_modules/

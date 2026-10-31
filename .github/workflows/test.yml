@@ -29,3 +29,19 @@ jobs:
         run: python -m sistema.simula tutti
       - name: Problemi e soluzioni a confronto
         run: python -m sistema.soluzioni --file soluzioni-ci.md
+  browser:
+    # La pagina vera in Chromium, senza rete: fallisce se il gemello non si apre o non si usa,
+    # anche quando i test numerici passano (es. due script con lo stesso nome, file mancanti, errori dell'interfaccia)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Playwright e Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Prove nel browser
+        run: node --test --test-concurrency=1 test/browser/test_browser.js

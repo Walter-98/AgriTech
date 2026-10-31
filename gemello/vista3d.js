@@ -7,7 +7,7 @@ const Vista3D = (() => {
   if (!window.THREE) {
     const nota = document.createElement("div");
     nota.className = "scena-nota";
-    nota.textContent = "La vista 3D ha bisogno di internet per caricare la libreria three.js. Il resto del gemello funziona lo stesso.";
+    nota.textContent = "La vista 3D non si è avviata (three.js in gemello/lib/ non caricato). Il resto del gemello funziona lo stesso.";
     box.append(nota);
     return null;
   }

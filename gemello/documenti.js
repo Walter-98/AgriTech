@@ -2,9 +2,16 @@
 // Documenti di progetto: calendario di semina e raccolta, piano di montaggio, piano di collaudo, ipotesi e limiti,
 // regole per vendere. Funzioni pure (niente pagina): la scheda Documenti le impagina e le stampa in PDF.
 
+// JSON con le chiavi in ordine alfabetico: lo stesso progetto ha la stessa impronta anche dopo un salvataggio e una
+// riapertura (che ricostruiscono gli oggetti con le chiavi in un altro ordine)
+function jsonOrdinato(v) {
+  if (Array.isArray(v)) return "[" + v.map(jsonOrdinato).join(",") + "]";
+  if (v && typeof v === "object") return "{" + Object.keys(v).sort().filter(k => v[k] !== undefined).map(k => JSON.stringify(k) + ":" + jsonOrdinato(v[k])).join(",") + "}";
+  return JSON.stringify(v === undefined ? null : v);
+}
 function versioneConfig(c) {
   // impronta breve della configurazione: due documenti con la stessa impronta descrivono lo stesso progetto
-  const t = JSON.stringify(c.idro || c.zone || c);
+  const t = jsonOrdinato(c.idro || c.zone || c);
   let h = 2166136261;
   for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (h >>> 0).toString(16).padStart(8, "0");
