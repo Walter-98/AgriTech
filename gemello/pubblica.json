@@ -14,6 +14,7 @@
     "progetta.js",
     "registro.js",
     "calibrazione.js",
+    "esperimento.js",
     "documenti.js",
     "grafici.js",
     "vista3d.js",

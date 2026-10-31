@@ -1111,10 +1111,68 @@ function schedaAmbiente(box) {
   box.append(ris);
 }
 
+// ---------- prima prova Kratky: dalla previsione congelata all'analisi degli errori ----------
+function provaKratkyUI(box, I) {
+  const P = PROVA_KRATKY, prove = (I.esperimenti || []).filter(e => e.tipo === "kratky"), e = prove.find(x => x.stato === "in corso"), fatta = prove.filter(x => x.stato === "concluso").pop();
+  const g = el("div");
+  const f1 = (x, d = 0) => x == null || !isFinite(x) ? "–" : fmt(x, d);
+  if (!e) {
+    const d = distintaProvaKratky();
+    g.append(el("p", {class: "piccolo", text: "Due contenitori " + P.lung_cm + "×" + P.prof_cm + " cm con " + P.piante_per_contenitore + " lattughe ciascuno, stessa varietà e stesso lotto, controllo a mano. Niente confronti tra condizioni diverse: con 12 piante non sarebbero affidabili. Si misura quanto sbaglia il gemello e quanto variano piante uguali. Protocollo completo in ESPERIMENTO_KRATKY.md."}),
+      tabella(["Materiale", "Quanti", "Prezzo (stima)", "Perché"], d.map(v => [v.nome, v.q, forbice(v.min, v.max), v.perche]), [1, 2]),
+      el("p", {class: "piccolo", text: "Totale stimato " + forbice(somma(d, "min"), somma(d, "max")) + " (prezzi da verificare: niente fornitori o codici inventati)."}));
+    const sem = el("input", {type: "date", "aria-label": "Data di semina", value: new Date().toISOString().slice(0, 10)});
+    const cond = CONDIZIONI_INIZIALI.map(([k, n]) => el("label", {class: "campo"}, document.createTextNode(n), el("input", {type: "text", "data-cond": k, "aria-label": n})));
+    const via = el("button", {class: "az", type: "button", text: "Congela la previsione e inizia la prova"});
+    via.addEventListener("click", () => { const condizioni = {}; g.querySelectorAll("input[data-cond]").forEach(i => { if (i.value) condizioni[i.dataset.cond] = i.value; });
+      avviaProvaKratky(cfg, {semina: sem.value, condizioni}); salva(); disegnaScheda(); });
+    g.append(el("div", {class: "campi"}, el("label", {class: "campo"}, document.createTextNode("Data di semina"), sem), ...cond), via,
+      el("p", {class: "piccolo", text: "Nelle Marche, in un garage non riscaldato, conviene seminare tra fine agosto e settembre o tra fine febbraio e marzo: da novembre a gennaio la lattuga cresce pochissimo e scaldare il garage costa più di tutta la prova."}));
+  } else {
+    const Pv = e.previsione;
+    g.append(el("p", {class: "msg ok", text: "Prova in corso dal " + e.semina + ". Previsione congelata il " + Pv.data + ": raccolta il " + e.raccolta_prevista + " (data fissa), " + f1(Pv.peso) + " g per pianta (80% delle volte tra " + f1(Pv.pesoP10) + " e " + f1(Pv.pesoP90) + " g), circa " + f1(Pv.kwhPeriodo) + " kWh. Non si ricalcola."}));
+    const dt = el("input", {type: "date", value: new Date().toISOString().slice(0, 10), "aria-label": "Data"});
+    const ins = DIARIO_CAMPI.map(f => el("label", {class: "campo"}, document.createTextNode(f.nome + (f.unita ? " (" + f.unita + ")" : "")),
+      el("input", {type: f.k === "foto" || f.k === "note" ? "text" : "number", step: "0.1", "data-dia": f.k, "aria-label": f.nome})));
+    const add = el("button", {class: "az", type: "button", text: "Aggiungi al diario"});
+    add.addEventListener("click", () => { const v = {data: dt.value}; g.querySelectorAll("input[data-dia]").forEach(i => { if (i.value !== "") v[i.dataset.dia] = i.value; });
+      try { aggiungiDiario(e, v); salva(); disegnaScheda(); } catch (err) { add.textContent = err.message; } });
+    g.append(el("h4", {text: "Diario"}), el("div", {class: "campi"}, el("label", {class: "campo"}, document.createTextNode("Data"), dt), ...ins), add);
+    if (e.diario.length) g.append(tabella(["Data", "Min", "Max", "UR", "Soluzione", "pH", "EC", "Livello", "Vive", "Avvisi"],
+      e.diario.slice(-14).reverse().map(d => [d.data, f1(d.t_min, 1), f1(d.t_max, 1), f1(d.ur), f1(d.t_acqua, 1), f1(d.ph, 1), f1(d.ec, 1), f1(d.livello_cm), f1(d.piante_vive), (d.avvisi || []).join("; ")]), [1, 2, 3, 4, 5, 6, 7, 8]));
+    // raccolta pianta per pianta
+    const pos = []; for (const c of ["A", "B"]) for (let i = 1; i <= P.piante_per_contenitore; i++) pos.push(c + i);
+    const righe = pos.map(p => el("tr", null, el("td", {text: p}), el("td", null, el("input", {type: "number", step: "1", "data-peso": p, "aria-label": "Peso edibile " + p})),
+      el("td", null, el("input", {type: "number", step: "1", "data-scarto": p, "aria-label": "Scarto " + p})), el("td", null, el("input", {type: "text", "data-nota": p, "aria-label": "Note " + p}))));
+    const kwhF = el("input", {type: "number", step: "0.1", "aria-label": "Lettura finale del contatore"}), dr = el("input", {type: "date", value: e.raccolta_prevista, "aria-label": "Data di raccolta"});
+    const rac = el("button", {class: "az", type: "button", text: "Registra la raccolta e calcola gli errori"});
+    rac.addEventListener("click", () => {
+      const piante = pos.map(p => ({pos: p, peso_g: g.querySelector('[data-peso="' + p + '"]').value, scarto_g: g.querySelector('[data-scarto="' + p + '"]').value, note: g.querySelector('[data-nota="' + p + '"]').value}))
+        .filter(x => x.peso_g !== "" || x.note);
+      if (!piante.length) return;
+      raccoltaProvaKratky(e, dr.value, piante, kwhF.value !== "" ? +kwhF.value : null); salva(); disegnaScheda(); });
+    g.append(el("h4", {text: "Raccolta (pianta per pianta, peso della parte che si mangia; pianta morta: lascia il peso vuoto e scrivilo nelle note)"}),
+      el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Pianta", "Peso g", "Scarto g", "Note"].map(t => el("th", {text: t})))), el("tbody", null, ...righe))),
+      el("div", {class: "campi"}, el("label", {class: "campo"}, document.createTextNode("Data di raccolta"), dr), el("label", {class: "campo"}, document.createTextNode("Contatore finale (kWh)"), kwhF)), rac);
+  }
+  if (fatta) {
+    const a = analisiProvaKratky(fatta);
+    g.append(el("h4", {text: "Ultima prova conclusa (" + fatta.semina + " – " + fatta.raccolta + ")"}),
+      tabella(["Cosa", "Previsto", "Misurato", "Errore"], [
+        ["Peso per pianta (g)", f1(a.peso.previsto) + " (" + f1(a.peso.p10) + "–" + f1(a.peso.p90) + ")", f1(a.piante.pesoMedio) + " ± " + f1(a.piante.dev), (a.peso.erroreRel > 0 ? "+" : "") + f1(a.peso.erroreRel * 100) + "% " + (a.peso.dentro ? "(dentro la forbice)" : "(FUORI dalla forbice)")],
+        ["Mortalità", f1(a.mortalita.attesa * 100) + "%", f1(a.mortalita.misurata * 100) + "%", ""],
+        ...(a.energia ? [["Energia (kWh)", f1(a.energia.previsti, 1), f1(a.energia.misurati, 1), (a.energia.erroreRel > 0 ? "+" : "") + f1(a.energia.erroreRel * 100) + "%"]] : []),
+        ...(a.piante.differenzaContenitori != null ? [["Differenza tra i due contenitori uguali", "", f1(a.piante.differenzaContenitori * 100) + "%", "variabilità naturale"]] : []),
+      ], [1, 2]), ...a.avvisi.map(t => el("p", {class: "msg warn", text: t})));
+  }
+  box.append(riquadro("Prima prova reale: lattuga in Kratky", g));
+}
+
 function schedaRegistro(box) {
   if (!idro()) { box.append(el("p", {class: "piccolo", text: "Il registro con la calibrazione per ora è per l'idroponica. Per l'orto: il simulatore Python accetta il meteo vero e le tue soglie (scheda Percorso)."})); return; }
   const I = cfg.idro;
   I.registro = I.registro || []; I.misure = I.misure || []; I.energia = I.energia || []; I.esperimenti = I.esperimenti || [];
+  provaKratkyUI(box, I);
   laboratorioUI(box, I);
   const oggi = new Date().toISOString().slice(0, 10);
   // nuovo ciclo

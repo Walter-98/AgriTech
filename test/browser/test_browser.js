@@ -205,3 +205,26 @@ test("calibrazione ambiente: importa le misure da CSV, mostra la verifica e appl
   fs.unlinkSync(file);
   await context.close();
 });
+
+test("prova Kratky: previsione congelata, diario, raccolta pianta per pianta e analisi degli errori", async () => {
+  const {page, context, errori} = await apri();
+  await modo(page, "idro"); await scheda(page, "registro");
+  await page.fill('input[aria-label="Data di semina"]', "2027-03-01");
+  await page.fill('input[data-cond="kwh0"]', "100");
+  await page.click("text=Congela la previsione e inizia la prova");
+  await page.waitForSelector("text=Prova in corso dal 2027-03-01");
+  const prev = await page.evaluate(() => cfg.idro.esperimenti.find(e => e.tipo === "kratky").previsione.peso);
+  await page.fill('input[aria-label="Data"]', "2027-03-05");
+  await page.fill('input[data-dia="ph"]', "7.5"); await page.fill('input[data-dia="ec"]', "1.4");
+  await page.click("text=Aggiungi al diario");
+  await page.waitForSelector("text=pH 7.5 fuori da 5,5-6,8");
+  for (const [p, g] of [["A1", 150], ["A2", 170], ["B1", 160], ["B2", 140]]) await page.fill('input[data-peso="' + p + '"]', String(g));
+  await page.fill('input[data-nota="A3"]', "morta");
+  await page.fill('input[aria-label="Lettura finale del contatore"]', "190");
+  await page.click("text=Registra la raccolta e calcola gli errori");
+  await page.waitForSelector("text=Un solo raccolto non rende affidabile il modello");
+  const e = await page.evaluate(() => cfg.idro.esperimenti.find(e => e.tipo === "kratky"));
+  assert.strictEqual(e.stato, "concluso"); assert.strictEqual(e.piante_raccolte, 4); assert.strictEqual(e.previsione.peso, prev, "la previsione è cambiata");
+  assert.deepStrictEqual(errori, []);
+  await context.close();
+});
