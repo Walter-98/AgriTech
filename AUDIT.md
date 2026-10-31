@@ -30,7 +30,7 @@ L'interfaccia (`ui.js`) e il 3D (`vista3d.js`) sono separati dai motori (`sim.js
 | Logica di controllo irrigazione | Implementata e testata (simulazione), non validata su campo |
 | Firmware ESP32 irrigazione | Implementata ma non validata: provata con hardware finto in Python, non su Wokwi né su scheda vera |
 | Simulatore orto Python (bilancio idrico) | Implementata e testata, modello euristico |
-| Gemello: motore orto (`sim.js`) | Prototipo: senza test propri, duplica il modello Python con formule diverse |
+| Gemello: motore orto (`sim.js`) | Dalla 2.1 usa il motore minuto per minuto di `orto_minuti.js`, traduzione di `sistema/controllo.py` e `modello.py`: stessi eventi del Python su 16 casi (test differenziali); non validato su un orto vero |
 | Gemello: motore idroponica (`idro.js`) | Implementata e testata numericamente (14 test), non validata con raccolti veri |
 | Luce: PPFD e DLI dai watt montati | Implementata e testata (fase 1) |
 | Luce: distribuzione sul piano, uniformità, distanza | Implementata e testata (fase 4): mappa con sorgenti lambertiane e pareti riflettenti |
@@ -68,7 +68,7 @@ Stati: **COMPLETATO** (fatto e coperto da test), **SOLO SIMULAZIONE** (funziona 
 | Incertezza Monte Carlo (P10/P50/P90) | `idro.js` | COMPLETATO | intervalli dichiarati | C | sì | intervalli scelti a mano | restringerli coi dati |
 | Laboratorio: previsione congelata, calibrazione/validazione alternate, MAE/RMSE/bias | `registro.js` | COMPLETATO (codice), ATTESA DATI REALI | protocollo ChatGPT/AGRITECH 2.0 | - | `test_laboratorio.js` (5) | nessuno finché non ci sono raccolti | fare 3+ cicli |
 | Nucleo fisico condiviso Python/browser (acqua nel terreno) | `sistema/nucleo.py`, `sim.js` | COMPLETATO | FAO-56 semplificato | B | contratto 108 casi | - | estendere ai controllori |
-| Motore orto unico | `sim.js`, `sistema/modello.py` | NON COMPLETATO | - | - | - | +35% di acqua tra i due | unificare il controllore |
+| Motore orto unico | `orto_minuti.js`, `sistema/controllo.py`, `modello.py` | COMPLETATO (2.1), SOLO SIMULAZIONE | logica dell'ESP32 | - | contratto di 16 casi + replay | - | confronto con un orto vero |
 | Simulazione annuale idroponica | `idro.js` | SOLO SIMULAZIONE | - | C | `test_idro.js` | - | - |
 | Confronto tra tecnologie + fronte di Pareto (capex, €/kg, rischio, ore) | `progetta.js` | COMPLETATO | ricerca esaustiva su ~400 configurazioni | - | `test_progetta.js` | - | NSGA-II solo se lo spazio cresce: oggi non serve |
 | Verifiche fisiche: ingombri, altezza, pesi sui ripiani, ribaltamento | `idro.js` | COMPLETATO | portata da etichetta dello scaffale | B | `test_fase5.js` | senza portata dichiarata il giudizio è "non disponibile" | - |
@@ -90,6 +90,39 @@ Stati: **COMPLETATO** (fatto e coperto da test), **SOLO SIMULAZIONE** (funziona 
 Errore trovato in questa fase: `etGiorno` era dichiarato sia in `sim.js` sia in `ui.js` e nel browser la pagina non
 partiva più (i test Node caricano i moduli separati e non se ne accorgevano). Corretto, con un test nuovo
 (`test_script_unici.js`) che cerca i nomi doppi tra tutti gli script della pagina.
+
+## 2c. AgriTech 2.1: stabilizzazione e verifica (31 ottobre 2026, ramo `agritech-2.1`)
+
+| Funzione | Stato | Prove |
+|---|---|---|
+| Motore dell'orto unico Python ↔ browser | COMPLETATO, SOLO SIMULAZIONE | `test_differenziale.py`, `test_orto_differenziale.js`: 16 casi (giornata asciutta e piovosa, settimana estiva, mese invernale, anno, blackout, sensore guasto, serbatoio vuoto, pompa guasta, tubo rotto, valvola bloccata, timer manuale, aiuola vuota, serra, deriva, orto del gemello) con eventi della pompa e allarmi identici al minuto, più un replay con letture rumorose; `simula()` del gemello dà gli stessi totali del Python |
+| Prove nel browser vero | COMPLETATO | `test/browser/test_browser.js`, 15 prove in Chromium senza rete; job `browser` in CI |
+| Uso offline | COMPLETATO | three.js e SheetJS in `gemello/lib`; la pagina non chiede niente alla rete (i caratteri di Google Fonts sono facoltativi) |
+| Calibrazione ambiente (garage, tenda, soluzione) | COMPLETATO (codice), ATTESA DATI REALI | `test_calibrazione_ambiente.js` ritrova parametri nascosti e verifica su giorni indipendenti |
+| Primo esperimento Kratky | COMPLETATO (procedura), ATTESA DATI REALI | `ESPERIMENTO_KRATKY.md`, `test_esperimento_kratky.js` |
+| Prezzi tracciabili | COMPLETATO (meccanismo); i prezzi del gemello restano STIMATI | `test_catalogo.js`; nessun fornitore o codice inventato |
+| Sicurezza del dosaggio | SOLO SIMULAZIONE, ATTESA HARDWARE | `test_sicurezza_dosaggio.py`, `test_idro_controllo.py`, `test_firmware_idro.py`; il modo REALE resta disattivato |
+| Ottimizzatore e sensibilità | COMPLETATO | `test_sensibilita.js` (vincoli, Pareto, costi uniformi, rese plausibili, alto rischio) |
+| "Quanto posso fidarmi" | COMPLETATO | `test_affidabilita.js`: tutto NON VALIDATO finché non ci sono misure vere |
+| Scenari di accettazione A, B, C | COMPLETATO, SOLO SIMULAZIONE | `test_accettazione.js`, `ACCETTAZIONE_2.1.md` |
+
+Errori trovati e corretti nella 2.1:
+1. **Falso allarme POMPA_NON_EROGA nella logica dell'ESP32** con la pioggia dalla grondaia e senza sensore di pioggia:
+   la cisterna scendeva poco e la pompa veniva bloccata **fino al reset manuale**. Su un orto realistico, un anno
+   intero senza irrigazione. Ora la pompa si ferma subito, ma l'allarme arriva solo se in 30 minuti il livello non sale da solo.
+2. **Stesso falso allarme con la cisterna piena che trabocca** mentre piove: nuovo parametro `livello_pieno_l`.
+3. Verifiche di efficacia e della pompa tarate per 1 L/min su 4 m²: con le portate a goccia vere davano falsi
+   INEFFICACE. Nel gemello si tarano sulle portate, come al collaudo; nel firmware c'è la nota.
+4. L'impronta del progetto cambiava dopo una riapertura (ordine delle chiavi).
+5. Dopo "Apri un progetto" il messaggio di conferma finiva in un elemento già tolto dalla pagina.
+6. Un salvataggio del browser senza zone dell'orto veniva buttato via in silenzio.
+7. Commenti sbagliati nel firmware: il limite di 20 s è del firmware, non hardware; "acido 1:10 e pompa piccola" non è
+   sicuro in generale (con 20 L e acido non diluito il pH scende a 1,9).
+8. Il dimensionamento del solare rifaceva 49 simulazioni: ora una sola, con lo stesso risultato (da 41 a 0,9 secondi).
+
+Prove cambiate di proposito (non regressioni): `test_pompa_non_eroga`, perché l'allarme ora aspetta 30 minuti di
+conferma; la prova del modo REALE, che ora richiede anche la chiave fisica e l'autotest del taglio. Tutte le altre prove
+di partenza passano senza modifiche.
 
 ## 3. Errori trovati
 
@@ -113,10 +146,10 @@ partiva più (i test Node caricano i moduli separati e non se ne accorgevano). C
 8. Codice morto nel calcolo del valore e nessun test sul motore JavaScript: rimosso e aggiunti 14 test.
 
 ### Noti e non ancora corretti
-1. Due motori per l'orto (Python e JavaScript). Il bilancio idrico del giorno ora è lo stesso (`sistema/nucleo.py` e
-   `etGiorno` in `sim.js`, stesso contratto di 108 casi), ma i due **controllori** restano diversi (blocco per gelo,
-   fattore del sensore 0,92, orari): sullo stesso anno di meteo il Python dà 2619 L e il browser 3537 L (+35%).
-   Unificare anche il controllore non è fatto.
+1. ~~Due motori per l'orto con il 35% di differenza~~. **Correzione (2.1)**: quel 35% (2619 L contro 3537 L) veniva da
+   un confronto non alla pari (zone, terreno, fonte d'acqua e calendario delle colture diversi). Con gli stessi ingressi
+   il vecchio motore del browser differiva del 2-5%. Dalla 2.1 il browser usa la stessa logica del Python minuto per
+   minuto e dà gli stessi eventi e gli stessi litri (sezione 2c).
 2. ~~Clima solo su medie mensili~~: ora si può usare un anno vero del proprio comune (fase 4).
 3. ~~Manca la versione "zero elettronica"~~: aggiunta nella fase 2 (timer, penne, termometro min/max).
 4. Moltiplicatori di stress a soglia (caldo × 0,5 ecc.), senza fonte.

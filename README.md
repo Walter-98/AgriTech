@@ -17,6 +17,9 @@ tra una fase e l'altra.
 | `sistema/idro_controllo.py`, `sistema/idro_modello.py` | controllo dell'idroponica (pH, EC, dosaggio, sicurezze, modi simulazione/ombra/reale) e serbatoio simulato con 12 guasti |
 | `firmware/esp32-idroponica/` | firmware ESP32 per l'idroponica: sonde, dosatori, prese smart, MQTT; guida di collegamento e taratura |
 | `monitoraggio/` | vedere l'impianto dal telefono: ESPHome, Home Assistant (avvisi e plancia), accesso sicuro da fuori |
+| `ESPERIMENTO_KRATKY.md` | **primo esperimento reale**: lattuga in Kratky, previsione congelata, diario, raccolta, analisi degli errori |
+| `SICUREZZA_DOSAGGIO.md` | dosaggio automatico: architettura fail-safe, dose massima per il tuo serbatoio, matrice dei guasti, collaudo fisico F1-F12. Il modo REALE è disattivato |
+| `ACCETTAZIONE_2.1.md` | i tre scenari di accettazione (orto 20 m², garage 15 m², microgreens) generati da `node strumenti/accettazione.js` |
 | `AUDIT.md` | **stato reale del progetto**: cosa è testato e cosa no, errori trovati e corretti, architettura, roadmap, criteri di validazione, risposta al caso "garage, 500 €, Marche" |
 | `MODELLI.md` | schede dei modelli del gemello: formula, fonte, ipotesi, limiti, esempio numerico, affidabilità |
 | `sistema/controllo.py` | logica di controllo e sicurezze: **la stessa** nel simulatore e sull'ESP32 (provata anche in MicroPython) |
@@ -33,6 +36,8 @@ Per iniziare (serve solo Python 3):
 ```bash
 python3 -m unittest discover -s test -t .               # collaudo virtuale: deve finire con OK
 node --test test/js/test_*.js                           # test numerici del motore del gemello
+node --test --test-concurrency=1 test/browser/test_browser.js   # la pagina vera in Chromium, senza rete (serve Playwright)
+python3 -m sistema.differenziale > test/contratti/irrigazione.json   # da rifare se cambi sistema/controllo.py o modello.py
 python3 -m sistema.simula --elenco                      # scenari disponibili
 python3 -m sistema.simula tutti                         # tutti gli scenari, normale e con guasti
 python3 -m sistema.simula nubifragio --rapporto rapporto.html

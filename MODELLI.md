@@ -333,6 +333,50 @@ Nessun modello è stato ancora confrontato con un raccolto vero: la calibrazione
 - **Protocollo delle misure**: aria e soluzione ogni 15 minuti, pH/EC e livello ogni giorno, kWh, PPFD, altezza e
   foglie ogni 3-4 giorni, foto, peso edibile e scarto, lotto dei semi, mortalità e rabbocchi.
 
+## 8e. Orto: terreno e irrigazione minuto per minuto (C per i parametri, logica identica all'ESP32)
+
+Dalla 2.1 il gemello non stima più l'irrigazione a giorni. Usa `gemello/orto_minuti.js`, traduzione riga per riga di
+`sistema/modello.py` (il mondo) e di `sistema/controllo.py`, la logica che gira sull'ESP32 e che resta la fonte.
+- **Terreno**: un secchio per zona, con la capacità del tipo di terreno (35-85 mm).
+- **Consumo dell'acqua**: dalle 7 alle 19, ET0 × Kc × min(1, u/0,5), cioè la pianta beve meno quando il terreno è secco.
+- **Pioggia**: tra le 14 e le 17, sulle zone solo all'aperto.
+- **Ristagno**: l'eccesso diventa acqua ferma che drena alla velocità del terreno.
+- **Sensore**: legge il 92% a capacità di campo, con un ritardo di 5 minuti e rumore. Il capacitivo è il riferimento,
+  gli altri sensori in proporzione al loro rumore. La deriva giornaliera va sulla lettura.
+- **Controllore**: soglie con isteresi, tempo massimo e pausa, emergenza a tempo con il sensore guasto, gelo, pioggia
+  prevista, riserva, verifiche della pompa e dell'efficacia, acqua inattesa, memoria e riavvii.
+
+Due parametri si tarano come al collaudo, sulle portate vere: l'aumento minimo di umidità dopo un'irrigazione (40%
+di quello atteso) e il calo minimo della cisterna in 8 minuti (40% di portata × 8 minuti).
+
+Prove: contratto di 16 casi generato dal Python (`python3 -m sistema.differenziale`), con eventi e allarmi identici
+al minuto. Limiti: un solo strato di terreno, niente ruscellamento, nessuna prova su un orto vero.
+Costo: circa 0,9 s per un anno di 4 zone nel browser.
+
+## 4d. Calibrazione ambiente (procedura, non un modello nuovo)
+
+`gemello/calibrazione.js` confronta il modello del clima (§4) con le temperature misurate: tenda, garage e soluzione,
+minime e massime, medie a luci accese e spente. Il modello gira con la **temperatura esterna misurata**. Si correggono
+due fattori, dispersioni (fUA) e sole sul garage (fSole), su una griglia, usando i primi giorni (circa il 60%). Gli
+ultimi giorni servono solo a verificare. L'incertezza è l'insieme dei parametri che spiegano i giorni di calibrazione
+quasi altrettanto bene (entro il 10% + 0,1 °C).
+
+Stati:
+- **dati insufficienti**: meno di 7 giorni utili;
+- **calibrato, non validato**: niente giorni di verifica, o meno di 7;
+- **verificato**: almeno 7 giorni di verifica.
+
+Sono esclusi i giorni con la porta aperta, senza temperatura esterna e il primo di ogni serie (avvio dell'inerzia).
+
+## 8f. Dose massima di acido (A come bilancio, C come chimica senza titolazione)
+
+`sistema/sicurezza_dosaggio.py`, con lo stesso modello del pH di §8b: pH = 4 + 4a/(a + 0,8), con a = alcalinità in
+meq/L. Il pH- commerciale vale circa 6 meq/mL, va letto in etichetta. La funzione considera il caso peggiore: il
+dosatore resta acceso fino al relè a tempo, partendo dal pH più basso del funzionamento normale e dal volume minimo.
+Il pH deve restare sopra 4,5. Con una **titolazione misurata** sulla soluzione vera il calcolo usa la curva misurata
+al posto del modello. Prova: il calcolo coincide con il serbatoio simulato (pH 2,7 con acido non diluito, 1,5 mL/s
+per 20 s su 120 L).
+
 ## 9. Guasti (C)
 - Il blackout fa perdere piante quando le ore senza pompa superano la tolleranza del sistema: NFT 2 h, torri 1 h,
   DWC e secchi 12 h, vassoi 24 h, Kratky illimitata.
