@@ -163,6 +163,8 @@ function confrontoAmbienti(c) {
 
 // Calibrazione con le misure (CSV di Home Assistant: t_aria_min, t_aria_max della tenda o del locale): ricerca a
 // griglia di due fattori (dispersioni e sole) che riducono l'errore quadratico medio. Non tocca il controllo.
+// Versione semplice (tenda soltanto, meteo medio, nessun giorno di verifica): nell'interfaccia è sostituita da
+// calibraAmbiente (calibrazione.js). Resta per i test e per chi la usa da riga di comando.
 function calibraClima(c, misure) {
   const perData = {}; for (const m of misure || []) if (m.t_aria_min != null && m.t_aria_max != null) perData[m.data] = m;
   const date = Object.keys(perData);

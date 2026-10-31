@@ -5,7 +5,9 @@ Uso:
   python3 strumenti/storico_ha.py --url http://homeassistant.local:8123 --token TOKEN --giorni 30 --file misure.csv
 
 Il token si crea nel profilo di Home Assistant (Token di accesso a lungo termine). Non va su GitHub.
-Colonne del CSV: data, ph_medio, ec_media, t_acqua_media, t_acqua_max, t_aria_min, t_aria_max, ur_media.
+Colonne del CSV: data, ph_medio, ec_media, t_acqua_media, t_acqua_max, t_aria_min, t_aria_max, ur_media e, se in Home
+Assistant ci sono i sensori del garage e di fuori (ENTITA_AMBIENTE), t_garage_min, t_garage_max, t_est_min, t_est_max:
+lo stesso file va nel Registro e nella scheda Calibrazione del gemello.
 """
 import argparse
 import csv
@@ -23,7 +25,14 @@ ENTITA = {
 }
 
 
-def riassumi(storico, entita=ENTITA):
+# facoltativi: con questi la scheda Calibrazione confronta anche garage e temperatura esterna (nomi da adattare)
+ENTITA_AMBIENTE = {
+    "t_garage": "sensor.agritech_garage_temperatura",
+    "t_est": "sensor.agritech_esterno_temperatura",
+}
+
+
+def riassumi(storico, entita=ENTITA, ambiente=ENTITA_AMBIENTE):
     """storico: risposta di /api/history/period (lista di liste di stati) -> righe giornaliere."""
     per_id = {}
     for serie in storico:
@@ -43,12 +52,21 @@ def riassumi(storico, entita=ENTITA):
                       "t_acqua_media": media(val["t_acqua"]), "t_acqua_max": max(val["t_acqua"]) if val["t_acqua"] else "",
                       "t_aria_min": min(val["t_aria"]) if val["t_aria"] else "", "t_aria_max": max(val["t_aria"]) if val["t_aria"] else "",
                       "ur_media": media(val["ur"])})
+        for k, e in ambiente.items():
+            v = per_id.get(e, {}).get(g, [])
+            if v:
+                righe[-1][k + "_min"], righe[-1][k + "_max"] = min(v), max(v)
+    if any(k + "_min" in r for r in righe for k in ambiente):      # stesse colonne in tutte le righe
+        for r in righe:
+            for k in ambiente:
+                r.setdefault(k + "_min", "")
+                r.setdefault(k + "_max", "")
     return righe
 
 
 def scarica(url, token, giorni):
     inizio = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=giorni)).isoformat()
-    q = url.rstrip("/") + "/api/history/period/" + urllib.parse.quote(inizio) + "?filter_entity_id=" + ",".join(ENTITA.values())
+    q = url.rstrip("/") + "/api/history/period/" + urllib.parse.quote(inizio) + "?filter_entity_id=" + ",".join(list(ENTITA.values()) + list(ENTITA_AMBIENTE.values()))
     req = urllib.request.Request(q, headers={"Authorization": "Bearer " + token})
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.load(r)

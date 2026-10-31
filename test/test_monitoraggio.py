@@ -30,6 +30,12 @@ class TestMonitoraggio(unittest.TestCase):
         self.assertEqual(len(r), 1)
         self.assertAlmostEqual(r[0]["ph_medio"], 6.1)
         self.assertEqual((r[0]["t_aria_min"], r[0]["t_aria_max"]), (18.0, 24.0))
+        self.assertNotIn("t_garage_min", r[0])          # senza sensori del garage niente colonne vuote in più
+        st.append([{"entity_id": "sensor.agritech_garage_temperatura", "state": "9.5", "last_changed": "2026-10-01T05:00:00"},
+                   {"entity_id": "sensor.agritech_garage_temperatura", "state": "14", "last_changed": "2026-10-01T16:00:00"}])
+        r = riassumi(st)
+        self.assertEqual((r[0]["t_garage_min"], r[0]["t_garage_max"]), (9.5, 14.0))
+        self.assertEqual(r[0]["t_est_min"], "")         # stessa colonna in tutte le righe, vuota se manca il sensore
 
     @unittest.skipIf(yaml is None, "PyYAML non installato")
     def test_esphome_sorveglianza_senza_dosaggio_e_con_interblocchi(self):

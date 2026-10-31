@@ -1037,6 +1037,80 @@ function laboratorioUI(box, I) {
 }
 
 // ---------- registro e calibrazione ----------
+// ---------- calibrazione ambiente: misure del garage contro il modello del clima ----------
+function schedaAmbiente(box) {
+  if (!idro()) { box.append(el("p", {class: "piccolo", text: "La calibrazione dell'ambiente riguarda il garage e la tenda dell'idroponica. Per l'orto all'aperto il clima è quello esterno (meteo vero da Open-Meteo nella scheda Progetto)."})); return; }
+  const I = cfg.idro;
+  I.ambiente_misure = I.ambiente_misure || [];
+  const L = I.ambiente_misure, salvaRidisegna = () => { salva(); disegnaScheda(); };
+  box.append(riquadro("Come si fa (2-4 settimane)",
+    el("ol", {class: "piccolo"},
+      el("li", {text: "Termometri con memoria della minima e massima (o sensori dell'ESP32): uno fuori, all'ombra; uno nel garage a metà altezza, lontano dalla tenda; uno nella tenda all'altezza delle foglie; uno nella soluzione."}),
+      el("li", {text: "Ogni giorno alla stessa ora: segna minime e massime e azzera il termometro. Segna anche le ore con l'estrattore acceso, i kWh della presa con contatore e quante volte hai aperto la porta del garage."}),
+      el("li", {text: "Non cambiare niente nell'impianto durante la prova (luci, orari, stufetta): il modello deve vedere lo stesso impianto."}),
+      el("li", {text: "Dopo 7 giorni utili il gemello si calibra; dopo 14 controlla la calibrazione sugli ultimi giorni, che non usa per correggere. Solo allora può dire quanto sbaglia."})),
+    el("p", {class: "piccolo", text: "Con l'ESP32 o Home Assistant: esporta un CSV orario (data, ora, t_est, t_garage, t_tenda, t_acqua, ur, ventilazione, w, porta) oppure giornaliero; strumenti/storico_ha.py lo prepara da Home Assistant. Il gemello lo riassume giorno per giorno."})));
+  // inserimento a mano
+  const oggi = new Date().toISOString().slice(0, 10), nuovo = {data: oggi};
+  const campi = [["t_est_min", "Fuori, minima"], ["t_est_max", "Fuori, massima"], ["t_garage_min", "Garage, minima"], ["t_garage_max", "Garage, massima"],
+                 ["t_tenda_min", "Tenda, minima"], ["t_tenda_max", "Tenda, massima"], ["t_acqua", "Soluzione"], ["ur", "Umidità tenda (%)"],
+                 ["ventilazione_ore", "Estrattore (ore)"], ["kwh", "Corrente (kWh)"], ["porta_aperture", "Porta aperta (volte)"]];
+  const data = el("input", {type: "date", value: oggi, "aria-label": "Data della misura"});
+  const ins = campi.map(([k, n]) => { const i = el("input", {type: "number", step: "0.1", "aria-label": n, "data-k": k}); return el("label", {class: "campo"}, document.createTextNode(n), i); });
+  const agg = el("button", {class: "az", type: "button", text: "Aggiungi il giorno"});
+  agg.addEventListener("click", () => {
+    const r = {data: data.value};
+    box.querySelectorAll("input[data-k]").forEach(i => { if (i.value !== "") r[i.dataset.k] = +i.value; });
+    if (!r.data || Object.keys(r).length < 2) return;
+    const j = L.findIndex(x => x.data === r.data); if (j >= 0) L[j] = r; else L.push(r);
+    L.sort((a, b) => a.data < b.data ? -1 : 1); salvaRidisegna();
+  });
+  const file = el("input", {type: "file", accept: ".csv,text/csv", "aria-label": "Importa misure CSV"}), esito = el("span", {class: "piccolo", "aria-live": "polite"});
+  file.addEventListener("change", () => { const f = file.files[0]; if (!f) return; f.text().then(t => { try {
+    const nuove = misureAmbienteDaCsv(t, cfg); let n = 0;
+    for (const r of nuove) { const j = L.findIndex(x => x.data === r.data); if (j >= 0) L[j] = Object.assign({}, L[j], r); else L.push(r); n++; }
+    L.sort((a, b) => a.data < b.data ? -1 : 1); salvaRidisegna(); } catch (e) { esito.textContent = "CSV non valido: " + e.message; } }); });
+  const modello = el("button", {class: "az sec", type: "button", text: "Scarica il modello CSV"});
+  modello.addEventListener("click", () => scarica("misure-ambiente.csv", "text/csv;charset=utf-8", csvModelloAmbiente()));
+  const tutto = el("button", {class: "az sec", type: "button", text: "Scarica le misure (CSV)"});
+  tutto.addEventListener("click", () => scarica("misure-ambiente-" + oggi + ".csv", "text/csv;charset=utf-8",
+    COLONNE_AMBIENTE.join(",") + "\n" + L.map(r => COLONNE_AMBIENTE.map(k => r[k] == null ? "" : r[k]).join(",")).join("\n") + "\n"));
+  box.append(riquadro("Misure", el("div", {class: "campi"}, el("label", {class: "campo"}, document.createTextNode("Data"), data), ...ins), agg,
+    el("p", {class: "piccolo"}, document.createTextNode("Oppure importa un CSV: "), file, document.createTextNode(" "), modello, document.createTextNode(" "), tutto, document.createTextNode(" "), esito)));
+  if (L.length) {
+    const righe = L.slice(-60).reverse().map(r => { const del = el("button", {class: "chipbtn", type: "button", text: "togli", "aria-label": "Togli il " + r.data});
+      del.addEventListener("click", () => { L.splice(L.indexOf(r), 1); salvaRidisegna(); });
+      return el("tr", null, el("td", {text: r.data}), ...["t_est_min", "t_est_max", "t_garage_min", "t_garage_max", "t_tenda_min", "t_tenda_max", "t_acqua", "porta_aperture"].map(k => el("td", {class: "n", text: r[k] == null ? "–" : fmt(r[k], 1)})), el("td", null, del)); });
+    box.append(riquadro("Giorni registrati (" + L.length + ")", el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null,
+      ...["Data", "Fuori min", "Fuori max", "Garage min", "Garage max", "Tenda min", "Tenda max", "Soluzione", "Porta", ""].map((t, i) => el("th", {class: i && i < 9 ? "n" : "", text: t})))), el("tbody", null, ...righe)))));
+  }
+  // risultato
+  const r = calibraAmbiente(cfg, L, {partenza: I.clima.calibrazione});
+  const STATI = {dati_insufficienti: ["warn", "Dati insufficienti"], calibrato_non_validato: ["warn", "Calibrato, NON validato"], verificato: ["ok", "Verificato su giorni indipendenti"]};
+  const [tipo, nome] = STATI[r.stato];
+  const ris = riquadro("Quanto sbaglia il modello del clima", el("p", {class: "msg " + tipo}, el("strong", {text: nome + ". "}), document.createTextNode(r.messaggio)));
+  if (r.esclusi.length) ris.append(el("p", {class: "piccolo", text: "Giorni non usati: " + r.esclusi.map(e => e.data + " (" + e.motivo + ")").join("; ") + "."}));
+  const f1 = x => x == null || !isFinite(x) ? "–" : fmt(x, 1) + " °C";
+  const tab = (titolo, b, quale) => el("div", null, el("h4", {text: titolo}), tabella(["Temperatura", "Giorni", "Errore medio (MAE)", "RMSE", "Bias (+ = il modello sta alto)", "Errore massimo"],
+    b.variabili.map(v => [v.nome, v[quale].n, f1(v[quale].mae), f1(v[quale].rmse), f1(v[quale].bias), v[quale].n ? f1(v[quale].max) + " (" + v[quale].dataMax + ")" : "–"]), [1, 2, 3, 4, 5]));
+  if (r.calibrazione) {
+    ris.append(el("p", {class: "piccolo", text: "Calibrazione: " + r.calibrazione.giorni + " giorni (" + r.calibrazione.dal + " – " + r.calibrazione.al + "), errore da " + f1(r.calibrazione.rmsePrima) + " a " + f1(r.calibrazione.rmseDopo) +
+      ". Parametri: dispersioni × " + fmt(r.parametri.fUA, 2) + " (compatibili " + fmt(r.intervallo.fUA[0], 2) + "–" + fmt(r.intervallo.fUA[1], 2) + "), sole sul garage × " + fmt(r.parametri.fSole, 1) +
+      " (compatibili " + fmt(r.intervallo.fSole[0], 1) + "–" + fmt(r.intervallo.fSole[1], 1) + ")."}));
+    if (r.alBordo) ris.append(el("p", {class: "msg warn", text: "Il parametro migliore è al limite della griglia: probabilmente il modello non vede qualcosa (una fonte di calore, uno spiffero, il sole su una parete). Controlla il garage prima di fidarti della correzione."}));
+    if (r.verifica) {
+      ris.append(tab("Giorni di verifica (" + r.verifica.dal + " – " + r.verifica.al + "), con la calibrazione", r.verifica, "dopo"));
+      ris.append(el("p", {class: "piccolo", text: "Senza calibrazione l'errore di verifica sarebbe " + f1(r.verifica.rmsePrima) + ". Giorno: errore medio " + f1(r.verifica.giorno.mae) + ", bias " + f1(r.verifica.giorno.bias) +
+        "; notte: errore medio " + f1(r.verifica.notte.mae) + ", bias " + f1(r.verifica.notte.bias) + ". Con i parametri compatibili l'errore di verifica va da " + f1(r.verifica.rmseCompatibili[0]) + " a " + f1(r.verifica.rmseCompatibili[1]) + "."}));
+    } else ris.append(tab("Giorni di calibrazione (servono anche giorni di verifica)", r.calibrazione, "dopo"));
+    const usa = el("button", {class: "az", type: "button", text: "Usa la calibrazione nel gemello"});
+    usa.disabled = !r.verifica || !r.verifica.migliora;
+    usa.addEventListener("click", () => { I.clima.calibrazione = {fUA: r.parametri.fUA, fSole: r.parametri.fSole, dal: r.calibrazione.dal, al: r.calibrazione.al, stato: r.stato, rmseVerifica: r.verifica.rmseDopo}; aggiorna(false); });
+    ris.append(usa, el("span", {class: "piccolo", text: usa.disabled ? " Si può usare solo quando migliora anche i giorni di verifica." : I.clima.calibrazione && I.clima.calibrazione.dal ? " In uso: calibrazione del " + I.clima.calibrazione.dal + " – " + I.clima.calibrazione.al + "." : ""}));
+  }
+  box.append(ris);
+}
+
 function schedaRegistro(box) {
   if (!idro()) { box.append(el("p", {class: "piccolo", text: "Il registro con la calibrazione per ora è per l'idroponica. Per l'orto: il simulatore Python accetta il meteo vero e le tue soglie (scheda Percorso)."})); return; }
   const I = cfg.idro;
@@ -1089,18 +1163,14 @@ function schedaRegistro(box) {
   const indietro = el("button", {class: "az sec", type: "button", text: "Torna alla versione precedente"});
   indietro.disabled = !(I.calibrazioni && I.calibrazioni.length);
   indietro.addEventListener("click", () => { tornaIndietro(I); aggiorna(false); });
-  const cc = el("div");
-  const bcal = el("button", {class: "az sec", type: "button", text: "Calibra il clima con le misure"});
-  bcal.disabled = I.misure.length < 7;
-  bcal.addEventListener("click", () => { const r = calibraClima(cfg, I.misure);
-    if (!r.ok) { cc.replaceChildren(el("p", {class: "piccolo", text: r.motivo})); return; }
-    cc.replaceChildren(el("p", {class: "piccolo", text: "Su " + r.giorni + " giorni: errore sulle minime e massime della tenda da " + fmt(r.rmsePrima, 1) + " a " + fmt(r.rmseDopo, 1) + " °C con dispersioni ×" + fmt(r.fUA, 2) + " e sole ×" + fmt(r.fSole, 1) + "."}),
-      (() => { const b = el("button", {class: "az", type: "button", text: "Usa questa calibrazione"}); b.addEventListener("click", () => { I.clima.calibrazione = {fUA: r.fUA, fSole: r.fSole, data: new Date().toISOString().slice(0, 10), rmse: r.rmseDopo}; aggiorna(false); }); return b; })()); });
+  // la calibrazione del clima ha la sua scheda (con la temperatura esterna misurata e i giorni di verifica)
+  const vai = el("button", {class: "az sec", type: "button", text: "Apri Calibrazione ambiente"}); vai.addEventListener("click", () => apri("ambiente"));
   const togliCal = el("button", {class: "az sec", type: "button", text: "Togli la calibrazione del clima"});
   togliCal.disabled = !I.clima.calibrazione;
   togliCal.addEventListener("click", () => { delete I.clima.calibrazione; aggiorna(false); });
-  box.append(riquadro("Calibrazione del clima", el("p", {class: "piccolo", text: I.clima.calibrazione ? "In uso dal " + I.clima.calibrazione.data + ": dispersioni ×" + fmt(I.clima.calibrazione.fUA, 2) + ", sole ×" + fmt(I.clima.calibrazione.fSole, 1) + "." : "Con almeno 7 giorni di temperature misurate in tenda (min e max) il gemello adatta dispersioni e sole del modello termico. Meglio senza stufetta accesa: il termostato nasconde le dispersioni."}),
-    el("div", null, bcal, document.createTextNode(" "), togliCal), cc));
+  const inUso = I.clima.calibrazione;
+  box.append(riquadro("Calibrazione del clima", el("p", {class: "piccolo", text: inUso ? "In uso: dispersioni ×" + fmt(inUso.fUA, 2) + ", sole ×" + fmt(inUso.fSole, 1) + (inUso.dal ? " (misure " + inUso.dal + " – " + inUso.al + ", errore di verifica " + fmt(inUso.rmseVerifica, 1) + " °C)." : inUso.data ? " (calibrazione del " + inUso.data + " senza giorni di verifica: rifalla nella scheda Calibrazione)." : ".") : "Il modello del clima non è calibrato su questo garage. Si fa nella scheda Calibrazione, con 2-4 settimane di temperature."}),
+    el("div", null, vai, document.createTextNode(" "), togliCal)));
   box.append(riquadro("Calibrazione del modello",
     cf.statistiche.length ? el("div", {class: "scorri"}, el("table", null, el("thead", null, el("tr", null, ...["Coltura", "Cicli", "Errore medio ora", "Correzione proposta (95%)", "Errore dopo", ""].map((t, i) => el("th", {class: i ? "n" : "", text: t})))), el("tbody", null, ...righeSt))) : el("p", {class: "piccolo", text: "Servono almeno 2 cicli registrati per coltura."}),
     el("p", {class: "piccolo", text: "L'errore \"dopo\" è calcolato sugli stessi cicli: dice che la correzione è coerente, non che è giusta. Verificala sui prossimi raccolti."}),
@@ -1168,7 +1238,7 @@ function schedaInizia(box) {
 }
 
 // ---------- schede e aggiornamento ----------
-const SCHEDE = [["inizia", "Inizia"], ["progetto", "Progetto"], ["componenti", "Componenti"], ["logica", "Logica"], ["guasti", "Guasti"], ["simulazione", "Simulazione"], ["registro", "Registro"], ["costi", "Costi"], ["materiali", "Materiali"], ["struttura", "Struttura"], ["gestione", "Gestione"], ["documenti", "Documenti"], ["guida", "Guida"], ["percorso", "Percorso"]];
+const SCHEDE = [["inizia", "Inizia"], ["progetto", "Progetto"], ["componenti", "Componenti"], ["logica", "Logica"], ["guasti", "Guasti"], ["simulazione", "Simulazione"], ["registro", "Registro"], ["ambiente", "Calibrazione"], ["costi", "Costi"], ["materiali", "Materiali"], ["struttura", "Struttura"], ["gestione", "Gestione"], ["documenti", "Documenti"], ["guida", "Guida"], ["percorso", "Percorso"]];
 let schedaAperta = "progetto";
 function apri(nome) {
   if (!SCHEDE.some(s => s[0] === nome)) nome = "progetto";
@@ -1179,10 +1249,10 @@ function apri(nome) {
 }
 function disegnaScheda() {
   const box = $("contenuto"); box.replaceChildren();
-  const titoli = {documenti: "Documenti di progetto", registro: "Registro: misure vere contro gemello", inizia: "Progetta il tuo primo impianto", progetto: idro() ? "Il tuo impianto idroponico" : "Il tuo orto", componenti: "Componenti", logica: "Logica di controllo", guasti: "Guasti e scenari", simulazione: "Un anno nel gemello",
+  const titoli = {documenti: "Documenti di progetto", registro: "Registro: misure vere contro gemello", ambiente: "Calibrazione ambiente: garage, tenda e soluzione", inizia: "Progetta il tuo primo impianto", progetto: idro() ? "Il tuo impianto idroponico" : "Il tuo orto", componenti: "Componenti", logica: "Logica di controllo", guasti: "Guasti e scenari", simulazione: "Un anno nel gemello",
     costi: "Quanto costa, davvero", materiali: "Lista della spesa", struttura: "Come è fatto", gestione: "Gestirlo ogni giorno", guida: idro() ? "Guida da tecnico dell'idroponica" : "Guida", percorso: "Dal gemello alla realtà"};
   box.append(el("h2", {text: titoli[schedaAperta]}));
-  const f = {documenti: () => schedaDocumenti(box), registro: () => schedaRegistro(box), inizia: () => schedaInizia(box), progetto: () => idro() ? editorProgettoIdro(box) : editorProgettoOrto(box), componenti: () => idro() ? editorComponentiIdro(box) : editorComponentiOrto(box),
+  const f = {documenti: () => schedaDocumenti(box), registro: () => schedaRegistro(box), ambiente: () => schedaAmbiente(box), inizia: () => schedaInizia(box), progetto: () => idro() ? editorProgettoIdro(box) : editorProgettoOrto(box), componenti: () => idro() ? editorComponentiIdro(box) : editorComponentiOrto(box),
     logica: () => idro() ? editorLogicaIdro(box) : editorLogicaOrto(box), guasti: () => editorGuasti(box, idro() ? GUASTI_IDRO : GUASTI, !idro()),
     simulazione: () => schedaSimulazione(box), costi: () => schedaCosti(box), materiali: () => schedaMateriali(box), struttura: () => schedaStruttura(box),
     gestione: () => schedaGestione(box), guida: () => schedaGuida(box), percorso: () => schedaPercorso(box)}[schedaAperta];

@@ -180,3 +180,28 @@ test("il pacchetto da pubblicare contiene tutti i file che la pagina usa", async
   for (const f of usati) assert.ok(elenco.file.includes(f), "manca nel pacchetto da pubblicare: " + f);
   for (const f of elenco.file) assert.ok(fs.existsSync(path.join(DIR, f)), "nel pacchetto ma non esiste: " + f);
 });
+
+test("calibrazione ambiente: importa le misure da CSV, mostra la verifica e applica la calibrazione", async () => {
+  const {carica} = require("../js/carica.js");
+  const G = carica(), c = JSON.parse(JSON.stringify(Object.assign({}, G.ESEMPIO, {idro: G.IDRO_ESEMPIO})));
+  const k = G.capacitaIdro(c), righe = [];
+  for (let d = 0; d < 22; d++) righe.push({data: new Date(Date.UTC(2026, 10, 1 + d)).toISOString().slice(0, 10), t_est_min: 4 + 3 * Math.sin(d / 3), t_est_max: 13 + 4 * Math.sin(d / 4)});
+  const Gc = G.simulaClimaIdro(G.climaConMisure(c, righe, {fUA: 1.4, fSole: 0.5}), k, {passoOre: 1}).giorni;
+  let csv = "data;t_est_min;t_est_max;t_tenda_min;t_tenda_max;t_garage_min;t_garage_max\n";
+  for (const r of righe) { const g = Gc[G.giornoAnno(r.data)];
+    csv += [r.data, r.t_est_min, r.t_est_max, g.tMinTenda, g.tMaxTenda, g.tGarageMin, g.tGarageMax].map((v, i) => i ? (+v).toFixed(2).replace(".", ",") : v).join(";") + "\n"; }
+  const file = path.join(os.tmpdir(), "ambiente-" + process.pid + ".csv"); fs.writeFileSync(file, csv);
+  const {page, context, errori} = await apri();
+  await modo(page, "idro"); await scheda(page, "ambiente");
+  assert.match(await page.locator("#contenuto").innerText(), /Dati insufficienti/);
+  await page.setInputFiles('input[type="file"][accept*="csv"]', file);
+  await page.waitForSelector("text=Verificato su giorni indipendenti", {timeout: 30000});
+  assert.strictEqual(await page.evaluate(() => cfg.idro.ambiente_misure.length), 22);
+  await page.click("text=Usa la calibrazione nel gemello");
+  await page.waitForTimeout(500);
+  const cal = await page.evaluate(() => cfg.idro.clima.calibrazione);
+  assert.ok(cal && cal.stato === "verificato" && Math.abs(cal.fUA - 1.4) <= 0.3, JSON.stringify(cal));
+  assert.deepStrictEqual(errori, []);
+  fs.unlinkSync(file);
+  await context.close();
+});
